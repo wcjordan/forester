@@ -1,0 +1,25 @@
+version: "2"
+
+linters:
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - ineffassign
+    - gocritic
+    - revive
+  settings:
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+    revive:
+      rules:
+        - name: exported
+          arguments:
+            - "checkPrivateReceivers"
+
+formatters:
+  enable:
+    - gofmt

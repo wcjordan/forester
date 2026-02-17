@@ -4,13 +4,13 @@ import "fmt"
 
 // Game is the top-level orchestrator that owns the game state and loop.
 type Game struct {
-	State *GameState
+	State *State
 }
 
 // New creates a new Game with default state.
 func New() *Game {
 	return &Game{
-		State: newGameState(),
+		State: newState(),
 	}
 }
 

@@ -3,6 +3,7 @@ package game
 // TerrainType represents the base terrain of a tile.
 type TerrainType int
 
+// Terrain types.
 const (
 	Grassland TerrainType = iota
 	Forest
