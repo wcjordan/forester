@@ -1,0 +1,24 @@
+# Binary
+forester
+*.exe
+
+# Air hot-reload
+tmp/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test/coverage
+*.out
+coverage.html
+
+# Transient working files are tracked but listed here for awareness
+# docs/in_progress/
