@@ -6,14 +6,28 @@ See `docs/PROJECT_PLAN.md` for an idea of the project.
 
 ## Repo Map (entrypoints)
 
-Nothing here yet.  Working on a greenfield.
+- `main.go` — Entry point. Creates and runs the game.
+- `game/` — Core game package (all game logic lives here)
+  - `game.go` — `Game` struct, `New()`, `Run()` orchestrator
+  - `state.go` — `State` struct (owns Player + World)
+  - `player.go` — `Player` entity (position, inventory)
+  - `world.go` — `World` grid, `NewWorld()`, bounds/tile access
+  - `tile.go` — `Tile` and `TerrainType` definitions
+- `docs/PROJECT_PLAN.md` — Full game design document
 
 ---
 
 ## Verification commands
 
-Prefer existing test and linting tools.
-Nothing here yet. 
+```bash
+make check   # lint + test (primary gate — run this)
+make test    # tests only (with race detector)
+make lint    # golangci-lint only
+make build   # compile binary
+make run     # build and run
+make dev     # hot-reload with air
+make clean   # remove build artifacts
+```
 
 ---
 
