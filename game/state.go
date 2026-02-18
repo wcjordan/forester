@@ -8,7 +8,7 @@ type State struct {
 
 // newState creates an initial game state with defaults.
 func newState() *State {
-	world := NewWorld(100, 100)
+	world := GenerateWorld(100, 100, DefaultSeed)
 	player := NewPlayer(world.Width/2, world.Height/2)
 
 	return &State{
