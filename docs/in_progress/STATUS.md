@@ -1,13 +1,14 @@
 # STATUS.md — Phase 1: TUI Rendering + Player Movement
 
-## State: PLANNING
+## State: COMPLETE
 
 ## Completed
-- (none yet)
+- Stage 1: bubbletea integrated, responsive viewport, player visible as `@`
+- Stage 2: WASD + arrow key movement, bounds enforced, status bar at bottom
+- `make check` passing (lint + tests)
 
 ## Next
-- Resolve open questions (viewport size, key bindings, status bar)
-- Stage 1: Integrate bubbletea, render static world
+- Phase 1b: map generation (trees, forest patches) + auto-cut mechanic
 
 ## Blockers
 - None
