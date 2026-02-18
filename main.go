@@ -4,12 +4,16 @@ import (
 	"fmt"
 	"os"
 
+	tea "github.com/charmbracelet/bubbletea"
+
 	"forester/game"
+	"forester/render"
 )
 
 func main() {
 	g := game.New()
-	if err := g.Run(); err != nil {
+	p := tea.NewProgram(render.NewModel(g), tea.WithAltScreen())
+	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
