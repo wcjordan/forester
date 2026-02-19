@@ -10,7 +10,11 @@ import (
 	"forester/game"
 )
 
-var playerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
+var (
+	playerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12")) // blue
+	forestStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))  // green
+	stumpStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))  // dark gray
+)
 
 // Model is the bubbletea model for the game. It owns viewport dimensions
 // and delegates all game logic to game.Game.
@@ -93,7 +97,16 @@ func (m Model) View() string {
 
 			switch tile.Terrain {
 			case game.Forest:
-				sb.WriteByte('#')
+				switch {
+				case tile.TreeSize >= 7:
+					sb.WriteString(forestStyle.Render("#"))
+				case tile.TreeSize >= 4:
+					sb.WriteString(forestStyle.Render("t"))
+				default:
+					sb.WriteString(forestStyle.Render(","))
+				}
+			case game.Stump:
+				sb.WriteString(stumpStyle.Render("%"))
 			default:
 				sb.WriteByte('.')
 			}
