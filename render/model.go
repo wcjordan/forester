@@ -12,10 +12,17 @@ import (
 )
 
 type tickMsg time.Time
+type regrowTickMsg time.Time
 
 func doTick() tea.Cmd {
 	return tea.Tick(game.HarvestTickInterval, func(t time.Time) tea.Msg {
 		return tickMsg(t)
+	})
+}
+
+func doRegrowTick() tea.Cmd {
+	return tea.Tick(game.RegrowthTickInterval, func(t time.Time) tea.Msg {
+		return regrowTickMsg(t)
 	})
 }
 
@@ -38,9 +45,9 @@ func NewModel(g *game.Game) Model {
 	return Model{game: g}
 }
 
-// Init satisfies tea.Model. Starts the harvest tick loop.
+// Init satisfies tea.Model. Starts the harvest and regrowth tick loops.
 func (m Model) Init() tea.Cmd {
-	return doTick()
+	return tea.Batch(doTick(), doRegrowTick())
 }
 
 // Update handles messages and returns the updated model.
@@ -53,6 +60,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tickMsg:
 		m.game.State.Harvest()
 		return m, doTick()
+
+	case regrowTickMsg:
+		m.game.State.Regrow()
+		return m, doRegrowTick()
 
 	case tea.KeyMsg:
 		switch msg.String() {

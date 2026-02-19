@@ -55,6 +55,49 @@ func TestInBounds(t *testing.T) {
 	}
 }
 
+func TestRegrow(t *testing.T) {
+	t.Run("stump regrows into small forest", func(t *testing.T) {
+		w := NewWorld(3, 3)
+		w.Tiles[1][1] = Tile{Terrain: Stump, TreeSize: 0}
+		w.Regrow()
+		tile := w.Tiles[1][1]
+		if tile.Terrain != Forest {
+			t.Errorf("Terrain = %v, want Forest", tile.Terrain)
+		}
+		if tile.TreeSize != 1 {
+			t.Errorf("TreeSize = %d, want 1", tile.TreeSize)
+		}
+	})
+
+	t.Run("forest grows toward maxTreeSize", func(t *testing.T) {
+		w := NewWorld(3, 3)
+		w.Tiles[1][1] = Tile{Terrain: Forest, TreeSize: 5}
+		w.Regrow()
+		if w.Tiles[1][1].TreeSize != 6 {
+			t.Errorf("TreeSize = %d, want 6", w.Tiles[1][1].TreeSize)
+		}
+	})
+
+	t.Run("forest at maxTreeSize does not grow further", func(t *testing.T) {
+		w := NewWorld(3, 3)
+		w.Tiles[1][1] = Tile{Terrain: Forest, TreeSize: maxTreeSize}
+		w.Regrow()
+		if w.Tiles[1][1].TreeSize != maxTreeSize {
+			t.Errorf("TreeSize = %d, want %d", w.Tiles[1][1].TreeSize, maxTreeSize)
+		}
+	})
+
+	t.Run("grassland is unaffected", func(t *testing.T) {
+		w := NewWorld(3, 3)
+		w.Tiles[1][1] = Tile{Terrain: Grassland}
+		w.Regrow()
+		tile := w.Tiles[1][1]
+		if tile.Terrain != Grassland {
+			t.Errorf("Terrain = %v, want Grassland", tile.Terrain)
+		}
+	})
+}
+
 func TestTileAt(t *testing.T) {
 	w := NewWorld(10, 10)
 

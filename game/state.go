@@ -17,6 +17,11 @@ func (s *State) Harvest() {
 	s.Player.HarvestAdjacent(s.World)
 }
 
+// Regrow advances tree regrowth across the world.
+func (s *State) Regrow() {
+	s.World.Regrow()
+}
+
 // newState creates an initial game state with defaults.
 func newState() *State {
 	world := GenerateWorld(100, 100, DefaultSeed)
