@@ -43,13 +43,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "up", "w":
-			m.game.State.Player.MovePlayer(0, -1, m.game.State.World)
+			m.game.State.Move(0, -1)
 		case "down", "s":
-			m.game.State.Player.MovePlayer(0, 1, m.game.State.World)
+			m.game.State.Move(0, 1)
 		case "left", "a":
-			m.game.State.Player.MovePlayer(-1, 0, m.game.State.World)
+			m.game.State.Move(-1, 0)
 		case "right", "d":
-			m.game.State.Player.MovePlayer(1, 0, m.game.State.World)
+			m.game.State.Move(1, 0)
 		}
 	}
 

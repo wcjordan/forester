@@ -53,6 +53,86 @@ func TestMovePlayerBounds(t *testing.T) {
 	}
 }
 
+func TestHarvestAdjacent(t *testing.T) {
+	// Helper: make a small world with a Forest tile adjacent to player.
+	makeWorld := func(terrain TerrainType, treeSize int) (*World, *Tile) {
+		w := NewWorld(5, 5)
+		w.Tiles[1][2] = Tile{Terrain: terrain, TreeSize: treeSize} // above player at (2,2)
+		return w, &w.Tiles[1][2]
+	}
+
+	t.Run("harvests adjacent forest tile", func(t *testing.T) {
+		w, tile := makeWorld(Forest, 5)
+		p := NewPlayer(2, 2)
+		p.HarvestAdjacent(w)
+		if p.Wood != 1 {
+			t.Errorf("Wood = %d, want 1", p.Wood)
+		}
+		if tile.TreeSize != 4 {
+			t.Errorf("TreeSize = %d, want 4", tile.TreeSize)
+		}
+		if tile.Terrain != Forest {
+			t.Errorf("Terrain = %v, want Forest (tree not depleted)", tile.Terrain)
+		}
+	})
+
+	t.Run("converts to stump when tree depleted", func(t *testing.T) {
+		w, tile := makeWorld(Forest, 1)
+		p := NewPlayer(2, 2)
+		p.HarvestAdjacent(w)
+		if p.Wood != 1 {
+			t.Errorf("Wood = %d, want 1", p.Wood)
+		}
+		if tile.TreeSize != 0 {
+			t.Errorf("TreeSize = %d, want 0", tile.TreeSize)
+		}
+		if tile.Terrain != Stump {
+			t.Errorf("Terrain = %v, want Stump", tile.Terrain)
+		}
+	})
+
+	t.Run("does not harvest from stump", func(t *testing.T) {
+		w, tile := makeWorld(Stump, 0)
+		p := NewPlayer(2, 2)
+		p.HarvestAdjacent(w)
+		if p.Wood != 0 {
+			t.Errorf("Wood = %d, want 0 (stump should not yield wood)", p.Wood)
+		}
+		if tile.Terrain != Stump {
+			t.Errorf("Terrain changed from Stump unexpectedly")
+		}
+	})
+
+	t.Run("does not harvest from grassland", func(t *testing.T) {
+		w, _ := makeWorld(Grassland, 0)
+		p := NewPlayer(2, 2)
+		p.HarvestAdjacent(w)
+		if p.Wood != 0 {
+			t.Errorf("Wood = %d, want 0 (grassland should not yield wood)", p.Wood)
+		}
+	})
+
+	t.Run("safe at world edge — no panic on nil tile", func(t *testing.T) {
+		w := NewWorld(3, 3)
+		w.Tiles[0][0] = Tile{Terrain: Forest, TreeSize: 5}
+		p := NewPlayer(0, 0) // at corner; two neighbors are out of bounds
+		p.HarvestAdjacent(w) // must not panic
+	})
+
+	t.Run("harvests all four cardinal neighbors", func(t *testing.T) {
+		w := NewWorld(5, 5)
+		p := NewPlayer(2, 2)
+		// Place Forest in all 4 cardinal directions.
+		for _, d := range [][2]int{{0, -1}, {0, 1}, {-1, 0}, {1, 0}} {
+			w.Tiles[2+d[1]][2+d[0]] = Tile{Terrain: Forest, TreeSize: 3}
+		}
+		p.HarvestAdjacent(w)
+		if p.Wood != 4 {
+			t.Errorf("Wood = %d, want 4 (one from each neighbor)", p.Wood)
+		}
+	})
+}
+
 func TestNewPlayer(t *testing.T) {
 	p := NewPlayer(10, 20)
 
