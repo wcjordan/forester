@@ -119,23 +119,33 @@ func TestHarvestAdjacent(t *testing.T) {
 		p.HarvestAdjacent(w) // must not panic
 	})
 
-	t.Run("only harvests the tile in the facing direction", func(t *testing.T) {
+	t.Run("harvests the forward arc (straight and both diagonals)", func(t *testing.T) {
 		w := NewWorld(5, 5)
 		p := NewPlayer(2, 2)
-		// Place Forest in all 4 cardinal directions.
-		for _, d := range [][2]int{{0, -1}, {0, 1}, {-1, 0}, {1, 0}} {
-			w.Tiles[2+d[1]][2+d[0]] = Tile{Terrain: Forest, TreeSize: 3}
+		// Default facing is north (0,-1).
+		// Forward arc: N (2,1), NW (1,1), NE (3,1).
+		// Non-forward: S (2,3), E (3,2), W (1,2).
+		for _, coord := range [][2]int{{2, 1}, {1, 1}, {3, 1}} {
+			w.Tiles[coord[1]][coord[0]] = Tile{Terrain: Forest, TreeSize: 3}
 		}
-		// Default facing is north (0,-1); only the tile above should be harvested.
+		for _, coord := range [][2]int{{2, 3}, {3, 2}, {1, 2}} {
+			w.Tiles[coord[1]][coord[0]] = Tile{Terrain: Forest, TreeSize: 3}
+		}
 		p.HarvestAdjacent(w)
-		if p.Wood != 1 {
-			t.Errorf("Wood = %d, want 1 (only facing tile harvested)", p.Wood)
+		if p.Wood != 3 {
+			t.Errorf("Wood = %d, want 3 (forward arc harvested)", p.Wood)
 		}
-		if w.Tiles[1][2].TreeSize != 2 {
-			t.Errorf("facing tile TreeSize = %d, want 2", w.Tiles[1][2].TreeSize)
+		// Forward arc tiles reduced.
+		for _, coord := range [][2]int{{2, 1}, {1, 1}, {3, 1}} {
+			if w.Tiles[coord[1]][coord[0]].TreeSize != 2 {
+				t.Errorf("forward tile (%d,%d) TreeSize = %d, want 2", coord[0], coord[1], w.Tiles[coord[1]][coord[0]].TreeSize)
+			}
 		}
-		if w.Tiles[3][2].TreeSize != 3 {
-			t.Errorf("south tile should be untouched, TreeSize = %d, want 3", w.Tiles[3][2].TreeSize)
+		// Non-forward tiles untouched.
+		for _, coord := range [][2]int{{2, 3}, {3, 2}, {1, 2}} {
+			if w.Tiles[coord[1]][coord[0]].TreeSize != 3 {
+				t.Errorf("non-forward tile (%d,%d) should be untouched, TreeSize = %d, want 3", coord[0], coord[1], w.Tiles[coord[1]][coord[0]].TreeSize)
+			}
 		}
 	})
 }

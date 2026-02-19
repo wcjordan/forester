@@ -30,18 +30,28 @@ func (p *Player) MovePlayer(dx, dy int, w *World) {
 // harvestPerStep is how much wood is taken from each adjacent Forest tile per turn.
 const harvestPerStep = 1
 
-// HarvestAdjacent harvests wood from the Forest tile in the player's facing direction.
-// The tile loses harvestPerStep wood; when TreeSize reaches 0 it becomes a Stump.
+// HarvestAdjacent harvests wood from the three Forest tiles in front of the player:
+// straight ahead and the two forward diagonals.
+// Each tile loses harvestPerStep wood; when TreeSize reaches 0 it becomes a Stump.
 // The harvested wood is added to the player's inventory.
 func (p *Player) HarvestAdjacent(w *World) {
-	tile := w.TileAt(p.X+p.FacingDX, p.Y+p.FacingDY)
-	if tile == nil || tile.Terrain != Forest {
-		return
+	dx, dy := p.FacingDX, p.FacingDY
+	// Three tiles in the forward arc: straight, diagonal-left, diagonal-right.
+	targets := [3][2]int{
+		{p.X + dx, p.Y + dy},
+		{p.X + dx - dy, p.Y + dy + dx},
+		{p.X + dx + dy, p.Y + dy - dx},
 	}
-	harvest := min(harvestPerStep, tile.TreeSize)
-	tile.TreeSize -= harvest
-	p.Wood += harvest
-	if tile.TreeSize == 0 {
-		tile.Terrain = Stump
+	for _, coord := range targets {
+		tile := w.TileAt(coord[0], coord[1])
+		if tile == nil || tile.Terrain != Forest {
+			continue
+		}
+		harvest := min(harvestPerStep, tile.TreeSize)
+		tile.TreeSize -= harvest
+		p.Wood += harvest
+		if tile.TreeSize == 0 {
+			tile.Terrain = Stump
+		}
 	}
 }
