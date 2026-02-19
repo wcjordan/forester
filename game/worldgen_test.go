@@ -71,6 +71,25 @@ func TestGenerateWorld_ForestDensity(t *testing.T) {
 	}
 }
 
+func TestGenerateWorld_TreeSizes(t *testing.T) {
+	w := GenerateWorld(50, 50, 42)
+
+	for y := range w.Tiles {
+		for x := range w.Tiles[y] {
+			tile := &w.Tiles[y][x]
+			if tile.Terrain == Forest {
+				if tile.TreeSize < 4 || tile.TreeSize > 10 {
+					t.Errorf("Forest tile (%d,%d) has TreeSize=%d, want 4–10", x, y, tile.TreeSize)
+				}
+			} else {
+				if tile.TreeSize != 0 {
+					t.Errorf("Non-Forest tile (%d,%d) has TreeSize=%d, want 0", x, y, tile.TreeSize)
+				}
+			}
+		}
+	}
+}
+
 func TestGenerateWorld_SpawnClear(t *testing.T) {
 	w := GenerateWorld(100, 100, 42)
 	cx, cy := w.Width/2, w.Height/2
@@ -84,6 +103,9 @@ func TestGenerateWorld_SpawnClear(t *testing.T) {
 			}
 			if tile.Terrain != Grassland {
 				t.Errorf("spawn tile (%d,%d) = Forest, want Grassland", cx+dx, cy+dy)
+			}
+			if tile.TreeSize != 0 {
+				t.Errorf("spawn tile (%d,%d) has TreeSize=%d, want 0", cx+dx, cy+dy, tile.TreeSize)
 			}
 		}
 	}

@@ -42,12 +42,24 @@ func GenerateWorld(width, height int, seed int64) *World {
 		world.Tiles = next
 	}
 
+	// Step 2.5: Assign random tree sizes to all Forest tiles.
+	const minTreeSize = 4
+	const maxTreeSize = 10
+	for y := range world.Tiles {
+		for x := range world.Tiles[y] {
+			if world.Tiles[y][x].Terrain == Forest {
+				world.Tiles[y][x].TreeSize = rng.Intn(maxTreeSize-minTreeSize+1) + minTreeSize
+			}
+		}
+	}
+
 	// Step 3: Clear a 5×5 area at the center to guarantee a grassland spawn.
 	cx, cy := width/2, height/2
 	for dy := -2; dy <= 2; dy++ {
 		for dx := -2; dx <= 2; dx++ {
 			if tile := world.TileAt(cx+dx, cy+dy); tile != nil {
 				tile.Terrain = Grassland
+				tile.TreeSize = 0
 			}
 		}
 	}
