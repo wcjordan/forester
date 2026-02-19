@@ -59,6 +59,7 @@ func GenerateWorld(width, height int, seed int64) *World {
 		for dx := -2; dx <= 2; dx++ {
 			if tile := world.TileAt(cx+dx, cy+dy); tile != nil {
 				tile.Terrain = Grassland
+				tile.TreeSize = 0
 			}
 		}
 	}
