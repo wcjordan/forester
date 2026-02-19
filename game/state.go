@@ -12,6 +12,11 @@ func (s *State) Move(dx, dy int) {
 	s.Player.HarvestAdjacent(s.World)
 }
 
+// Harvest harvests adjacent trees without moving the player.
+func (s *State) Harvest() {
+	s.Player.HarvestAdjacent(s.World)
+}
+
 // newState creates an initial game state with defaults.
 func newState() *State {
 	world := GenerateWorld(100, 100, DefaultSeed)

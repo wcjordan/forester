@@ -1,5 +1,7 @@
 package game
 
+import "time"
+
 // Player represents the player character.
 type Player struct {
 	X, Y               int
@@ -29,6 +31,9 @@ func (p *Player) MovePlayer(dx, dy int, w *World) {
 
 // harvestPerStep is how much wood is taken from each adjacent Forest tile per turn.
 const harvestPerStep = 1
+
+// HarvestTickInterval is how often the player automatically harvests without moving.
+const HarvestTickInterval = 500 * time.Millisecond
 
 // HarvestAdjacent harvests wood from the three Forest tiles in front of the player:
 // straight ahead and the two forward diagonals.
