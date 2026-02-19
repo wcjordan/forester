@@ -3,7 +3,7 @@ package game
 import "time"
 
 // RegrowthTickInterval controls how often the world advances tree regrowth.
-const RegrowthTickInterval = 10 * time.Second
+const RegrowthTickInterval = 20 * time.Second
 
 // maxTreeSize is the maximum TreeSize a Forest tile can grow to.
 const maxTreeSize = 10

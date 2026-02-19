@@ -9,7 +9,8 @@ type State struct {
 // Move moves the player and then harvests adjacent trees.
 func (s *State) Move(dx, dy int) {
 	s.Player.MovePlayer(dx, dy, s.World)
-	s.Player.HarvestAdjacent(s.World)
+	// Uncomment to enable harvesting on movement:
+	// s.Player.HarvestAdjacent(s.World)
 }
 
 // Harvest harvests adjacent trees without moving the player.

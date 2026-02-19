@@ -33,7 +33,7 @@ func (p *Player) MovePlayer(dx, dy int, w *World) {
 const harvestPerStep = 1
 
 // HarvestTickInterval is how often the player automatically harvests without moving.
-const HarvestTickInterval = 500 * time.Millisecond
+const HarvestTickInterval = 100 * time.Millisecond
 
 // HarvestAdjacent harvests wood from the three Forest tiles in front of the player:
 // straight ahead and the two forward diagonals.
