@@ -3,12 +3,28 @@ package render
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
 	"forester/game"
 )
+
+type tickMsg time.Time
+type regrowTickMsg time.Time
+
+func doTick() tea.Cmd {
+	return tea.Tick(game.HarvestTickInterval, func(t time.Time) tea.Msg {
+		return tickMsg(t)
+	})
+}
+
+func doRegrowTick() tea.Cmd {
+	return tea.Tick(game.RegrowthTickInterval, func(t time.Time) tea.Msg {
+		return regrowTickMsg(t)
+	})
+}
 
 var (
 	playerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12")) // blue
@@ -29,9 +45,9 @@ func NewModel(g *game.Game) Model {
 	return Model{game: g}
 }
 
-// Init satisfies tea.Model. No initial commands needed.
+// Init satisfies tea.Model. Starts the harvest and regrowth tick loops.
 func (m Model) Init() tea.Cmd {
-	return nil
+	return tea.Batch(doTick(), doRegrowTick())
 }
 
 // Update handles messages and returns the updated model.
@@ -40,6 +56,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.termWidth = msg.Width
 		m.termHeight = msg.Height
+
+	case tickMsg:
+		m.game.State.Harvest()
+		return m, doTick()
+
+	case regrowTickMsg:
+		m.game.State.Regrow()
+		return m, doRegrowTick()
 
 	case tea.KeyMsg:
 		switch msg.String() {
