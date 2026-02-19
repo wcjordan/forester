@@ -29,6 +29,17 @@ func (p *Player) MovePlayer(dx, dy int, w *World) {
 	}
 }
 
+// DefaultMoveCooldown is the minimum time between moves on standard terrain.
+const DefaultMoveCooldown = 150 * time.Millisecond
+
+// MoveCooldowns defines the minimum time between moves per terrain type.
+// Terrain types not present use DefaultMoveCooldown.
+var MoveCooldowns = map[TerrainType]time.Duration{
+	Grassland: 150 * time.Millisecond,
+	Stump:     150 * time.Millisecond,
+	Forest:    300 * time.Millisecond,
+}
+
 // harvestPerStep is how much wood is taken from each adjacent Forest tile per turn.
 const harvestPerStep = 1
 

@@ -35,9 +35,10 @@ var (
 // Model is the bubbletea model for the game. It owns viewport dimensions
 // and delegates all game logic to game.Game.
 type Model struct {
-	game       *game.Game
-	termWidth  int
-	termHeight int
+	game         *game.Game
+	termWidth    int
+	termHeight   int
+	lastMoveTime time.Time
 }
 
 // NewModel creates a Model wrapping the given game.
@@ -71,17 +72,43 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "up", "w":
-			m.game.State.Move(0, -1)
+			if m.canMove() {
+				m.game.State.Move(0, -1)
+				m.lastMoveTime = time.Now()
+			}
 		case "down", "s":
-			m.game.State.Move(0, 1)
+			if m.canMove() {
+				m.game.State.Move(0, 1)
+				m.lastMoveTime = time.Now()
+			}
 		case "left", "a":
-			m.game.State.Move(-1, 0)
+			if m.canMove() {
+				m.game.State.Move(-1, 0)
+				m.lastMoveTime = time.Now()
+			}
 		case "right", "d":
-			m.game.State.Move(1, 0)
+			if m.canMove() {
+				m.game.State.Move(1, 0)
+				m.lastMoveTime = time.Now()
+			}
 		}
 	}
 
 	return m, nil
+}
+
+// canMove returns true if enough time has elapsed since the last move,
+// based on the terrain the player is currently standing on.
+func (m Model) canMove() bool {
+	p := m.game.State.Player
+	tile := m.game.State.World.TileAt(p.X, p.Y)
+	cooldown := game.DefaultMoveCooldown
+	if tile != nil {
+		if d, ok := game.MoveCooldowns[tile.Terrain]; ok {
+			cooldown = d
+		}
+	}
+	return time.Since(m.lastMoveTime) >= cooldown
 }
 
 // View renders the current game state to a string.
