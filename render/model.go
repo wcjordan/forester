@@ -5,9 +5,12 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"forester/game"
 )
+
+var playerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
 
 // Model is the bubbletea model for the game. It owns viewport dimensions
 // and delegates all game logic to game.Game.
@@ -78,7 +81,7 @@ func (m Model) View() string {
 			worldY := vpY + row
 
 			if worldX == player.X && worldY == player.Y {
-				sb.WriteByte('@')
+				sb.WriteString(playerStyle.Render("@"))
 				continue
 			}
 
