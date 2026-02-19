@@ -119,16 +119,23 @@ func TestHarvestAdjacent(t *testing.T) {
 		p.HarvestAdjacent(w) // must not panic
 	})
 
-	t.Run("harvests all four cardinal neighbors", func(t *testing.T) {
+	t.Run("only harvests the tile in the facing direction", func(t *testing.T) {
 		w := NewWorld(5, 5)
 		p := NewPlayer(2, 2)
 		// Place Forest in all 4 cardinal directions.
 		for _, d := range [][2]int{{0, -1}, {0, 1}, {-1, 0}, {1, 0}} {
 			w.Tiles[2+d[1]][2+d[0]] = Tile{Terrain: Forest, TreeSize: 3}
 		}
+		// Default facing is north (0,-1); only the tile above should be harvested.
 		p.HarvestAdjacent(w)
-		if p.Wood != 4 {
-			t.Errorf("Wood = %d, want 4 (one from each neighbor)", p.Wood)
+		if p.Wood != 1 {
+			t.Errorf("Wood = %d, want 1 (only facing tile harvested)", p.Wood)
+		}
+		if w.Tiles[1][2].TreeSize != 2 {
+			t.Errorf("facing tile TreeSize = %d, want 2", w.Tiles[1][2].TreeSize)
+		}
+		if w.Tiles[3][2].TreeSize != 3 {
+			t.Errorf("south tile should be untouched, TreeSize = %d, want 3", w.Tiles[3][2].TreeSize)
 		}
 	})
 }
@@ -144,5 +151,8 @@ func TestNewPlayer(t *testing.T) {
 	}
 	if p.Wood != 0 {
 		t.Errorf("Wood = %d, want 0", p.Wood)
+	}
+	if p.FacingDX != 0 || p.FacingDY != -1 {
+		t.Errorf("facing = (%d,%d), want (0,-1)", p.FacingDX, p.FacingDY)
 	}
 }
