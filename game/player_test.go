@@ -150,6 +150,30 @@ func TestHarvestAdjacent(t *testing.T) {
 	})
 }
 
+func TestMoveCooldowns(t *testing.T) {
+	forestCooldown, ok := MoveCooldowns[Forest]
+	if !ok {
+		t.Fatal("MoveCooldowns missing Forest entry")
+	}
+	grassCooldown, ok := MoveCooldowns[Grassland]
+	if !ok {
+		t.Fatal("MoveCooldowns missing Grassland entry")
+	}
+	stumpCooldown, ok := MoveCooldowns[Stump]
+	if !ok {
+		t.Fatal("MoveCooldowns missing Stump entry")
+	}
+	if forestCooldown <= grassCooldown {
+		t.Errorf("Forest cooldown (%v) should be longer than Grassland (%v)", forestCooldown, grassCooldown)
+	}
+	if forestCooldown <= stumpCooldown {
+		t.Errorf("Forest cooldown (%v) should be longer than Stump (%v)", forestCooldown, stumpCooldown)
+	}
+	if grassCooldown != stumpCooldown {
+		t.Errorf("Grassland (%v) and Stump (%v) cooldowns should be equal", grassCooldown, stumpCooldown)
+	}
+}
+
 func TestNewPlayer(t *testing.T) {
 	p := NewPlayer(10, 20)
 
