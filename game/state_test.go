@@ -128,6 +128,77 @@ func TestGhostLocationBetweenPlayerAndSpawn(t *testing.T) {
 	}
 }
 
+func TestBuildMechanic(t *testing.T) {
+	// Set up a world with a ghost at (5, 5) and player adjacent.
+	makeGhostState := func() *State {
+		w := NewWorld(20, 20)
+		w.SetStructure(5, 5, 4, 4, GhostLogStorage)
+		p := NewPlayer(4, 5) // just outside the ghost footprint
+		return &State{Player: p, World: w}
+	}
+
+	t.Run("walking onto ghost tile starts build", func(t *testing.T) {
+		s := makeGhostState()
+		s.Move(1, 0) // step into (5,5) — ghost tile
+		if s.Building == nil {
+			t.Fatal("Building should be non-nil after stepping onto ghost")
+		}
+		if s.Building.TotalTicks != LogStorageBuildTicks {
+			t.Errorf("TotalTicks = %d, want %d", s.Building.TotalTicks, LogStorageBuildTicks)
+		}
+	})
+
+	t.Run("player nudged outside footprint after ghost contact", func(t *testing.T) {
+		s := makeGhostState()
+		s.Move(1, 0) // step into (5,5)
+		px, py := s.Player.X, s.Player.Y
+		// Player must be outside the 4×4 footprint [5..8] x [5..8].
+		insideX := px >= 5 && px <= 8
+		insideY := py >= 5 && py <= 8
+		if insideX && insideY {
+			t.Errorf("player at (%d,%d) is still inside ghost footprint [5-8,5-8]", px, py)
+		}
+	})
+
+	t.Run("AdvanceBuild increments progress", func(t *testing.T) {
+		s := makeGhostState()
+		s.Move(1, 0)
+		if s.Building == nil {
+			t.Fatal("Building is nil")
+		}
+		s.AdvanceBuild()
+		if s.Building.ProgressTicks != 1 {
+			t.Errorf("ProgressTicks = %d, want 1", s.Building.ProgressTicks)
+		}
+	})
+
+	t.Run("build completes and tiles become LogStorage", func(t *testing.T) {
+		s := makeGhostState()
+		s.Move(1, 0)
+		if s.Building == nil {
+			t.Fatal("Building is nil")
+		}
+		s.Building.ProgressTicks = s.Building.TotalTicks - 1
+		s.AdvanceBuild()
+		if s.Building != nil {
+			t.Error("Building should be nil after completion")
+		}
+		if !s.HasStructureOfType(LogStorage) {
+			t.Error("LogStorage tiles should exist after build completes")
+		}
+	})
+
+	t.Run("ghost tiles replaced by LogStorage after build", func(t *testing.T) {
+		s := makeGhostState()
+		s.Move(1, 0)
+		s.Building.ProgressTicks = s.Building.TotalTicks - 1
+		s.AdvanceBuild()
+		if s.HasStructureOfType(GhostLogStorage) {
+			t.Error("GhostLogStorage tiles should be gone after build completes")
+		}
+	})
+}
+
 func TestHasStructureOfType(t *testing.T) {
 	w := NewWorld(10, 10)
 	s := &State{Player: NewPlayer(5, 5), World: w}

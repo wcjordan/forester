@@ -27,9 +27,11 @@ func doRegrowTick() tea.Cmd {
 }
 
 var (
-	playerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12")) // blue
-	forestStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))  // green
-	stumpStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))  // dark gray
+	playerStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))           // blue
+	forestStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))            // green
+	stumpStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))            // dark gray
+	ghostStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))            // yellow (dim)
+	logStorageStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Bold(true) // bold yellow
 )
 
 // Model is the bubbletea model for the game. It owns viewport dimensions
@@ -60,6 +62,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tickMsg:
 		m.game.State.Harvest()
+		m.game.State.AdvanceBuild()
 		return m, doTick()
 
 	case regrowTickMsg:
@@ -146,6 +149,16 @@ func (m Model) View() string {
 				continue
 			}
 
+			// Structure overlays take priority over terrain.
+			switch tile.Structure {
+			case game.GhostLogStorage:
+				sb.WriteString(ghostStyle.Render("?"))
+				continue
+			case game.LogStorage:
+				sb.WriteString(logStorageStyle.Render("L"))
+				continue
+			}
+
 			switch tile.Terrain {
 			case game.Forest:
 				switch {
@@ -170,6 +183,9 @@ func (m Model) View() string {
 	// Status bar.
 	status := fmt.Sprintf(" Player: (%d, %d)  Wood: %d/%d",
 		player.X, player.Y, player.Wood, game.MaxWood)
+	if b := m.game.State.Building; b != nil {
+		status += "  " + buildProgressBar(b.Progress())
+	}
 	sb.WriteByte('\n')
 	sb.WriteString(status)
 
@@ -184,4 +200,13 @@ func clamp(v, lo, hi int) int {
 		return hi
 	}
 	return v
+}
+
+// buildProgressBar renders a text progress bar for a build operation.
+// e.g. "Building: ████░░░░ 75%"
+func buildProgressBar(progress float64) string {
+	const width = 8
+	filled := int(progress * width)
+	bar := strings.Repeat("█", filled) + strings.Repeat("░", width-filled)
+	return fmt.Sprintf("Building: %s %d%%", bar, int(progress*100))
 }
