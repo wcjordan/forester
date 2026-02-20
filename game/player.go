@@ -24,8 +24,11 @@ func (p *Player) MovePlayer(dx, dy int, w *World) {
 	nx := p.X + dx
 	ny := p.Y + dy
 	if w.InBounds(nx, ny) {
-		p.X = nx
-		p.Y = ny
+		tile := w.TileAt(nx, ny)
+		if tile == nil || tile.Structure != LogStorage {
+			p.X = nx
+			p.Y = ny
+		}
 	}
 }
 

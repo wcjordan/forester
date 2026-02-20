@@ -64,3 +64,28 @@ func (w *World) TileAt(x, y int) *Tile {
 	}
 	return &w.Tiles[y][x]
 }
+
+// SetStructure stamps a rectangle of tiles (x, y) to (x+width-1, y+height-1)
+// with the given structure type. Out-of-bounds tiles are skipped.
+func (w *World) SetStructure(x, y, width, height int, stype StructureType) {
+	for dy := 0; dy < height; dy++ {
+		for dx := 0; dx < width; dx++ {
+			tile := w.TileAt(x+dx, y+dy)
+			if tile != nil {
+				tile.Structure = stype
+			}
+		}
+	}
+}
+
+// IsAdjacentToStructure returns true if any of the four cardinal neighbors of
+// (x, y) has the given structure type.
+func (w *World) IsAdjacentToStructure(x, y int, stype StructureType) bool {
+	for _, d := range [4][2]int{{0, -1}, {0, 1}, {-1, 0}, {1, 0}} {
+		tile := w.TileAt(x+d[0], y+d[1])
+		if tile != nil && tile.Structure == stype {
+			return true
+		}
+	}
+	return false
+}

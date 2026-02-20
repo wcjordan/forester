@@ -150,6 +150,28 @@ func TestHarvestAdjacent(t *testing.T) {
 	})
 }
 
+func TestMovePlayerStructureBlocking(t *testing.T) {
+	t.Run("blocked by LogStorage", func(t *testing.T) {
+		w := NewWorld(10, 10)
+		w.SetStructure(6, 5, 1, 1, LogStorage)
+		p := NewPlayer(5, 5)
+		p.MovePlayer(1, 0, w) // try to move into (6,5)
+		if p.X != 5 {
+			t.Errorf("X = %d, want 5 (should be blocked by LogStorage)", p.X)
+		}
+	})
+
+	t.Run("allowed into GhostLogStorage", func(t *testing.T) {
+		w := NewWorld(10, 10)
+		w.SetStructure(6, 5, 1, 1, GhostLogStorage)
+		p := NewPlayer(5, 5)
+		p.MovePlayer(1, 0, w)
+		if p.X != 6 {
+			t.Errorf("X = %d, want 6 (ghost tiles should be walkable)", p.X)
+		}
+	})
+}
+
 func TestHarvestCapacity(t *testing.T) {
 	t.Run("harvest stops at MaxWood", func(t *testing.T) {
 		w := NewWorld(5, 5)
