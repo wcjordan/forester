@@ -80,22 +80,23 @@ A city builder/simulation game where you play as a character who develops a vill
 
 ## MVP Implementation Phases
 
-### Phase 1: Core Loop (Foundation)
+### Phase 1: Core Loop (Foundation) ✅ COMPLETE
 **Goal**: Get basic player movement and tree cutting working
 
 #### Features
-- [ ] Player character with movement (WASD/arrow keys)
-- [ ] 1000x1000 tile map data structure
-- [ ] Procedural map generation (forest + grassland placement)
-- [ ] Viewport/camera (show portion of map around player)
-- [ ] Tree entities on map
-- [ ] Auto-detection of nearby trees
-- [ ] Auto-cutting mechanic (when near tree)
-- [ ] Resource tracking (wood counter)
-- [ ] Tree removal from map
-- [ ] Tree regrowth system (timer-based in forests)
-- [ ] Basic terminal rendering (ASCII)
-- [ ] Game loop (tick-based)
+- [x] Player character with movement (WASD/arrow keys)
+- [x] 1000x1000 tile map data structure
+- [x] Procedural map generation (cellular automata — forest + grassland)
+- [x] Viewport/camera (show portion of map around player)
+- [x] Tree entities on map
+- [x] Auto-detection of nearby trees
+- [x] Auto-cutting mechanic (timer-based, when near tree)
+- [x] Resource tracking (wood counter)
+- [x] Tree removal from map
+- [x] Tree regrowth system (timer-based in forests)
+- [x] Basic terminal rendering (ASCII)
+- [x] Game loop (tick-based)
+- [x] Forest movement slowdown (half speed through forest tiles)
 
 #### ASCII Representation (Phase 1)
 ```
@@ -115,39 +116,45 @@ T = Tree
 - `render/terminal.go` - Terminal UI rendering
 - `util/math.go` - Distance calculations, etc.
 
-### Phase 2: Progression Systems
-**Goal**: Add roads, structures, and upgrade system
+### Phase 2: Structures & Progression
+**Goal**: Add carry capacity, organic structure growth, and a basic village progression loop
+
+#### Design Decisions
+- **Village center**: Player spawn point. Houses and depot appear near here.
+- **Ghost structures**: When conditions are met, a ghost/indicator tile appears on the map. Walking into it builds the structure.
+- **Carry capacity**: Player carries max 20 wood. Cutting stops when full. Auto-deposit when touching log storage.
+
+#### Structure Progression
+1. **Log Storage (4×4)** — Ghost appears when 10 wood has been cut in the same area. Auto-deposits wood on contact.
+2. **House** — Available when 50 wood has been deposited into the log storage. Visual milestone; hooks into future villager spawning.
+3. **Resource Depot** — Available when 4 houses have been built. Details TBD.
 
 #### Features
-- [ ] Tile walk counter (track traffic)
-- [ ] Road formation logic (thresholds for grassland → trodden → road)
-- [ ] Movement speed modifiers (faster on roads)
-- [ ] Area activity tracking (for structure spawning)
-- [ ] Structure spawning (wood storage after X trees cut in area)
-- [ ] Structure upgrades (storage → lumber mill)
-- [ ] XP system (gain from resources)
-- [ ] Level up system
-- [ ] Card/upgrade pool (define upgrades)
-- [ ] Card selection UI (choose from 3 options)
-- [ ] Upgrade application (modify player stats, unlock features)
+- [ ] Carry capacity (max 20 wood; cutting stops when full)
+- [ ] Status bar shows `Wood: 14/20`
+- [ ] Area activity tracking (track wood cut per zone for structure triggers)
+- [ ] Ghost structure indicator on map when conditions met
+- [ ] Structure placement: walk into ghost to build
+- [ ] Log Storage (4×4): triggered by 10 wood cut in area; auto-deposits on contact
+- [ ] House: triggered by 50 wood deposited in log storage; visual only for now
+- [ ] Resource Depot: triggered by 4 houses built; details TBD
+- [ ] Road formation (grassland → trodden → road) — deferred, post-structures
+- [ ] XP / card upgrade system — deferred, post-structures
 
 #### ASCII Representation (Phase 2)
 ```
 @ = Player
 T = Tree
 . = Grassland
-: = Trodden path
-= = Road
-S = Storage structure
-M = Mill structure
+? = Ghost structure (available, not yet built)
+L = Log Storage
+H = House
+D = Resource Depot
 ```
 
 #### Technical Components
-- `game/road.go` - Road formation and tracking
-- `game/structure.go` - Structure spawning and upgrades
-- `game/xp.go` - Experience and leveling
-- `game/upgrades.go` - Upgrade definitions and application
-- `render/cards.go` - Card selection UI
+- `game/structure.go` - Structure types, placement, and conditions
+- `game/inventory.go` - Player carry capacity and deposit logic
 
 ### Phase 3: Villagers & Automation
 **Goal**: Add villagers, following, and foreman system
@@ -289,11 +296,13 @@ type Tile struct {
 - Map generates with varied forest patches
 
 ### Phase 2 Complete When:
-- Roads form from repeated travel
-- Movement is faster on roads
-- Structures appear after sustained activity
-- Can level up and choose upgrades
-- Upgrades affect gameplay noticeably
+- Player has a carry capacity (20 wood) and status bar reflects it
+- Cutting stops when player is full
+- Log storage ghost appears after cutting 10 wood in an area
+- Walking into ghost builds the log storage
+- Wood auto-deposits when player contacts log storage
+- House ghost appears after 50 wood deposited; builds on contact
+- Resource depot ghost appears after 4 houses built
 
 ### Phase 3 Complete When:
 - Villagers spawn and follow player
@@ -324,4 +333,4 @@ These will be determined through playtesting and iteration.
 
 ---
 
-**Next Steps**: Begin Phase 1 implementation with project setup and core game loop.
+**Next Steps**: Begin Phase 2 — carry capacity, ghost structures, and the log storage → house → resource depot progression chain.
