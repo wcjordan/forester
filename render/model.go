@@ -168,8 +168,8 @@ func (m Model) View() string {
 	}
 
 	// Status bar.
-	status := fmt.Sprintf(" Player: (%d, %d)  Wood: %d",
-		player.X, player.Y, player.Wood)
+	status := fmt.Sprintf(" Player: (%d, %d)  Wood: %d/%d",
+		player.X, player.Y, player.Wood, game.MaxWood)
 	sb.WriteByte('\n')
 	sb.WriteString(status)
 
