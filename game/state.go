@@ -2,10 +2,11 @@ package game
 
 // State holds all mutable game state.
 type State struct {
-	Player       *Player
-	World        *World
-	TotalWoodCut int
-	Building     *BuildOperation
+	Player              *Player
+	World               *World
+	TotalWoodCut        int
+	Building            *BuildOperation
+	LogStorageDeposited int
 }
 
 // Move moves the player and checks for ghost contact.
@@ -189,6 +190,20 @@ func abs(n int) int {
 		return -n
 	}
 	return n
+}
+
+// TryDeposit deposits 1 wood into an adjacent Log Storage.
+// Returns true if a deposit happened.
+func (s *State) TryDeposit() bool {
+	if s.Player.Wood == 0 {
+		return false
+	}
+	if !s.World.IsAdjacentToStructure(s.Player.X, s.Player.Y, LogStorage) {
+		return false
+	}
+	s.Player.Wood--
+	s.LogStorageDeposited++
+	return true
 }
 
 // newState creates an initial game state with defaults.

@@ -199,6 +199,58 @@ func TestBuildMechanic(t *testing.T) {
 	})
 }
 
+func TestTryDeposit(t *testing.T) {
+	makeDepositState := func(wood int) *State {
+		w := NewWorld(10, 10)
+		w.SetStructure(5, 4, 4, 4, LogStorage) // storage above player
+		p := NewPlayer(5, 5)
+		p.Wood = wood
+		return &State{Player: p, World: w}
+	}
+
+	t.Run("returns false when Wood is 0", func(t *testing.T) {
+		s := makeDepositState(0)
+		if s.TryDeposit() {
+			t.Error("TryDeposit should return false when Wood == 0")
+		}
+	})
+
+	t.Run("returns false when not adjacent to LogStorage", func(t *testing.T) {
+		w := NewWorld(10, 10)
+		p := NewPlayer(5, 5)
+		p.Wood = 5
+		s := &State{Player: p, World: w}
+		if s.TryDeposit() {
+			t.Error("TryDeposit should return false when no adjacent LogStorage")
+		}
+	})
+
+	t.Run("deposits one wood when adjacent", func(t *testing.T) {
+		s := makeDepositState(5)
+		if !s.TryDeposit() {
+			t.Fatal("TryDeposit should return true when adjacent with wood")
+		}
+		if s.Player.Wood != 4 {
+			t.Errorf("Wood = %d, want 4 after deposit", s.Player.Wood)
+		}
+		if s.LogStorageDeposited != 1 {
+			t.Errorf("LogStorageDeposited = %d, want 1", s.LogStorageDeposited)
+		}
+	})
+
+	t.Run("deposits one at a time", func(t *testing.T) {
+		s := makeDepositState(3)
+		s.TryDeposit()
+		s.TryDeposit()
+		if s.Player.Wood != 1 {
+			t.Errorf("Wood = %d, want 1 after 2 deposits", s.Player.Wood)
+		}
+		if s.LogStorageDeposited != 2 {
+			t.Errorf("LogStorageDeposited = %d, want 2", s.LogStorageDeposited)
+		}
+	})
+}
+
 func TestHasStructureOfType(t *testing.T) {
 	w := NewWorld(10, 10)
 	s := &State{Player: NewPlayer(5, 5), World: w}
