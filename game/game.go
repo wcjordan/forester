@@ -1,10 +1,17 @@
 package game
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
+
+// DepositTickInterval is how often the player auto-deposits one wood when adjacent to a storage structure.
+const DepositTickInterval = 500 * time.Millisecond
 
 // Game is the top-level orchestrator that owns the game state and loop.
 type Game struct {
-	State *State
+	State           *State
+	depositCooldown time.Time
 }
 
 // New creates a new Game with default state.
@@ -12,6 +19,25 @@ func New() *Game {
 	return &Game{
 		State: newState(),
 	}
+}
+
+// Tick advances the game by one harvest tick: harvests trees, advances any
+// in-progress build, and handles adjacent-structure interactions.
+func (g *Game) Tick() {
+	g.State.Harvest()
+	g.State.AdvanceBuild()
+	if time.Now().After(g.depositCooldown) {
+		before := g.State.LogStorageDeposited
+		g.State.TickAdjacentStructures()
+		if g.State.LogStorageDeposited > before {
+			g.depositCooldown = time.Now().Add(DepositTickInterval)
+		}
+	}
+}
+
+// RegrowTick advances tree regrowth across the world.
+func (g *Game) RegrowTick() {
+	g.State.Regrow()
 }
 
 // Run starts the game loop. For now it just prints a message and returns.
