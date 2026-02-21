@@ -25,21 +25,25 @@ func (s *State) checkGhostContact() {
 		return
 	}
 	tile := s.World.TileAt(s.Player.X, s.Player.Y)
-	if tile == nil || tile.Structure != GhostLogStorage {
+	if tile == nil {
 		return
 	}
-	gx, gy, ok := s.GhostOrigin()
+	def := findDefForGhost(tile.Structure)
+	if def == nil {
+		return
+	}
+	gx, gy, ok := s.ghostOriginFor(def.GhostType())
 	if !ok {
 		return
 	}
+	w, h := def.Footprint()
 	s.Building = &BuildOperation{
 		X: gx, Y: gy,
-		Width: 4, Height: 4,
-		Target:     LogStorage,
-		TotalTicks: LogStorageBuildTicks,
+		Width: w, Height: h,
+		Target:     def.BuiltType(),
+		TotalTicks: def.BuildTicks(),
 	}
-	// Nudge player to the nearest tile outside the 4×4 footprint.
-	s.nudgePlayerOutside(gx, gy, 4, 4)
+	s.nudgePlayerOutside(gx, gy, w, h)
 }
 
 // nudgePlayerOutside moves the player to the closest in-bounds tile outside the rectangle.
@@ -85,22 +89,35 @@ func (s *State) AdvanceBuild() {
 	}
 	s.Building.ProgressTicks++
 	if s.Building.Done() {
-		s.World.SetStructure(s.Building.X, s.Building.Y, s.Building.Width, s.Building.Height, LogStorage)
+		s.World.SetStructure(s.Building.X, s.Building.Y, s.Building.Width, s.Building.Height, s.Building.Target)
 		s.Building = nil
 	}
 }
 
-// GhostOrigin returns the top-left corner of the current ghost footprint.
-// ok is false if no ghost exists.
-func (s *State) GhostOrigin() (x, y int, ok bool) {
+// ghostOriginFor returns the top-left corner of the current ghost footprint for the given type.
+// ok is false if no ghost of that type exists.
+func (s *State) ghostOriginFor(st StructureType) (x, y int, ok bool) {
 	for row := range s.World.Tiles {
 		for col := range s.World.Tiles[row] {
-			if s.World.Tiles[row][col].Structure == GhostLogStorage {
+			if s.World.Tiles[row][col].Structure == st {
 				return col, row, true
 			}
 		}
 	}
 	return 0, 0, false
+}
+
+// findDefForGhost returns the StructureDef whose GhostType matches st, or nil.
+func findDefForGhost(st StructureType) StructureDef {
+	if st == NoStructure {
+		return nil
+	}
+	for _, def := range structures {
+		if def.GhostType() == st {
+			return def
+		}
+	}
+	return nil
 }
 
 // Harvest harvests adjacent trees without moving the player.
@@ -109,7 +126,7 @@ func (s *State) Harvest() {
 	before := s.Player.Wood
 	s.Player.HarvestAdjacent(s.World)
 	s.TotalWoodCut += s.Player.Wood - before
-	s.maybeSpawnGhost()
+	s.maybeSpawnGhosts()
 }
 
 // Regrow advances tree regrowth across the world.
@@ -129,28 +146,28 @@ func (s *State) HasStructureOfType(stype StructureType) bool {
 	return false
 }
 
-// maybeSpawnGhost places a GhostLogStorage if the wood-cut threshold is met
-// and no ghost or built Log Storage already exists.
-// It searches from the player's position toward the world center for the
-// first 4×4 all-grassland area.
-func (s *State) maybeSpawnGhost() {
-	const woodThreshold = 10
-	if s.TotalWoodCut < woodThreshold {
-		return
-	}
-	if s.HasStructureOfType(GhostLogStorage) || s.HasStructureOfType(LogStorage) {
-		return
-	}
-	cx, cy := s.findGhostLocation()
-	if cx >= 0 {
-		s.World.SetStructure(cx, cy, 4, 4, GhostLogStorage)
+// maybeSpawnGhosts checks each registered structure definition and places a ghost
+// when its spawn condition is met and no ghost or built instance already exists.
+func (s *State) maybeSpawnGhosts() {
+	for _, def := range structures {
+		if !def.ShouldSpawn(s) {
+			continue
+		}
+		if s.HasStructureOfType(def.GhostType()) || s.HasStructureOfType(def.BuiltType()) {
+			continue
+		}
+		w, h := def.Footprint()
+		cx, cy := s.findValidLocation(w, h)
+		if cx >= 0 {
+			s.World.SetStructure(cx, cy, w, h, def.GhostType())
+		}
 	}
 }
 
-// findGhostLocation walks from the player position toward the world center,
-// returning the top-left corner of the first valid 4×4 all-grassland area.
+// findValidLocation walks from the player position toward the world center,
+// returning the top-left corner of the first valid area of the given dimensions.
 // Returns (-1, -1) if no valid location is found.
-func (s *State) findGhostLocation() (x, y int) {
+func (s *State) findValidLocation(w, h int) (x, y int) {
 	px, py := s.Player.X, s.Player.Y
 	spawnX := s.World.Width / 2
 	spawnY := s.World.Height / 2
@@ -168,18 +185,18 @@ func (s *State) findGhostLocation() (x, y int) {
 	for i := 0; i <= steps; i++ {
 		tx := px + dx*i/steps
 		ty := py + dy*i/steps
-		if s.isValid4x4(tx, ty) {
+		if s.isValidArea(tx, ty, w, h) {
 			return tx, ty
 		}
 	}
 	return -1, -1
 }
 
-// isValid4x4 returns true if the 4×4 area with top-left at (x, y) is entirely
+// isValidArea returns true if the w×h area with top-left at (x, y) is entirely
 // in-bounds, grassland terrain, and has no structure.
-func (s *State) isValid4x4(x, y int) bool {
-	for dy := 0; dy < 4; dy++ {
-		for dx := 0; dx < 4; dx++ {
+func (s *State) isValidArea(x, y, w, h int) bool {
+	for dy := 0; dy < h; dy++ {
+		for dx := 0; dx < w; dx++ {
 			tile := s.World.TileAt(x+dx, y+dy)
 			if tile == nil || tile.Terrain != Grassland || tile.Structure != NoStructure {
 				return false
@@ -196,18 +213,13 @@ func abs(n int) int {
 	return n
 }
 
-// TryDeposit deposits 1 wood into an adjacent Log Storage.
-// Returns true if a deposit happened.
-func (s *State) TryDeposit() bool {
-	if s.Player.Wood == 0 {
-		return false
+// TickAdjacentStructures calls OnAdjacentTick for each structure the player is adjacent to.
+func (s *State) TickAdjacentStructures() {
+	for _, def := range structures {
+		if s.World.IsAdjacentToStructure(s.Player.X, s.Player.Y, def.BuiltType()) {
+			def.OnAdjacentTick(s)
+		}
 	}
-	if !s.World.IsAdjacentToStructure(s.Player.X, s.Player.Y, LogStorage) {
-		return false
-	}
-	s.Player.Wood--
-	s.LogStorageDeposited++
-	return true
 }
 
 // newState creates an initial game state with defaults.

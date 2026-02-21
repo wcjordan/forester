@@ -54,7 +54,7 @@ func TestGhostDoesNotSpawnTwice(t *testing.T) {
 	p := NewPlayer(5, 5)
 	s := &State{Player: p, World: w, TotalWoodCut: 10}
 
-	s.maybeSpawnGhost()
+	s.maybeSpawnGhosts()
 	// Count ghost tiles.
 	count := 0
 	for y := range w.Tiles {
@@ -67,7 +67,7 @@ func TestGhostDoesNotSpawnTwice(t *testing.T) {
 	firstCount := count
 
 	// Call again — should not add more.
-	s.maybeSpawnGhost()
+	s.maybeSpawnGhosts()
 	count = 0
 	for y := range w.Tiles {
 		for x := range w.Tiles[y] {
@@ -85,7 +85,7 @@ func TestGhostLocationIsAllGrassland(t *testing.T) {
 	w := NewWorld(30, 30)
 	p := NewPlayer(5, 15)
 	s := &State{Player: p, World: w, TotalWoodCut: 10}
-	s.maybeSpawnGhost()
+	s.maybeSpawnGhosts()
 
 	// Find the ghost and verify all 16 tiles are on grassland terrain (underlying).
 	for y := range w.Tiles {
@@ -106,7 +106,7 @@ func TestGhostLocationBetweenPlayerAndSpawn(t *testing.T) {
 	// Player at (2, 15); spawn at (15, 15).
 	p := NewPlayer(2, 15)
 	s := &State{Player: p, World: w, TotalWoodCut: 10}
-	s.maybeSpawnGhost()
+	s.maybeSpawnGhosts()
 
 	spawnX := w.Width / 2
 	// Find ghost top-left.
@@ -199,7 +199,7 @@ func TestBuildMechanic(t *testing.T) {
 	})
 }
 
-func TestTryDeposit(t *testing.T) {
+func TestTickAdjacentStructures(t *testing.T) {
 	makeDepositState := func(wood int) *State {
 		w := NewWorld(10, 10)
 		w.SetStructure(5, 4, 4, 4, LogStorage) // storage above player
@@ -208,28 +208,28 @@ func TestTryDeposit(t *testing.T) {
 		return &State{Player: p, World: w}
 	}
 
-	t.Run("returns false when Wood is 0", func(t *testing.T) {
+	t.Run("no deposit when Wood is 0", func(t *testing.T) {
 		s := makeDepositState(0)
-		if s.TryDeposit() {
-			t.Error("TryDeposit should return false when Wood == 0")
+		s.TickAdjacentStructures()
+		if s.LogStorageDeposited != 0 {
+			t.Errorf("LogStorageDeposited = %d, want 0 when Wood == 0", s.LogStorageDeposited)
 		}
 	})
 
-	t.Run("returns false when not adjacent to LogStorage", func(t *testing.T) {
+	t.Run("no deposit when not adjacent to LogStorage", func(t *testing.T) {
 		w := NewWorld(10, 10)
 		p := NewPlayer(5, 5)
 		p.Wood = 5
 		s := &State{Player: p, World: w}
-		if s.TryDeposit() {
-			t.Error("TryDeposit should return false when no adjacent LogStorage")
+		s.TickAdjacentStructures()
+		if s.LogStorageDeposited != 0 {
+			t.Errorf("LogStorageDeposited = %d, want 0 when not adjacent", s.LogStorageDeposited)
 		}
 	})
 
 	t.Run("deposits one wood when adjacent", func(t *testing.T) {
 		s := makeDepositState(5)
-		if !s.TryDeposit() {
-			t.Fatal("TryDeposit should return true when adjacent with wood")
-		}
+		s.TickAdjacentStructures()
 		if s.Player.Wood != 4 {
 			t.Errorf("Wood = %d, want 4 after deposit", s.Player.Wood)
 		}
@@ -240,8 +240,8 @@ func TestTryDeposit(t *testing.T) {
 
 	t.Run("deposits one at a time", func(t *testing.T) {
 		s := makeDepositState(3)
-		s.TryDeposit()
-		s.TryDeposit()
+		s.TickAdjacentStructures()
+		s.TickAdjacentStructures()
 		if s.Player.Wood != 1 {
 			t.Errorf("Wood = %d, want 1 after 2 deposits", s.Player.Wood)
 		}

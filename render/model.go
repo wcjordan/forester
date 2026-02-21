@@ -67,8 +67,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tickMsg:
 		m.game.State.Harvest()
 		m.game.State.AdvanceBuild()
-		if time.Now().After(m.depositCooldown) && m.game.State.TryDeposit() {
-			m.depositCooldown = time.Now().Add(DepositTickInterval)
+		if time.Now().After(m.depositCooldown) {
+			before := m.game.State.LogStorageDeposited
+			m.game.State.TickAdjacentStructures()
+			if m.game.State.LogStorageDeposited > before {
+				m.depositCooldown = time.Now().Add(DepositTickInterval)
+			}
 		}
 		return m, doTick()
 
