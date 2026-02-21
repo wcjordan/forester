@@ -34,17 +34,13 @@ var (
 	logStorageStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Bold(true) // bold yellow
 )
 
-// DepositTickInterval is how often the player auto-deposits one wood when adjacent to Log Storage.
-const DepositTickInterval = 500 * time.Millisecond
-
 // Model is the bubbletea model for the game. It owns viewport dimensions
 // and delegates all game logic to game.Game.
 type Model struct {
-	game            *game.Game
-	termWidth       int
-	termHeight      int
-	lastMoveTime    time.Time
-	depositCooldown time.Time
+	game         *game.Game
+	termWidth    int
+	termHeight   int
+	lastMoveTime time.Time
 }
 
 // NewModel creates a Model wrapping the given game.
@@ -65,15 +61,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.termHeight = msg.Height
 
 	case tickMsg:
-		m.game.State.Harvest()
-		m.game.State.AdvanceBuild()
-		if time.Now().After(m.depositCooldown) && m.game.State.TryDeposit() {
-			m.depositCooldown = time.Now().Add(DepositTickInterval)
-		}
+		m.game.Tick()
 		return m, doTick()
 
 	case regrowTickMsg:
-		m.game.State.Regrow()
+		m.game.RegrowTick()
 		return m, doRegrowTick()
 
 	case tea.KeyMsg:
