@@ -1,5 +1,9 @@
 package game
 
+import (
+	"math"
+)
+
 // State holds all mutable game state.
 type State struct {
 	Player              *Player
@@ -44,7 +48,7 @@ func (s *State) nudgePlayerOutside(rx, ry, rw, rh int) {
 		x, y int
 		dist int
 	}
-	best := candidate{dist: 1<<31 - 1}
+	best := candidate{dist: math.MaxInt32}
 	px, py := s.Player.X, s.Player.Y
 
 	// Check one-tile border around the footprint.
@@ -68,7 +72,7 @@ func (s *State) nudgePlayerOutside(rx, ry, rw, rh int) {
 			}
 		}
 	}
-	if best.dist < 1<<31-1 {
+	if best.dist < math.MaxInt32 {
 		s.Player.X = best.x
 		s.Player.Y = best.y
 	}
