@@ -1,9 +1,15 @@
 package game
 
-import "time"
+import (
+	"math/rand"
+	"time"
+)
 
-// RegrowthTickInterval controls how often the world advances tree regrowth.
-const RegrowthTickInterval = 20 * time.Second
+// RegrowthCooldown is how often the regrowth tick fires.
+const RegrowthCooldown = 500 * time.Millisecond
+
+// RegrowthOdds is the 1-in-N chance each eligible Forest tile grows per regrowth tick.
+const RegrowthOdds = 40
 
 // maxTreeSize is the maximum TreeSize a Forest tile can grow to.
 const maxTreeSize = 10
@@ -37,14 +43,16 @@ func (w *World) InBounds(x, y int) bool {
 	return x >= 0 && x < w.Width && y >= 0 && y < w.Height
 }
 
-// Regrow advances tree regrowth by one step across every tile.
-// Forest tiles (including TreeSize=0 cut trees) grow toward maxTreeSize.
-func (w *World) Regrow() {
+// Regrow advances tree regrowth probabilistically.
+// Each eligible Forest tile (including TreeSize=0 cut trees) has a 1/RegrowthOdds chance to grow.
+func (w *World) Regrow(rng *rand.Rand) {
 	for y := range w.Tiles {
 		for x := range w.Tiles[y] {
 			tile := &w.Tiles[y][x]
 			if tile.Terrain == Forest && tile.TreeSize < maxTreeSize {
-				tile.TreeSize++
+				if rng.Intn(RegrowthOdds) == 0 {
+					tile.TreeSize++
+				}
 			}
 		}
 	}

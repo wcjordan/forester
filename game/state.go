@@ -129,11 +129,6 @@ func (s *State) Harvest() {
 	s.maybeSpawnGhosts()
 }
 
-// Regrow advances tree regrowth across the world.
-func (s *State) Regrow() {
-	s.World.Regrow()
-}
-
 // HasStructureOfType returns true if any tile in the world has the given structure type.
 func (s *State) HasStructureOfType(stype StructureType) bool {
 	for y := range s.World.Tiles {

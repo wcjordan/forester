@@ -1,6 +1,9 @@
 package game
 
-import "testing"
+import (
+	"math/rand"
+	"testing"
+)
 
 func TestNewWorld(t *testing.T) {
 	w := NewWorld(50, 30)
@@ -56,32 +59,46 @@ func TestInBounds(t *testing.T) {
 }
 
 func TestRegrow(t *testing.T) {
-	t.Run("cut tree regrows into small forest", func(t *testing.T) {
+	rng := rand.New(rand.NewSource(0))
+
+	t.Run("cut tree eventually grows", func(t *testing.T) {
 		w := NewWorld(3, 3)
 		w.Tiles[1][1] = Tile{Terrain: Forest, TreeSize: 0}
-		w.Regrow()
-		tile := w.Tiles[1][1]
-		if tile.Terrain != Forest {
-			t.Errorf("Terrain = %v, want Forest", tile.Terrain)
+		grew := false
+		for i := 0; i < 1000; i++ {
+			w.Regrow(rng)
+			if w.Tiles[1][1].TreeSize > 0 {
+				grew = true
+				break
+			}
 		}
-		if tile.TreeSize != 1 {
-			t.Errorf("TreeSize = %d, want 1", tile.TreeSize)
+		if !grew {
+			t.Error("cut tree (Forest/TreeSize=0) should eventually grow")
 		}
 	})
 
-	t.Run("forest grows toward maxTreeSize", func(t *testing.T) {
+	t.Run("forest eventually grows toward maxTreeSize", func(t *testing.T) {
 		w := NewWorld(3, 3)
 		w.Tiles[1][1] = Tile{Terrain: Forest, TreeSize: 5}
-		w.Regrow()
-		if w.Tiles[1][1].TreeSize != 6 {
-			t.Errorf("TreeSize = %d, want 6", w.Tiles[1][1].TreeSize)
+		grew := false
+		for i := 0; i < 1000; i++ {
+			w.Regrow(rng)
+			if w.Tiles[1][1].TreeSize > 5 {
+				grew = true
+				break
+			}
+		}
+		if !grew {
+			t.Error("forest should eventually grow toward maxTreeSize")
 		}
 	})
 
 	t.Run("forest at maxTreeSize does not grow further", func(t *testing.T) {
 		w := NewWorld(3, 3)
 		w.Tiles[1][1] = Tile{Terrain: Forest, TreeSize: maxTreeSize}
-		w.Regrow()
+		for i := 0; i < 1000; i++ {
+			w.Regrow(rng)
+		}
 		if w.Tiles[1][1].TreeSize != maxTreeSize {
 			t.Errorf("TreeSize = %d, want %d", w.Tiles[1][1].TreeSize, maxTreeSize)
 		}
@@ -90,7 +107,9 @@ func TestRegrow(t *testing.T) {
 	t.Run("grassland is unaffected", func(t *testing.T) {
 		w := NewWorld(3, 3)
 		w.Tiles[1][1] = Tile{Terrain: Grassland}
-		w.Regrow()
+		for i := 0; i < 1000; i++ {
+			w.Regrow(rng)
+		}
 		tile := w.Tiles[1][1]
 		if tile.Terrain != Grassland {
 			t.Errorf("Terrain = %v, want Grassland", tile.Terrain)

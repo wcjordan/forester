@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 )
 
@@ -12,17 +13,20 @@ const DepositTickInterval = 500 * time.Millisecond
 type Game struct {
 	State           *State
 	depositCooldown time.Time
+	rng             *rand.Rand
+	regrowCooldown  time.Time
 }
 
 // New creates a new Game with default state.
 func New() *Game {
 	return &Game{
 		State: newState(),
+		rng:   rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
-// Tick advances the game by one harvest tick: harvests trees, advances any
-// in-progress build, and handles adjacent-structure interactions.
+// Tick advances the game: harvests trees, advances any in-progress build,
+// handles adjacent-structure interactions, and fires probabilistic regrowth.
 func (g *Game) Tick() {
 	g.State.Harvest()
 	g.State.AdvanceBuild()
@@ -33,11 +37,10 @@ func (g *Game) Tick() {
 			g.depositCooldown = time.Now().Add(DepositTickInterval)
 		}
 	}
-}
-
-// RegrowTick advances tree regrowth across the world.
-func (g *Game) RegrowTick() {
-	g.State.Regrow()
+	if time.Now().After(g.regrowCooldown) {
+		g.State.World.Regrow(g.rng)
+		g.regrowCooldown = time.Now().Add(RegrowthCooldown)
+	}
 }
 
 // Run starts the game loop. For now it just prints a message and returns.
