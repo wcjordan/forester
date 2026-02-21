@@ -24,8 +24,11 @@ func (p *Player) MovePlayer(dx, dy int, w *World) {
 	nx := p.X + dx
 	ny := p.Y + dy
 	if w.InBounds(nx, ny) {
-		p.X = nx
-		p.Y = ny
+		tile := w.TileAt(nx, ny)
+		if tile == nil || tile.Structure != LogStorage {
+			p.X = nx
+			p.Y = ny
+		}
 	}
 }
 
@@ -40,6 +43,9 @@ var MoveCooldowns = map[TerrainType]time.Duration{
 	Forest:    300 * time.Millisecond,
 }
 
+// MaxWood is the maximum amount of wood the player can carry.
+const MaxWood = 20
+
 // harvestPerStep is how much wood is taken from each adjacent Forest tile per turn.
 const harvestPerStep = 1
 
@@ -51,6 +57,9 @@ const HarvestTickInterval = 100 * time.Millisecond
 // Each tile loses harvestPerStep wood; when TreeSize reaches 0 it becomes a Stump.
 // The harvested wood is added to the player's inventory.
 func (p *Player) HarvestAdjacent(w *World) {
+	if p.Wood >= MaxWood {
+		return
+	}
 	dx, dy := p.FacingDX, p.FacingDY
 	// Three tiles in the forward arc: straight, diagonal-left, diagonal-right.
 	targets := [3][2]int{
@@ -63,7 +72,8 @@ func (p *Player) HarvestAdjacent(w *World) {
 		if tile == nil || tile.Terrain != Forest {
 			continue
 		}
-		harvest := min(harvestPerStep, tile.TreeSize)
+		canTake := min(harvestPerStep, MaxWood-p.Wood)
+		harvest := min(canTake, tile.TreeSize)
 		tile.TreeSize -= harvest
 		p.Wood += harvest
 		if tile.TreeSize == 0 {

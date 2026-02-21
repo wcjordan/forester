@@ -150,6 +150,55 @@ func TestHarvestAdjacent(t *testing.T) {
 	})
 }
 
+func TestMovePlayerStructureBlocking(t *testing.T) {
+	t.Run("blocked by LogStorage", func(t *testing.T) {
+		w := NewWorld(10, 10)
+		w.SetStructure(6, 5, 1, 1, LogStorage)
+		p := NewPlayer(5, 5)
+		p.MovePlayer(1, 0, w) // try to move into (6,5)
+		if p.X != 5 {
+			t.Errorf("X = %d, want 5 (should be blocked by LogStorage)", p.X)
+		}
+	})
+
+	t.Run("allowed into GhostLogStorage", func(t *testing.T) {
+		w := NewWorld(10, 10)
+		w.SetStructure(6, 5, 1, 1, GhostLogStorage)
+		p := NewPlayer(5, 5)
+		p.MovePlayer(1, 0, w)
+		if p.X != 6 {
+			t.Errorf("X = %d, want 6 (ghost tiles should be walkable)", p.X)
+		}
+	})
+}
+
+func TestHarvestCapacity(t *testing.T) {
+	t.Run("harvest stops at MaxWood", func(t *testing.T) {
+		w := NewWorld(5, 5)
+		w.Tiles[1][2] = Tile{Terrain: Forest, TreeSize: 10}
+		p := NewPlayer(2, 2)
+		p.Wood = MaxWood
+		p.HarvestAdjacent(w)
+		if p.Wood != MaxWood {
+			t.Errorf("Wood = %d, want %d (should not exceed MaxWood)", p.Wood, MaxWood)
+		}
+		if w.Tiles[1][2].TreeSize != 10 {
+			t.Errorf("TreeSize = %d, want 10 (should not harvest when full)", w.Tiles[1][2].TreeSize)
+		}
+	})
+
+	t.Run("partial fill at near-max", func(t *testing.T) {
+		w := NewWorld(5, 5)
+		w.Tiles[1][2] = Tile{Terrain: Forest, TreeSize: 10}
+		p := NewPlayer(2, 2)
+		p.Wood = MaxWood - 1
+		p.HarvestAdjacent(w)
+		if p.Wood != MaxWood {
+			t.Errorf("Wood = %d, want %d (should fill to exactly MaxWood)", p.Wood, MaxWood)
+		}
+	})
+}
+
 func TestMoveCooldowns(t *testing.T) {
 	forestCooldown, ok := MoveCooldowns[Forest]
 	if !ok {

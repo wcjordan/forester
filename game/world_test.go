@@ -98,6 +98,55 @@ func TestRegrow(t *testing.T) {
 	})
 }
 
+func TestSetStructure(t *testing.T) {
+	t.Run("stamps correct tiles", func(t *testing.T) {
+		w := NewWorld(10, 10)
+		w.SetStructure(2, 3, 4, 4, LogStorage)
+		for dy := 0; dy < 4; dy++ {
+			for dx := 0; dx < 4; dx++ {
+				tile := w.TileAt(2+dx, 3+dy)
+				if tile.Structure != LogStorage {
+					t.Errorf("tile (%d,%d) Structure = %v, want LogStorage", 2+dx, 3+dy, tile.Structure)
+				}
+			}
+		}
+		// Outside footprint is unchanged.
+		if w.TileAt(1, 3).Structure != NoStructure {
+			t.Error("tile outside footprint should have NoStructure")
+		}
+	})
+
+	t.Run("clips out-of-bounds tiles gracefully", func(t *testing.T) {
+		w := NewWorld(5, 5)
+		// Should not panic even if rect extends outside world.
+		w.SetStructure(3, 3, 4, 4, GhostLogStorage)
+	})
+}
+
+func TestIsAdjacentToStructure(t *testing.T) {
+	w := NewWorld(10, 10)
+	w.SetStructure(5, 5, 1, 1, LogStorage)
+
+	// Cardinal neighbors.
+	for _, d := range [][2]int{{5, 4}, {5, 6}, {4, 5}, {6, 5}} {
+		if !w.IsAdjacentToStructure(d[0], d[1], LogStorage) {
+			t.Errorf("(%d,%d) should be adjacent to LogStorage", d[0], d[1])
+		}
+	}
+	// Diagonal — not adjacent.
+	if w.IsAdjacentToStructure(4, 4, LogStorage) {
+		t.Error("(4,4) diagonal should not count as adjacent")
+	}
+	// The tile itself — not adjacent to itself via cardinal check.
+	if w.IsAdjacentToStructure(5, 5, LogStorage) {
+		t.Error("(5,5) should not be adjacent to itself")
+	}
+	// Far tile — false.
+	if w.IsAdjacentToStructure(0, 0, LogStorage) {
+		t.Error("(0,0) should not be adjacent to LogStorage at (5,5)")
+	}
+}
+
 func TestTileAt(t *testing.T) {
 	w := NewWorld(10, 10)
 
