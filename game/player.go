@@ -39,8 +39,19 @@ const DefaultMoveCooldown = 150 * time.Millisecond
 // Terrain types not present use DefaultMoveCooldown.
 var MoveCooldowns = map[TerrainType]time.Duration{
 	Grassland: 150 * time.Millisecond,
-	Stump:     150 * time.Millisecond,
 	Forest:    300 * time.Millisecond,
+}
+
+// MoveCooldownFor returns the move cooldown for the given tile.
+// Forest with TreeSize=0 (cut tree) uses DefaultMoveCooldown.
+func MoveCooldownFor(tile *Tile) time.Duration {
+	if tile.Terrain == Forest && tile.TreeSize == 0 {
+		return DefaultMoveCooldown
+	}
+	if d, ok := MoveCooldowns[tile.Terrain]; ok {
+		return d
+	}
+	return DefaultMoveCooldown
 }
 
 // MaxWood is the maximum amount of wood the player can carry.
@@ -54,7 +65,7 @@ const HarvestTickInterval = 100 * time.Millisecond
 
 // HarvestAdjacent harvests wood from the three Forest tiles in front of the player:
 // straight ahead and the two forward diagonals.
-// Each tile loses harvestPerStep wood; when TreeSize reaches 0 it becomes a Stump.
+// Each tile loses harvestPerStep wood; when TreeSize reaches 0 it stays Forest (cut tree).
 // The harvested wood is added to the player's inventory.
 func (p *Player) HarvestAdjacent(w *World) {
 	if p.Wood >= MaxWood {
@@ -76,8 +87,5 @@ func (p *Player) HarvestAdjacent(w *World) {
 		harvest := min(canTake, tile.TreeSize)
 		tile.TreeSize -= harvest
 		p.Wood += harvest
-		if tile.TreeSize == 0 {
-			tile.Terrain = Stump
-		}
 	}
 }

@@ -106,9 +106,7 @@ func (m Model) canMove() bool {
 	tile := m.game.State.World.TileAt(p.X, p.Y)
 	cooldown := game.DefaultMoveCooldown
 	if tile != nil {
-		if d, ok := game.MoveCooldowns[tile.Terrain]; ok {
-			cooldown = d
-		}
+		cooldown = game.MoveCooldownFor(tile)
 	}
 	return time.Since(m.lastMoveTime) >= cooldown
 }
@@ -161,6 +159,8 @@ func (m Model) View() string {
 			switch tile.Terrain {
 			case game.Forest:
 				switch {
+				case tile.TreeSize == 0:
+					sb.WriteString(stumpStyle.Render("%"))
 				case tile.TreeSize >= 7:
 					sb.WriteString(forestStyle.Render("#"))
 				case tile.TreeSize >= 4:
@@ -168,8 +168,6 @@ func (m Model) View() string {
 				default:
 					sb.WriteString(forestStyle.Render(","))
 				}
-			case game.Stump:
-				sb.WriteString(stumpStyle.Render("%"))
 			default:
 				sb.WriteByte('.')
 			}

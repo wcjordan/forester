@@ -38,19 +38,13 @@ func (w *World) InBounds(x, y int) bool {
 }
 
 // Regrow advances tree regrowth by one step across every tile.
-// Stumps regrow into small Forest tiles; Forest tiles grow toward maxTreeSize.
+// Forest tiles (including TreeSize=0 cut trees) grow toward maxTreeSize.
 func (w *World) Regrow() {
 	for y := range w.Tiles {
 		for x := range w.Tiles[y] {
 			tile := &w.Tiles[y][x]
-			switch tile.Terrain {
-			case Stump:
-				tile.Terrain = Forest
-				tile.TreeSize = 1
-			case Forest:
-				if tile.TreeSize < maxTreeSize {
-					tile.TreeSize++
-				}
+			if tile.Terrain == Forest && tile.TreeSize < maxTreeSize {
+				tile.TreeSize++
 			}
 		}
 	}

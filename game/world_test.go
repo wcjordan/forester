@@ -56,9 +56,9 @@ func TestInBounds(t *testing.T) {
 }
 
 func TestRegrow(t *testing.T) {
-	t.Run("stump regrows into small forest", func(t *testing.T) {
+	t.Run("cut tree regrows into small forest", func(t *testing.T) {
 		w := NewWorld(3, 3)
-		w.Tiles[1][1] = Tile{Terrain: Stump, TreeSize: 0}
+		w.Tiles[1][1] = Tile{Terrain: Forest, TreeSize: 0}
 		w.Regrow()
 		tile := w.Tiles[1][1]
 		if tile.Terrain != Forest {
