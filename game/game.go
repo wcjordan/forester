@@ -22,6 +22,7 @@ func New() *Game {
 	return &Game{
 		State: newState(),
 		rng:   rand.New(rand.NewSource(time.Now().UnixNano())),
+		regrowCooldown: time.Now().Add(RegrowthCooldown),
 	}
 }
 

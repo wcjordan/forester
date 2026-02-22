@@ -59,9 +59,8 @@ func TestInBounds(t *testing.T) {
 }
 
 func TestRegrow(t *testing.T) {
-	rng := rand.New(rand.NewSource(0))
-
 	t.Run("cut tree eventually grows", func(t *testing.T) {
+		rng := rand.New(rand.NewSource(0))
 		w := NewWorld(3, 3)
 		w.Tiles[1][1] = Tile{Terrain: Forest, TreeSize: 0}
 		grew := false
@@ -78,6 +77,7 @@ func TestRegrow(t *testing.T) {
 	})
 
 	t.Run("forest eventually grows toward maxTreeSize", func(t *testing.T) {
+		rng := rand.New(rand.NewSource(0))
 		w := NewWorld(3, 3)
 		w.Tiles[1][1] = Tile{Terrain: Forest, TreeSize: 5}
 		grew := false
@@ -94,6 +94,7 @@ func TestRegrow(t *testing.T) {
 	})
 
 	t.Run("forest at maxTreeSize does not grow further", func(t *testing.T) {
+		rng := rand.New(rand.NewSource(0))
 		w := NewWorld(3, 3)
 		w.Tiles[1][1] = Tile{Terrain: Forest, TreeSize: maxTreeSize}
 		for i := 0; i < 1000; i++ {
@@ -105,6 +106,7 @@ func TestRegrow(t *testing.T) {
 	})
 
 	t.Run("grassland is unaffected", func(t *testing.T) {
+		rng := rand.New(rand.NewSource(0))
 		w := NewWorld(3, 3)
 		w.Tiles[1][1] = Tile{Terrain: Grassland}
 		for i := 0; i < 1000; i++ {
