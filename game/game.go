@@ -20,8 +20,8 @@ type Game struct {
 // New creates a new Game with default state.
 func New() *Game {
 	return &Game{
-		State: newState(),
-		rng:   rand.New(rand.NewSource(time.Now().UnixNano())),
+		State:          newState(),
+		rng:            rand.New(rand.NewSource(time.Now().UnixNano())),
 		regrowCooldown: time.Now().Add(RegrowthCooldown),
 	}
 }
