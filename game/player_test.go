@@ -208,12 +208,19 @@ func TestHarvestCapacity(t *testing.T) {
 func TestDepositCooldown(t *testing.T) {
 	makeDepositState := func(wood int) *State {
 		w := NewWorld(10, 10)
-		w.SetStructure(5, 4, 4, 4, LogStorage) // storage above player
-		w.IndexStructure(5, 4, 4, 4, logStorageDef{})
+		origin := Point{5, 4}
+		w.SetStructure(origin.X, origin.Y, 4, 4, LogStorage) // storage above player
+		w.IndexStructure(origin.X, origin.Y, 4, 4, logStorageDef{})
 		p := NewPlayer(5, 5)
 		p.Wood = wood
-		s := &State{Player: p, World: w, Storage: make(map[ResourceType]*ResourceStorage)}
-		s.getStorage(Wood).AddInstance(Wood, LogStorageCapacity)
+		s := &State{
+			Player:          p,
+			World:           w,
+			Storage:         make(map[ResourceType]*ResourceStorage),
+			StorageByOrigin: make(map[Point]*StorageInstance),
+		}
+		inst := s.getStorage(Wood).AddInstance(Wood, LogStorageCapacity)
+		s.StorageByOrigin[origin] = inst
 		return s
 	}
 

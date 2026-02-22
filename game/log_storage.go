@@ -34,20 +34,28 @@ func (logStorageDef) ShouldSpawn(s *State) bool {
 }
 
 // OnBuilt registers a new storage instance when a Log Storage is completed.
-func (logStorageDef) OnBuilt(s *State) {
-	s.getStorage(Wood).AddInstance(Wood, LogStorageCapacity)
+func (logStorageDef) OnBuilt(s *State, origin Point) {
+	inst := s.getStorage(Wood).AddInstance(Wood, LogStorageCapacity)
+	if s.StorageByOrigin == nil {
+		s.StorageByOrigin = make(map[Point]*StorageInstance)
+	}
+	s.StorageByOrigin[origin] = inst
 }
 
-// OnPlayerInteraction deposits one wood into the storage when the player is adjacent
-// and the Deposit cooldown has expired.
-func (logStorageDef) OnPlayerInteraction(s *State, _ Point, now time.Time) {
+// OnPlayerInteraction deposits one wood into the specific adjacent storage instance
+// when the Deposit cooldown has expired.
+func (logStorageDef) OnPlayerInteraction(s *State, origin Point, now time.Time) {
 	if !s.Player.CooldownExpired(Deposit, now) {
 		return
 	}
 	if s.Player.Wood == 0 {
 		return
 	}
-	deposited := s.getStorage(Wood).Deposit(1)
+	inst := s.StorageByOrigin[origin]
+	if inst == nil {
+		return
+	}
+	deposited := inst.Deposit(1)
 	s.Player.Wood -= deposited
 	if deposited > 0 {
 		s.Player.QueueCooldown(Deposit, now.Add(DepositTickInterval))
