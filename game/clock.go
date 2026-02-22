@@ -16,6 +16,10 @@ func (RealClock) Now() time.Time { return time.Now() }
 // FakeClock implements Clock with a manually-advanced time value.
 // Starts at 2024-01-01T00:00:00Z so zero-value time.Time fields
 // (cooldowns not yet set) are always treated as already expired.
+//
+// Note: FakeClock has internal mutable state and must be used as a pointer
+// (*FakeClock) when passed around (for example, as a Clock) so that calls to
+// Now and Advance operate on the same underlying clock value.
 type FakeClock struct {
 	t time.Time
 }

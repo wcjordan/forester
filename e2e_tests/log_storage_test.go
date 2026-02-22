@@ -51,7 +51,7 @@ func sendKey(m *render.Model, key string) {
 // tick advances the clock by HarvestTickInterval and fires one TickMsg.
 func tick(m *render.Model, clock *game.FakeClock) {
 	clock.Advance(game.HarvestTickInterval)
-	updated, _ := m.Update(render.TickMsg{})
+	updated, _ := m.Update(render.TickMsg(clock.Now()))
 	*m = updated.(render.Model)
 }
 
