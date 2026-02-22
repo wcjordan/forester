@@ -1,10 +1,10 @@
 # STATUS
 
-- [ ] Stage 1: Wire StorageByOrigin into State + fix deposit routing
-- [ ] Stage 2: Update unit tests for StorageByOrigin
+- [x] Stage 1: Wire StorageByOrigin into State + fix deposit routing
+- [x] Stage 2: Update unit tests for StorageByOrigin
 
 ## Current state
-Planning complete. Ready to implement Stage 1.
+All stages complete. make check passes (lint + tests including e2e).
 
 ## Key decisions
 - `StorageInstance.Deposit` added; `ResourceStorage.Deposit` removed (dead code).

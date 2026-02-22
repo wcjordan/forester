@@ -15,6 +15,20 @@ type StorageInstance struct {
 	Stored   int
 }
 
+// Deposit adds up to amount into this instance, capped at remaining capacity.
+// Returns the amount actually deposited.
+func (si *StorageInstance) Deposit(amount int) int {
+	space := si.Capacity - si.Stored
+	if space <= 0 || amount <= 0 {
+		return 0
+	}
+	if amount > space {
+		amount = space
+	}
+	si.Stored += amount
+	return amount
+}
+
 // ResourceStorage aggregates all storage instances for one resource type.
 type ResourceStorage struct {
 	Instances []*StorageInstance
@@ -27,23 +41,6 @@ func (r *ResourceStorage) Total() int {
 		total += inst.Stored
 	}
 	return total
-}
-
-// Deposit adds up to amount into the first available (non-full) instance.
-// Returns the amount actually deposited.
-func (r *ResourceStorage) Deposit(amount int) int {
-	for _, inst := range r.Instances {
-		space := inst.Capacity - inst.Stored
-		if space <= 0 {
-			continue
-		}
-		if amount > space {
-			amount = space
-		}
-		inst.Stored += amount
-		return amount
-	}
-	return 0
 }
 
 // AddInstance registers a new storage instance with the given resource type and capacity.

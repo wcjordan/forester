@@ -17,7 +17,8 @@ type StructureDef interface {
 	// now is the current clock time; implementations use it to check and set cooldowns.
 	OnPlayerInteraction(s *State, origin Point, now time.Time)
 	// OnBuilt is called once when the structure is completed.
-	OnBuilt(s *State)
+	// origin is the top-left corner of the specific instance that was just built.
+	OnBuilt(s *State, origin Point)
 }
 
 // StructureEntry pairs a StructureDef with the origin (top-left corner) of the

@@ -203,14 +203,22 @@ func TestBuildMechanic(t *testing.T) {
 }
 
 func TestTickAdjacentStructures(t *testing.T) {
+	// makeDepositState creates a state with one LogStorage at origin (5,4) above the player.
 	makeDepositState := func(wood int) *State {
 		w := NewWorld(10, 10)
-		w.SetStructure(5, 4, 4, 4, LogStorage) // storage above player
-		w.IndexStructure(5, 4, 4, 4, logStorageDef{})
+		origin := Point{5, 4}
+		w.SetStructure(origin.X, origin.Y, 4, 4, LogStorage)
+		w.IndexStructure(origin.X, origin.Y, 4, 4, logStorageDef{})
 		p := NewPlayer(5, 5)
 		p.Wood = wood
-		s := &State{Player: p, World: w, Storage: make(map[ResourceType]*ResourceStorage)}
-		s.getStorage(Wood).AddInstance(Wood, LogStorageCapacity)
+		s := &State{
+			Player:          p,
+			World:           w,
+			Storage:         make(map[ResourceType]*ResourceStorage),
+			StorageByOrigin: make(map[Point]*StorageInstance),
+		}
+		inst := s.getStorage(Wood).AddInstance(Wood, LogStorageCapacity)
+		s.StorageByOrigin[origin] = inst
 		return s
 	}
 
@@ -261,24 +269,102 @@ func TestTickAdjacentStructures(t *testing.T) {
 		// Player at (5,5). LogStorage A above (y=4), LogStorage B below (y=6).
 		// Cooldowns are queued during interactions and committed after all are
 		// processed, so both instances fire within the same tick.
+		// Each instance has its own StorageByOrigin entry so deposits route correctly.
 		w := NewWorld(20, 20)
-		w.SetStructure(5, 4, 1, 1, LogStorage)
-		w.IndexStructure(5, 4, 1, 1, logStorageDef{})
-		w.SetStructure(5, 6, 1, 1, LogStorage)
-		w.IndexStructure(5, 6, 1, 1, logStorageDef{})
+		originA := Point{5, 4}
+		originB := Point{5, 6}
+		w.SetStructure(originA.X, originA.Y, 1, 1, LogStorage)
+		w.IndexStructure(originA.X, originA.Y, 1, 1, logStorageDef{})
+		w.SetStructure(originB.X, originB.Y, 1, 1, LogStorage)
+		w.IndexStructure(originB.X, originB.Y, 1, 1, logStorageDef{})
 		p := NewPlayer(5, 5)
 		p.Wood = 5
-		s := &State{Player: p, World: w, Storage: make(map[ResourceType]*ResourceStorage)}
-		s.getStorage(Wood).AddInstance(Wood, LogStorageCapacity)
+		s := &State{
+			Player:          p,
+			World:           w,
+			Storage:         make(map[ResourceType]*ResourceStorage),
+			StorageByOrigin: make(map[Point]*StorageInstance),
+		}
+		instA := s.getStorage(Wood).AddInstance(Wood, LogStorageCapacity)
+		instB := s.getStorage(Wood).AddInstance(Wood, LogStorageCapacity)
+		s.StorageByOrigin[originA] = instA
+		s.StorageByOrigin[originB] = instB
 		s.TickAdjacentStructures(time.Now())
-		// Two instances adjacent → two deposits.
+		// Two instances adjacent → two deposits, one per instance.
 		if s.Player.Wood != 3 {
 			t.Errorf("Wood = %d, want 3 after two-instance deposit", s.Player.Wood)
 		}
 		if s.TotalStored(Wood) != 2 {
 			t.Errorf("TotalStored(Wood) = %d, want 2", s.TotalStored(Wood))
 		}
+		if instA.Stored != 1 {
+			t.Errorf("instA.Stored = %d, want 1", instA.Stored)
+		}
+		if instB.Stored != 1 {
+			t.Errorf("instB.Stored = %d, want 1", instB.Stored)
+		}
 	})
+}
+
+func TestDepositRoutesToSpecificInstance(t *testing.T) {
+	// Two storages: A at (2,4) and B at (8,4). Player at (2,5) — adjacent to A only.
+	// Deposit should go into A, not B.
+	w := NewWorld(15, 10)
+	originA := Point{2, 4}
+	originB := Point{8, 4}
+	w.SetStructure(originA.X, originA.Y, 1, 1, LogStorage)
+	w.IndexStructure(originA.X, originA.Y, 1, 1, logStorageDef{})
+	w.SetStructure(originB.X, originB.Y, 1, 1, LogStorage)
+	w.IndexStructure(originB.X, originB.Y, 1, 1, logStorageDef{})
+	p := NewPlayer(2, 5)
+	p.Wood = 3
+	s := &State{
+		Player:          p,
+		World:           w,
+		Storage:         make(map[ResourceType]*ResourceStorage),
+		StorageByOrigin: make(map[Point]*StorageInstance),
+	}
+	instA := s.getStorage(Wood).AddInstance(Wood, LogStorageCapacity)
+	instB := s.getStorage(Wood).AddInstance(Wood, LogStorageCapacity)
+	s.StorageByOrigin[originA] = instA
+	s.StorageByOrigin[originB] = instB
+
+	s.TickAdjacentStructures(time.Now())
+
+	if instA.Stored != 1 {
+		t.Errorf("instA.Stored = %d, want 1 (adjacent storage)", instA.Stored)
+	}
+	if instB.Stored != 0 {
+		t.Errorf("instB.Stored = %d, want 0 (non-adjacent storage)", instB.Stored)
+	}
+}
+
+func TestDepositRespectsInstanceCapacity(t *testing.T) {
+	// Storage at capacity — deposit should be refused and no cooldown queued.
+	w := NewWorld(10, 10)
+	origin := Point{5, 4}
+	w.SetStructure(origin.X, origin.Y, 1, 1, LogStorage)
+	w.IndexStructure(origin.X, origin.Y, 1, 1, logStorageDef{})
+	p := NewPlayer(5, 5)
+	p.Wood = 5
+	s := &State{
+		Player:          p,
+		World:           w,
+		Storage:         make(map[ResourceType]*ResourceStorage),
+		StorageByOrigin: make(map[Point]*StorageInstance),
+	}
+	inst := s.getStorage(Wood).AddInstance(Wood, 2)
+	inst.Stored = 2 // already full
+	s.StorageByOrigin[origin] = inst
+
+	s.TickAdjacentStructures(time.Now())
+
+	if inst.Stored != 2 {
+		t.Errorf("inst.Stored = %d, want 2 (full — no deposit)", inst.Stored)
+	}
+	if p.Wood != 5 {
+		t.Errorf("player Wood = %d, want 5 (no deposit taken)", p.Wood)
+	}
 }
 
 func TestHasStructureOfType(t *testing.T) {

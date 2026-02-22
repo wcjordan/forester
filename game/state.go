@@ -7,11 +7,12 @@ import (
 
 // State holds all mutable game state.
 type State struct {
-	Player       *Player
-	World        *World
-	TotalWoodCut int
-	Building     *BuildOperation
-	Storage      map[ResourceType]*ResourceStorage
+	Player          *Player
+	World           *World
+	TotalWoodCut    int
+	Building        *BuildOperation
+	Storage         map[ResourceType]*ResourceStorage
+	StorageByOrigin map[Point]*StorageInstance
 }
 
 // Move moves the player and checks for ghost contact.
@@ -92,8 +93,9 @@ func (s *State) AdvanceBuild() {
 	if s.Building.Done() {
 		s.World.SetStructure(s.Building.X, s.Building.Y, s.Building.Width, s.Building.Height, s.Building.Target)
 		if def := findDefForBuilt(s.Building.Target); def != nil {
+			origin := Point{s.Building.X, s.Building.Y}
 			s.World.IndexStructure(s.Building.X, s.Building.Y, s.Building.Width, s.Building.Height, def)
-			def.OnBuilt(s)
+			def.OnBuilt(s, origin)
 		}
 		s.Building = nil
 	}
@@ -266,8 +268,9 @@ func newState() *State {
 	player := NewPlayer(world.Width/2, world.Height/2)
 
 	return &State{
-		Player:  player,
-		World:   world,
-		Storage: make(map[ResourceType]*ResourceStorage),
+		Player:          player,
+		World:           world,
+		Storage:         make(map[ResourceType]*ResourceStorage),
+		StorageByOrigin: make(map[Point]*StorageInstance),
 	}
 }
