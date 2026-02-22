@@ -16,6 +16,13 @@ type StructureDef interface {
 	OnBuilt(s *State)
 }
 
+// StructureEntry pairs a StructureDef with the origin (top-left corner) of the
+// specific instance it belongs to.  Used as values in World.StructureIndex.
+type StructureEntry struct {
+	Def    StructureDef
+	Origin Point
+}
+
 // structures is the registry of all known structure definitions.
 // Each definition registers itself via init() in its own file.
 var structures []StructureDef

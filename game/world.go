@@ -14,11 +14,15 @@ const RegrowthOdds = 40
 // maxTreeSize is the maximum TreeSize a Forest tile can grow to.
 const maxTreeSize = 10
 
+// Point is a 2D coordinate used as a map key for spatial indexes.
+type Point struct{ X, Y int }
+
 // World represents the game map as a 2D grid of tiles.
 type World struct {
-	Width  int
-	Height int
-	Tiles  [][]Tile
+	Width          int
+	Height         int
+	Tiles          [][]Tile
+	StructureIndex map[Point]StructureEntry
 }
 
 // NewWorld creates a world with the given dimensions, filled with grassland.
@@ -32,9 +36,10 @@ func NewWorld(width, height int) *World {
 	}
 
 	return &World{
-		Width:  width,
-		Height: height,
-		Tiles:  tiles,
+		Width:          width,
+		Height:         height,
+		Tiles:          tiles,
+		StructureIndex: make(map[Point]StructureEntry),
 	}
 }
 
@@ -76,6 +81,18 @@ func (w *World) SetStructure(x, y, width, height int, stype StructureType) {
 			if tile != nil {
 				tile.Structure = stype
 			}
+		}
+	}
+}
+
+// IndexStructure records every tile in the w×h footprint at (x, y) in the
+// StructureIndex, all sharing the same Origin so multi-tile instances can be
+// deduplicated by callers.  Call this for built structures only (not ghosts).
+func (w *World) IndexStructure(x, y, width, height int, def StructureDef) {
+	origin := Point{x, y}
+	for dy := 0; dy < height; dy++ {
+		for dx := 0; dx < width; dx++ {
+			w.StructureIndex[Point{x + dx, y + dy}] = StructureEntry{Def: def, Origin: origin}
 		}
 	}
 }
