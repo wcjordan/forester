@@ -6,15 +6,11 @@ import (
 	"time"
 )
 
-// DepositTickInterval is how often the player auto-deposits one wood when adjacent to a storage structure.
-const DepositTickInterval = 500 * time.Millisecond
-
 // Game is the top-level orchestrator that owns the game state and loop.
 type Game struct {
-	State           *State
-	depositCooldown time.Time
-	rng             *rand.Rand
-	regrowCooldown  time.Time
+	State          *State
+	rng            *rand.Rand
+	regrowCooldown time.Time
 }
 
 // New creates a new Game with default state.
@@ -31,13 +27,7 @@ func New() *Game {
 func (g *Game) Tick() {
 	g.State.Harvest()
 	g.State.AdvanceBuild()
-	if time.Now().After(g.depositCooldown) {
-		before := g.State.TotalStored(Wood)
-		g.State.TickAdjacentStructures()
-		if g.State.TotalStored(Wood) > before {
-			g.depositCooldown = time.Now().Add(DepositTickInterval)
-		}
-	}
+	g.State.Player.TryDeposit(g.State)
 	if time.Now().After(g.regrowCooldown) {
 		g.State.World.Regrow(g.rng)
 		g.regrowCooldown = time.Now().Add(RegrowthCooldown)

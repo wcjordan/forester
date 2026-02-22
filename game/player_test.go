@@ -1,6 +1,9 @@
 package game
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestMovePlayer(t *testing.T) {
 	w := NewWorld(10, 10)
@@ -198,6 +201,53 @@ func TestHarvestCapacity(t *testing.T) {
 		p.HarvestAdjacent(w)
 		if p.Wood != MaxWood {
 			t.Errorf("Wood = %d, want %d (should fill to exactly MaxWood)", p.Wood, MaxWood)
+		}
+	})
+}
+
+func TestTryDeposit(t *testing.T) {
+	makeDepositState := func(wood int) *State {
+		w := NewWorld(10, 10)
+		w.SetStructure(5, 4, 4, 4, LogStorage) // storage above player
+		p := NewPlayer(5, 5)
+		p.Wood = wood
+		s := &State{Player: p, World: w, Storage: make(map[ResourceType]*ResourceStorage)}
+		s.getStorage(Wood).AddInstance(Wood, LogStorageCapacity)
+		return s
+	}
+
+	t.Run("does not deposit when cooldown has not passed", func(t *testing.T) {
+		s := makeDepositState(5)
+		s.Player.DepositCooldown = time.Now().Add(time.Hour)
+		s.Player.TryDeposit(s)
+		if s.TotalStored(Wood) != 0 {
+			t.Errorf("TotalStored(Wood) = %d, want 0 when cooldown active", s.TotalStored(Wood))
+		}
+	})
+
+	t.Run("deposits when cooldown has passed", func(t *testing.T) {
+		s := makeDepositState(5) // DepositCooldown is zero value (past)
+		s.Player.TryDeposit(s)
+		if s.TotalStored(Wood) != 1 {
+			t.Errorf("TotalStored(Wood) = %d, want 1", s.TotalStored(Wood))
+		}
+	})
+
+	t.Run("sets cooldown after deposit", func(t *testing.T) {
+		s := makeDepositState(5)
+		before := time.Now()
+		s.Player.TryDeposit(s)
+		if !s.Player.DepositCooldown.After(before) {
+			t.Error("DepositCooldown should be set to a future time after deposit")
+		}
+	})
+
+	t.Run("does not set cooldown when nothing deposited", func(t *testing.T) {
+		s := makeDepositState(0) // no wood to deposit
+		s.Player.TryDeposit(s)
+		var zero time.Time
+		if s.Player.DepositCooldown != zero {
+			t.Error("DepositCooldown should remain zero when nothing was deposited")
 		}
 	})
 }
