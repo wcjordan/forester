@@ -76,7 +76,7 @@ func TestHarvestAdjacent(t *testing.T) {
 		}
 	})
 
-	t.Run("converts to stump when tree depleted", func(t *testing.T) {
+	t.Run("stays Forest when tree depleted", func(t *testing.T) {
 		w, tile := makeWorld(Forest, 1)
 		p := NewPlayer(2, 2)
 		p.HarvestAdjacent(w)
@@ -86,20 +86,23 @@ func TestHarvestAdjacent(t *testing.T) {
 		if tile.TreeSize != 0 {
 			t.Errorf("TreeSize = %d, want 0", tile.TreeSize)
 		}
-		if tile.Terrain != Stump {
-			t.Errorf("Terrain = %v, want Stump", tile.Terrain)
+		if tile.Terrain != Forest {
+			t.Errorf("Terrain = %v, want Forest (cut tree stays Forest)", tile.Terrain)
 		}
 	})
 
-	t.Run("does not harvest from stump", func(t *testing.T) {
-		w, tile := makeWorld(Stump, 0)
+	t.Run("does not harvest from cut tree", func(t *testing.T) {
+		w, tile := makeWorld(Forest, 0)
 		p := NewPlayer(2, 2)
 		p.HarvestAdjacent(w)
 		if p.Wood != 0 {
-			t.Errorf("Wood = %d, want 0 (stump should not yield wood)", p.Wood)
+			t.Errorf("Wood = %d, want 0 (cut tree should not yield wood)", p.Wood)
 		}
-		if tile.Terrain != Stump {
-			t.Errorf("Terrain changed from Stump unexpectedly")
+		if tile.Terrain != Forest {
+			t.Errorf("Terrain changed from Forest unexpectedly")
+		}
+		if tile.TreeSize != 0 {
+			t.Errorf("TreeSize changed from 0 unexpectedly")
 		}
 	})
 
@@ -200,26 +203,18 @@ func TestHarvestCapacity(t *testing.T) {
 }
 
 func TestMoveCooldowns(t *testing.T) {
-	forestCooldown, ok := MoveCooldowns[Forest]
-	if !ok {
-		t.Fatal("MoveCooldowns missing Forest entry")
-	}
-	grassCooldown, ok := MoveCooldowns[Grassland]
-	if !ok {
-		t.Fatal("MoveCooldowns missing Grassland entry")
-	}
-	stumpCooldown, ok := MoveCooldowns[Stump]
-	if !ok {
-		t.Fatal("MoveCooldowns missing Stump entry")
-	}
+	forestCooldown := MoveCooldownFor(&Tile{Terrain: Forest, TreeSize: 5})
+	cutTreeCooldown := MoveCooldownFor(&Tile{Terrain: Forest, TreeSize: 0})
+	grassCooldown := MoveCooldownFor(&Tile{Terrain: Grassland})
+
 	if forestCooldown <= grassCooldown {
 		t.Errorf("Forest cooldown (%v) should be longer than Grassland (%v)", forestCooldown, grassCooldown)
 	}
-	if forestCooldown <= stumpCooldown {
-		t.Errorf("Forest cooldown (%v) should be longer than Stump (%v)", forestCooldown, stumpCooldown)
+	if forestCooldown <= cutTreeCooldown {
+		t.Errorf("Forest cooldown (%v) should be longer than cut tree (%v)", forestCooldown, cutTreeCooldown)
 	}
-	if grassCooldown != stumpCooldown {
-		t.Errorf("Grassland (%v) and Stump (%v) cooldowns should be equal", grassCooldown, stumpCooldown)
+	if grassCooldown != cutTreeCooldown {
+		t.Errorf("Grassland (%v) and cut tree (%v) cooldowns should be equal", grassCooldown, cutTreeCooldown)
 	}
 }
 

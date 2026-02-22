@@ -1,4 +1,4 @@
-.PHONY: build test lint run dev clean check
+.PHONY: build test lint run dev clean check format
 
 BINARY := forester
 
@@ -22,3 +22,6 @@ clean:
 	rm -rf tmp/
 
 check: lint test
+
+format:
+	gofmt -s -w .
