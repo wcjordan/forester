@@ -1,4 +1,4 @@
-.PHONY: build test lint run dev clean check format
+.PHONY: build test lint run dev clean check format e2e_viz
 
 BINARY := forester
 
@@ -25,3 +25,7 @@ check: lint test
 
 format:
 	gofmt -s -w .
+
+e2e_viz:
+	go clean -testcache
+	E2E_VISUAL=1 E2E_VISUAL_DELAY=150ms go test ./e2e_tests/ -run TestLogStorageWorkflow -v
