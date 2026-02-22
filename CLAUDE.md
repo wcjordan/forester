@@ -6,6 +6,9 @@ See `docs/PROJECT_PLAN.md` for an idea of the project.
 
 ## Repo Map (entrypoints)
 
+See `docs/GETTING_AROUND.md` for a full navigation guide covering every file, the libraries used in each area, and key architectural patterns.
+
+Quick reference:
 - `main.go` — Entry point. Creates and runs the game.
 - `game/` — Core game package (all game logic lives here)
   - `game.go` — `Game` struct, `New()`, `Run()` orchestrator
@@ -13,6 +16,11 @@ See `docs/PROJECT_PLAN.md` for an idea of the project.
   - `player.go` — `Player` entity (position, inventory)
   - `world.go` — `World` grid, `NewWorld()`, bounds/tile access
   - `tile.go` — `Tile` and `TerrainType` definitions
+  - `structure.go` — `StructureDef` interface + structure registry
+  - `clock.go` — `Clock` interface for test time injection
+  - `storage.go` — `ResourceStorage` / `StorageInstance`
+- `render/model.go` — bubbletea `Model` (TUI presentation layer)
+- `e2e_tests/` — End-to-end tests with injected clock + RNG
 - `docs/PROJECT_PLAN.md` — Full game design document
 
 ---
@@ -27,6 +35,7 @@ make build   # compile binary
 make run     # build and run
 make dev     # hot-reload with air
 make clean   # remove build artifacts
+make format  # format code w/ gofmt
 ```
 
 ---
