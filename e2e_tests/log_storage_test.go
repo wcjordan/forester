@@ -4,6 +4,7 @@ package e2e_tests
 
 import (
 	"fmt"
+	"math/rand"
 	"regexp"
 	"strings"
 	"testing"
@@ -86,7 +87,7 @@ func moveDir(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) {
 func TestLogStorageWorkflow(t *testing.T) {
 	// ── Setup ────────────────────────────────────────────────────────────────
 	clock := game.NewFakeClock()
-	g := game.NewWithClock(clock)
+	g := game.NewWithClockAndRNG(clock, rand.New(rand.NewSource(42)))
 	m := render.NewModelWithClock(g, clock)
 	// Set terminal size so View() renders.
 	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
