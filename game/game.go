@@ -41,7 +41,7 @@ func (g *Game) Tick() {
 	now := g.clock.Now()
 	g.State.Harvest()
 	g.State.AdvanceBuild()
-	g.State.Player.TryDeposit(g.State, now)
+	g.State.TickAdjacentStructures(now)
 	if now.After(g.regrowCooldown) {
 		g.State.World.Regrow(g.rng)
 		g.regrowCooldown = now.Add(RegrowthCooldown)

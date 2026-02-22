@@ -1,6 +1,9 @@
 package game
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 // makeStateWithForest creates a small test state with a clear grassland area
 // and one forest tile in front of the player for harvesting.
@@ -213,7 +216,7 @@ func TestTickAdjacentStructures(t *testing.T) {
 
 	t.Run("no deposit when Wood is 0", func(t *testing.T) {
 		s := makeDepositState(0)
-		s.TickAdjacentStructures()
+		s.TickAdjacentStructures(time.Now())
 		if s.TotalStored(Wood) != 0 {
 			t.Errorf("TotalStored(Wood) = %d, want 0 when Wood == 0", s.TotalStored(Wood))
 		}
@@ -224,7 +227,7 @@ func TestTickAdjacentStructures(t *testing.T) {
 		p := NewPlayer(5, 5)
 		p.Wood = 5
 		s := &State{Player: p, World: w, Storage: make(map[ResourceType]*ResourceStorage)}
-		s.TickAdjacentStructures()
+		s.TickAdjacentStructures(time.Now())
 		if s.TotalStored(Wood) != 0 {
 			t.Errorf("TotalStored(Wood) = %d, want 0 when not adjacent", s.TotalStored(Wood))
 		}
@@ -232,7 +235,7 @@ func TestTickAdjacentStructures(t *testing.T) {
 
 	t.Run("deposits one wood when adjacent", func(t *testing.T) {
 		s := makeDepositState(5)
-		s.TickAdjacentStructures()
+		s.TickAdjacentStructures(time.Now())
 		if s.Player.Wood != 4 {
 			t.Errorf("Wood = %d, want 4 after deposit", s.Player.Wood)
 		}
@@ -241,10 +244,11 @@ func TestTickAdjacentStructures(t *testing.T) {
 		}
 	})
 
-	t.Run("deposits one at a time", func(t *testing.T) {
+	t.Run("deposits one at a time with cooldown between ticks", func(t *testing.T) {
 		s := makeDepositState(3)
-		s.TickAdjacentStructures()
-		s.TickAdjacentStructures()
+		t0 := time.Now()
+		s.TickAdjacentStructures(t0)
+		s.TickAdjacentStructures(t0.Add(DepositTickInterval + time.Millisecond))
 		if s.Player.Wood != 1 {
 			t.Errorf("Wood = %d, want 1 after 2 deposits", s.Player.Wood)
 		}
@@ -255,6 +259,8 @@ func TestTickAdjacentStructures(t *testing.T) {
 
 	t.Run("two adjacent instances each trigger an interaction", func(t *testing.T) {
 		// Player at (5,5). LogStorage A above (y=4), LogStorage B below (y=6).
+		// Cooldowns are queued during interactions and committed after all are
+		// processed, so both instances fire within the same tick.
 		w := NewWorld(20, 20)
 		w.SetStructure(5, 4, 1, 1, LogStorage)
 		w.IndexStructure(5, 4, 1, 1, logStorageDef{})
@@ -264,7 +270,7 @@ func TestTickAdjacentStructures(t *testing.T) {
 		p.Wood = 5
 		s := &State{Player: p, World: w, Storage: make(map[ResourceType]*ResourceStorage)}
 		s.getStorage(Wood).AddInstance(Wood, LogStorageCapacity)
-		s.TickAdjacentStructures()
+		s.TickAdjacentStructures(time.Now())
 		// Two instances adjacent → two deposits.
 		if s.Player.Wood != 3 {
 			t.Errorf("Wood = %d, want 3 after two-instance deposit", s.Player.Wood)

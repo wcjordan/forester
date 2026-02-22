@@ -2,17 +2,57 @@ package game
 
 import "time"
 
+// CooldownType identifies a named per-player interaction cooldown.
+type CooldownType int
+
+const (
+	// Deposit is the cooldown type for depositing resources into a storage structure.
+	Deposit CooldownType = iota
+)
+
 // Player represents the player character.
 type Player struct {
 	X, Y               int
 	FacingDX, FacingDY int
 	Wood               int
-	DepositCooldown    time.Time
+	Cooldowns          map[CooldownType]time.Time
+	pendingCooldowns   map[CooldownType]time.Time
 }
 
 // NewPlayer creates a player at the given position, facing north.
 func NewPlayer(x, y int) *Player {
-	return &Player{X: x, Y: y, FacingDX: 0, FacingDY: -1}
+	return &Player{
+		X: x, Y: y, FacingDX: 0, FacingDY: -1,
+		Cooldowns:        make(map[CooldownType]time.Time),
+		pendingCooldowns: make(map[CooldownType]time.Time),
+	}
+}
+
+// CooldownExpired reports whether the given cooldown type has expired (or was never set).
+func (p *Player) CooldownExpired(ct CooldownType, now time.Time) bool {
+	return now.After(p.Cooldowns[ct])
+}
+
+// SetCooldown immediately sets the given cooldown type. Use for direct state
+// manipulation (e.g. tests). Structure interactions should use QueueCooldown instead.
+func (p *Player) SetCooldown(ct CooldownType, until time.Time) {
+	p.Cooldowns[ct] = until
+}
+
+// QueueCooldown schedules a cooldown to be applied after the current interaction
+// tick completes. Call this from OnPlayerInteraction so that all adjacent
+// structure interactions within the same tick see the pre-tick cooldown state.
+func (p *Player) QueueCooldown(ct CooldownType, until time.Time) {
+	p.pendingCooldowns[ct] = until
+}
+
+// commitCooldowns applies all pending cooldowns and clears the pending set.
+// Called by TickAdjacentStructures after all interactions have been processed.
+func (p *Player) commitCooldowns() {
+	for ct, until := range p.pendingCooldowns {
+		p.Cooldowns[ct] = until
+	}
+	clear(p.pendingCooldowns)
 }
 
 // MovePlayer moves the player by (dx, dy), clamped to world bounds.
@@ -55,9 +95,6 @@ func MoveCooldownFor(tile *Tile) time.Duration {
 	return DefaultMoveCooldown
 }
 
-// DepositTickInterval is how often the player auto-deposits one wood when adjacent to a storage structure.
-const DepositTickInterval = 500 * time.Millisecond
-
 // MaxWood is the maximum amount of wood the player can carry.
 const MaxWood = 20
 
@@ -66,20 +103,6 @@ const harvestPerStep = 1
 
 // HarvestTickInterval is how often the player automatically harvests without moving.
 const HarvestTickInterval = 100 * time.Millisecond
-
-// TryDeposit deposits one wood into an adjacent storage structure if the deposit cooldown has passed.
-// If any amount is deposited, the cooldown is reset to a future time.
-// now should be the current clock time from the caller (Game.Tick).
-func (p *Player) TryDeposit(s *State, now time.Time) {
-	if !now.After(p.DepositCooldown) {
-		return
-	}
-	before := s.TotalStored(Wood)
-	s.TickAdjacentStructures()
-	if s.TotalStored(Wood) > before {
-		p.DepositCooldown = now.Add(DepositTickInterval)
-	}
-}
 
 // HarvestAdjacent harvests wood from the three Forest tiles in front of the player:
 // straight ahead and the two forward diagonals.

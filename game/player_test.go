@@ -205,7 +205,7 @@ func TestHarvestCapacity(t *testing.T) {
 	})
 }
 
-func TestTryDeposit(t *testing.T) {
+func TestDepositCooldown(t *testing.T) {
 	makeDepositState := func(wood int) *State {
 		w := NewWorld(10, 10)
 		w.SetStructure(5, 4, 4, 4, LogStorage) // storage above player
@@ -220,16 +220,16 @@ func TestTryDeposit(t *testing.T) {
 	t.Run("does not deposit when cooldown has not passed", func(t *testing.T) {
 		s := makeDepositState(5)
 		now := time.Now()
-		s.Player.DepositCooldown = now.Add(time.Hour)
-		s.Player.TryDeposit(s, now)
+		s.Player.SetCooldown(Deposit, now.Add(time.Hour))
+		s.TickAdjacentStructures(now)
 		if s.TotalStored(Wood) != 0 {
 			t.Errorf("TotalStored(Wood) = %d, want 0 when cooldown active", s.TotalStored(Wood))
 		}
 	})
 
 	t.Run("deposits when cooldown has passed", func(t *testing.T) {
-		s := makeDepositState(5) // DepositCooldown is zero value (past)
-		s.Player.TryDeposit(s, time.Now())
+		s := makeDepositState(5) // Cooldowns zero value = expired
+		s.TickAdjacentStructures(time.Now())
 		if s.TotalStored(Wood) != 1 {
 			t.Errorf("TotalStored(Wood) = %d, want 1", s.TotalStored(Wood))
 		}
@@ -238,18 +238,18 @@ func TestTryDeposit(t *testing.T) {
 	t.Run("sets cooldown after deposit", func(t *testing.T) {
 		s := makeDepositState(5)
 		now := time.Now()
-		s.Player.TryDeposit(s, now)
-		if !s.Player.DepositCooldown.After(now) {
-			t.Error("DepositCooldown should be set to a future time after deposit")
+		s.TickAdjacentStructures(now)
+		if !s.Player.Cooldowns[Deposit].After(now) {
+			t.Error("Cooldowns[Deposit] should be set to a future time after deposit")
 		}
 	})
 
 	t.Run("does not set cooldown when nothing deposited", func(t *testing.T) {
 		s := makeDepositState(0) // no wood to deposit
-		s.Player.TryDeposit(s, time.Now())
+		s.TickAdjacentStructures(time.Now())
 		var zero time.Time
-		if s.Player.DepositCooldown != zero {
-			t.Error("DepositCooldown should remain zero when nothing was deposited")
+		if s.Player.Cooldowns[Deposit] != zero {
+			t.Error("Cooldowns[Deposit] should remain zero when nothing was deposited")
 		}
 	})
 }
