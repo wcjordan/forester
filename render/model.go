@@ -11,11 +11,12 @@ import (
 	"forester/game"
 )
 
-type tickMsg time.Time
+// TickMsg is sent each harvest tick interval to drive the game loop.
+type TickMsg time.Time
 
 func doTick() tea.Cmd {
 	return tea.Tick(game.HarvestTickInterval, func(t time.Time) tea.Msg {
-		return tickMsg(t)
+		return TickMsg(t)
 	})
 }
 
@@ -34,11 +35,18 @@ type Model struct {
 	termWidth    int
 	termHeight   int
 	lastMoveTime time.Time
+	clock        game.Clock
 }
 
-// NewModel creates a Model wrapping the given game.
+// NewModel creates a Model wrapping the given game using the system clock.
 func NewModel(g *game.Game) Model {
-	return Model{game: g}
+	return NewModelWithClock(g, game.RealClock{})
+}
+
+// NewModelWithClock creates a Model with the given clock. Use in tests to
+// inject a FakeClock for deterministic time control.
+func NewModelWithClock(g *game.Game, clock game.Clock) Model {
+	return Model{game: g, clock: clock}
 }
 
 // Init satisfies tea.Model. Starts the harvest tick loop.
@@ -53,7 +61,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.termWidth = msg.Width
 		m.termHeight = msg.Height
 
-	case tickMsg:
+	case TickMsg:
 		m.game.Tick()
 		return m, doTick()
 
@@ -65,22 +73,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "up", "w":
 			if m.canMove() {
 				m.game.State.Move(0, -1)
-				m.lastMoveTime = time.Now()
+				m.lastMoveTime = m.clock.Now()
 			}
 		case "down", "s":
 			if m.canMove() {
 				m.game.State.Move(0, 1)
-				m.lastMoveTime = time.Now()
+				m.lastMoveTime = m.clock.Now()
 			}
 		case "left", "a":
 			if m.canMove() {
 				m.game.State.Move(-1, 0)
-				m.lastMoveTime = time.Now()
+				m.lastMoveTime = m.clock.Now()
 			}
 		case "right", "d":
 			if m.canMove() {
 				m.game.State.Move(1, 0)
-				m.lastMoveTime = time.Now()
+				m.lastMoveTime = m.clock.Now()
 			}
 		}
 	}
@@ -97,7 +105,7 @@ func (m Model) canMove() bool {
 	if tile != nil {
 		cooldown = game.MoveCooldownFor(tile)
 	}
-	return time.Since(m.lastMoveTime) >= cooldown
+	return m.clock.Now().Sub(m.lastMoveTime) >= cooldown
 }
 
 // View renders the current game state to a string.

@@ -69,14 +69,15 @@ const HarvestTickInterval = 100 * time.Millisecond
 
 // TryDeposit deposits one wood into an adjacent storage structure if the deposit cooldown has passed.
 // If any amount is deposited, the cooldown is reset to a future time.
-func (p *Player) TryDeposit(s *State) {
-	if !time.Now().After(p.DepositCooldown) {
+// now should be the current clock time from the caller (Game.Tick).
+func (p *Player) TryDeposit(s *State, now time.Time) {
+	if !now.After(p.DepositCooldown) {
 		return
 	}
 	before := s.TotalStored(Wood)
 	s.TickAdjacentStructures()
 	if s.TotalStored(Wood) > before {
-		p.DepositCooldown = time.Now().Add(DepositTickInterval)
+		p.DepositCooldown = now.Add(DepositTickInterval)
 	}
 }
 
