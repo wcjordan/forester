@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"math/rand"
 	"time"
 )
@@ -47,14 +46,4 @@ func (g *Game) Tick() {
 		g.State.World.Regrow(g.rng)
 		g.regrowCooldown = now.Add(RegrowthCooldown)
 	}
-}
-
-// Run starts the game loop. For now it just prints a message and returns.
-func (g *Game) Run() error {
-	fmt.Println("Forester - A village grows where you walk")
-	fmt.Printf("World: %dx%d | Player at (%d, %d)\n",
-		g.State.World.Width, g.State.World.Height,
-		g.State.Player.X, g.State.Player.Y,
-	)
-	return nil
 }

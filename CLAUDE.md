@@ -11,7 +11,7 @@ See `docs/GETTING_AROUND.md` for a full navigation guide covering every file, th
 Quick reference:
 - `main.go` — Entry point. Creates and runs the game.
 - `game/` — Core game package (all game logic lives here)
-  - `game.go` — `Game` struct, `New()`, `Run()` orchestrator
+  - `game.go` — `Game` struct, `New()`, `Tick()` orchestrator
   - `state.go` — `State` struct (owns Player + World)
   - `player.go` — `Player` entity (position, inventory)
   - `world.go` — `World` grid, `NewWorld()`, bounds/tile access
