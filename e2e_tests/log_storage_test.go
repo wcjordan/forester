@@ -53,6 +53,7 @@ func tick(m *render.Model, clock *game.FakeClock) {
 	clock.Advance(game.HarvestTickInterval)
 	updated, _ := m.Update(render.TickMsg(clock.Now()))
 	*m = updated.(render.Model)
+	renderFrame(*m, "")
 }
 
 // moveDir advances the clock by the current tile's move cooldown, then sends the key.
@@ -63,6 +64,7 @@ func moveDir(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) {
 	cooldown := game.MoveCooldownFor(tile)
 	clock.Advance(cooldown)
 	sendKey(m, dir)
+	renderFrame(*m, fmt.Sprintf("move %s → (%d, %d)", dir, g.State.Player.X, g.State.Player.Y))
 }
 
 // TestLogStorageWorkflow is a full end-to-end scenario:
@@ -93,6 +95,7 @@ func TestLogStorageWorkflow(t *testing.T) {
 	// ── Phase 1: Navigate to harvest position (48, 45) ───────────────────────
 	// Path: west×2 → (48,50), then north×5 → (48,45).
 	// Tiles along path: all Grassland except the last two northward steps (Forest).
+	announcePhase(m, "Phase 1: Navigate to harvest position")
 	for _, dir := range []string{"a", "a", "w", "w", "w", "w", "w"} {
 		moveDir(&m, clock, g, dir)
 	}
@@ -104,6 +107,7 @@ func TestLogStorageWorkflow(t *testing.T) {
 	// ── Phase 2: Harvest until ghost log storage appears ─────────────────────
 	// Forward arc faces north: (48,44) size=8, (47,44) size=10, (49,44) size=9.
 	// 3 wood/tick → TotalWoodCut≥10 after ~4 ticks; ghost spawns automatically.
+	announcePhase(m, "Phase 2: Harvest wood until ghost log storage appears")
 	const maxHarvestTicks = 30
 	for i := range maxHarvestTicks {
 		tick(&m, clock)
@@ -118,6 +122,7 @@ func TestLogStorageWorkflow(t *testing.T) {
 	// ── Phase 3: Step onto ghost tile to trigger build ────────────────────────
 	// From (48,45): south×3 → (48,48), then east → (49,48) which is the ghost.
 	// checkGhostContact fires; build starts; player is nudged to (49,47).
+	announcePhase(m, "Phase 3: Step onto ghost tile to start build")
 	for _, dir := range []string{"s", "s", "s", "d"} {
 		moveDir(&m, clock, g, dir)
 	}
@@ -130,6 +135,7 @@ func TestLogStorageWorkflow(t *testing.T) {
 	}
 
 	// ── Phase 4: Complete build (30 ticks) ────────────────────────────────────
+	announcePhase(m, "Phase 4: Build log storage (30 ticks)")
 	const maxBuildTicks = 40
 	for i := range maxBuildTicks {
 		tick(&m, clock)
@@ -148,6 +154,7 @@ func TestLogStorageWorkflow(t *testing.T) {
 	}
 
 	// ── Phase 5: Deposit wood into the log storage ────────────────────────────
+	announcePhase(m, "Phase 5: Deposit wood into log storage")
 	// Player is at (49,47), directly adjacent to LogStorage at (49,48).
 	// Note: one deposit already fires in the same Tick() that completes the build
 	// (AdvanceBuild runs before TryDeposit). storedBefore captures whatever is
@@ -215,4 +222,6 @@ func TestLogStorageWorkflow(t *testing.T) {
 	if g.State.TotalStored(game.Wood) == 0 {
 		t.Error("expected wood to be stored in log storage after deposit")
 	}
+
+	announcePhase(m, fmt.Sprintf("Done — LogStorage built, %d wood deposited", g.State.TotalStored(game.Wood)))
 }
