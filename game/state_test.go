@@ -205,14 +205,16 @@ func TestTickAdjacentStructures(t *testing.T) {
 		w.SetStructure(5, 4, 4, 4, LogStorage) // storage above player
 		p := NewPlayer(5, 5)
 		p.Wood = wood
-		return &State{Player: p, World: w}
+		s := &State{Player: p, World: w, Storage: make(map[ResourceType]*ResourceStorage)}
+		s.getStorage(Wood).AddInstance(Wood, LogStorageCapacity)
+		return s
 	}
 
 	t.Run("no deposit when Wood is 0", func(t *testing.T) {
 		s := makeDepositState(0)
 		s.TickAdjacentStructures()
-		if s.LogStorageDeposited != 0 {
-			t.Errorf("LogStorageDeposited = %d, want 0 when Wood == 0", s.LogStorageDeposited)
+		if s.TotalStored(Wood) != 0 {
+			t.Errorf("TotalStored(Wood) = %d, want 0 when Wood == 0", s.TotalStored(Wood))
 		}
 	})
 
@@ -220,10 +222,10 @@ func TestTickAdjacentStructures(t *testing.T) {
 		w := NewWorld(10, 10)
 		p := NewPlayer(5, 5)
 		p.Wood = 5
-		s := &State{Player: p, World: w}
+		s := &State{Player: p, World: w, Storage: make(map[ResourceType]*ResourceStorage)}
 		s.TickAdjacentStructures()
-		if s.LogStorageDeposited != 0 {
-			t.Errorf("LogStorageDeposited = %d, want 0 when not adjacent", s.LogStorageDeposited)
+		if s.TotalStored(Wood) != 0 {
+			t.Errorf("TotalStored(Wood) = %d, want 0 when not adjacent", s.TotalStored(Wood))
 		}
 	})
 
@@ -233,8 +235,8 @@ func TestTickAdjacentStructures(t *testing.T) {
 		if s.Player.Wood != 4 {
 			t.Errorf("Wood = %d, want 4 after deposit", s.Player.Wood)
 		}
-		if s.LogStorageDeposited != 1 {
-			t.Errorf("LogStorageDeposited = %d, want 1", s.LogStorageDeposited)
+		if s.TotalStored(Wood) != 1 {
+			t.Errorf("TotalStored(Wood) = %d, want 1", s.TotalStored(Wood))
 		}
 	})
 
@@ -245,8 +247,8 @@ func TestTickAdjacentStructures(t *testing.T) {
 		if s.Player.Wood != 1 {
 			t.Errorf("Wood = %d, want 1 after 2 deposits", s.Player.Wood)
 		}
-		if s.LogStorageDeposited != 2 {
-			t.Errorf("LogStorageDeposited = %d, want 2", s.LogStorageDeposited)
+		if s.TotalStored(Wood) != 2 {
+			t.Errorf("TotalStored(Wood) = %d, want 2", s.TotalStored(Wood))
 		}
 	})
 }

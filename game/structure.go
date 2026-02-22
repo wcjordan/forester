@@ -12,6 +12,8 @@ type StructureDef interface {
 	ShouldSpawn(s *State) bool
 	// OnAdjacentTick is called each tick the player is adjacent to the built structure.
 	OnAdjacentTick(s *State)
+	// OnBuilt is called once when the structure is completed.
+	OnBuilt(s *State)
 }
 
 // structures is the registry of all known structure definitions.

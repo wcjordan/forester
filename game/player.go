@@ -7,6 +7,7 @@ type Player struct {
 	X, Y               int
 	FacingDX, FacingDY int
 	Wood               int
+	DepositCooldown    time.Time
 }
 
 // NewPlayer creates a player at the given position, facing north.
@@ -54,6 +55,9 @@ func MoveCooldownFor(tile *Tile) time.Duration {
 	return DefaultMoveCooldown
 }
 
+// DepositTickInterval is how often the player auto-deposits one wood when adjacent to a storage structure.
+const DepositTickInterval = 500 * time.Millisecond
+
 // MaxWood is the maximum amount of wood the player can carry.
 const MaxWood = 20
 
@@ -62,6 +66,19 @@ const harvestPerStep = 1
 
 // HarvestTickInterval is how often the player automatically harvests without moving.
 const HarvestTickInterval = 100 * time.Millisecond
+
+// TryDeposit deposits one wood into an adjacent storage structure if the deposit cooldown has passed.
+// If any amount is deposited, the cooldown is reset to a future time.
+func (p *Player) TryDeposit(s *State) {
+	if !time.Now().After(p.DepositCooldown) {
+		return
+	}
+	before := s.TotalStored(Wood)
+	s.TickAdjacentStructures()
+	if s.TotalStored(Wood) > before {
+		p.DepositCooldown = time.Now().Add(DepositTickInterval)
+	}
+}
 
 // HarvestAdjacent harvests wood from the three Forest tiles in front of the player:
 // straight ahead and the two forward diagonals.
