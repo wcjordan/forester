@@ -10,6 +10,7 @@ const (
 
 // StorageInstance tracks one storage structure's fill level.
 type StorageInstance struct {
+	Resource ResourceType
 	Capacity int
 	Stored   int
 }
@@ -45,9 +46,9 @@ func (r *ResourceStorage) Deposit(amount int) int {
 	return 0
 }
 
-// AddInstance registers a new storage instance with the given capacity.
-func (r *ResourceStorage) AddInstance(capacity int) *StorageInstance {
-	inst := &StorageInstance{Capacity: capacity}
+// AddInstance registers a new storage instance with the given resource type and capacity.
+func (r *ResourceStorage) AddInstance(resource ResourceType, capacity int) *StorageInstance {
+	inst := &StorageInstance{Resource: resource, Capacity: capacity}
 	r.Instances = append(r.Instances, inst)
 	return inst
 }

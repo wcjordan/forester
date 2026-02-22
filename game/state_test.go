@@ -206,7 +206,7 @@ func TestTickAdjacentStructures(t *testing.T) {
 		p := NewPlayer(5, 5)
 		p.Wood = wood
 		s := &State{Player: p, World: w, Storage: make(map[ResourceType]*ResourceStorage)}
-		s.getStorage(Wood).AddInstance(LogStorageCapacity)
+		s.getStorage(Wood).AddInstance(Wood, LogStorageCapacity)
 		return s
 	}
 

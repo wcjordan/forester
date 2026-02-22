@@ -30,7 +30,7 @@ func (logStorageDef) ShouldSpawn(s *State) bool {
 
 // OnBuilt registers a new storage instance when a Log Storage is completed.
 func (logStorageDef) OnBuilt(s *State) {
-	s.getStorage(Wood).AddInstance(LogStorageCapacity)
+	s.getStorage(Wood).AddInstance(Wood, LogStorageCapacity)
 }
 
 // OnAdjacentTick deposits one wood into the storage when the player is adjacent.
