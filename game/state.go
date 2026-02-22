@@ -240,11 +240,11 @@ func abs(n int) int {
 	return n
 }
 
-// TickAdjacentStructures calls OnAdjacentTick for each structure the player is adjacent to.
+// TickAdjacentStructures calls OnPlayerInteraction for each structure instance the player is adjacent to.
 func (s *State) TickAdjacentStructures() {
 	for _, def := range structures {
 		if s.World.IsAdjacentToStructure(s.Player.X, s.Player.Y, def.BuiltType()) {
-			def.OnAdjacentTick(s)
+			def.OnPlayerInteraction(s, Point{})
 		}
 	}
 }
