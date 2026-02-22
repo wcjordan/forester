@@ -91,6 +91,7 @@ func (s *State) AdvanceBuild() {
 	if s.Building.Done() {
 		s.World.SetStructure(s.Building.X, s.Building.Y, s.Building.Width, s.Building.Height, s.Building.Target)
 		if def := findDefForBuilt(s.Building.Target); def != nil {
+			s.World.IndexStructure(s.Building.X, s.Building.Y, s.Building.Width, s.Building.Height, def)
 			def.OnBuilt(s)
 		}
 		s.Building = nil
@@ -240,12 +241,18 @@ func abs(n int) int {
 	return n
 }
 
-// TickAdjacentStructures calls OnPlayerInteraction for each structure instance the player is adjacent to.
+// TickAdjacentStructures calls OnPlayerInteraction once per structure instance
+// that the player is cardinally adjacent to.
 func (s *State) TickAdjacentStructures() {
-	for _, def := range structures {
-		if s.World.IsAdjacentToStructure(s.Player.X, s.Player.Y, def.BuiltType()) {
-			def.OnPlayerInteraction(s, Point{})
+	seen := make(map[Point]bool)
+	for _, d := range [4][2]int{{0, -1}, {0, 1}, {-1, 0}, {1, 0}} {
+		p := Point{s.Player.X + d[0], s.Player.Y + d[1]}
+		entry, ok := s.World.StructureIndex[p]
+		if !ok || seen[entry.Origin] {
+			continue
 		}
+		seen[entry.Origin] = true
+		entry.Def.OnPlayerInteraction(s, entry.Origin)
 	}
 }
 

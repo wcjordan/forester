@@ -96,15 +96,3 @@ func (w *World) IndexStructure(x, y, width, height int, def StructureDef) {
 		}
 	}
 }
-
-// IsAdjacentToStructure returns true if any of the four cardinal neighbors of
-// (x, y) has the given structure type.
-func (w *World) IsAdjacentToStructure(x, y int, stype StructureType) bool {
-	for _, d := range [4][2]int{{0, -1}, {0, 1}, {-1, 0}, {1, 0}} {
-		tile := w.TileAt(x+d[0], y+d[1])
-		if tile != nil && tile.Structure == stype {
-			return true
-		}
-	}
-	return false
-}
