@@ -34,6 +34,7 @@ make lint    # golangci-lint only
 make build   # compile binary
 make run     # build and run
 make dev     # hot-reload with air
+make e2e_viz  # visual E2E playback in terminal
 make clean   # remove build artifacts
 make format  # format code w/ gofmt
 ```
