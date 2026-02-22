@@ -32,9 +32,9 @@ func (g *Game) Tick() {
 	g.State.Harvest()
 	g.State.AdvanceBuild()
 	if time.Now().After(g.depositCooldown) {
-		before := g.State.LogStorageDeposited
+		before := g.State.TotalStored(Wood)
 		g.State.TickAdjacentStructures()
-		if g.State.LogStorageDeposited > before {
+		if g.State.TotalStored(Wood) > before {
 			g.depositCooldown = time.Now().Add(DepositTickInterval)
 		}
 	}

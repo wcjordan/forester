@@ -6,11 +6,11 @@ import (
 
 // State holds all mutable game state.
 type State struct {
-	Player              *Player
-	World               *World
-	TotalWoodCut        int
-	Building            *BuildOperation
-	LogStorageDeposited int
+	Player       *Player
+	World        *World
+	TotalWoodCut int
+	Building     *BuildOperation
+	Storage      map[ResourceType]*ResourceStorage
 }
 
 // Move moves the player and checks for ghost contact.
@@ -90,8 +90,40 @@ func (s *State) AdvanceBuild() {
 	s.Building.ProgressTicks++
 	if s.Building.Done() {
 		s.World.SetStructure(s.Building.X, s.Building.Y, s.Building.Width, s.Building.Height, s.Building.Target)
+		if def := findDefForBuilt(s.Building.Target); def != nil {
+			def.OnBuilt(s)
+		}
 		s.Building = nil
 	}
+}
+
+// findDefForBuilt returns the StructureDef whose BuiltType matches st, or nil.
+func findDefForBuilt(st StructureType) StructureDef {
+	for _, def := range structures {
+		if def.BuiltType() == st {
+			return def
+		}
+	}
+	return nil
+}
+
+// getStorage returns (creating if needed) the ResourceStorage for the given type.
+func (s *State) getStorage(r ResourceType) *ResourceStorage {
+	if s.Storage == nil {
+		s.Storage = make(map[ResourceType]*ResourceStorage)
+	}
+	if s.Storage[r] == nil {
+		s.Storage[r] = &ResourceStorage{}
+	}
+	return s.Storage[r]
+}
+
+// TotalStored returns the total stored amount for a resource type.
+func (s *State) TotalStored(r ResourceType) int {
+	if s.Storage[r] == nil {
+		return 0
+	}
+	return s.Storage[r].Total()
 }
 
 // ghostOriginFor returns the top-left corner of the current ghost footprint for the given type.
@@ -223,7 +255,8 @@ func newState() *State {
 	player := NewPlayer(world.Width/2, world.Height/2)
 
 	return &State{
-		Player: player,
-		World:  world,
+		Player:  player,
+		World:   world,
+		Storage: make(map[ResourceType]*ResourceStorage),
 	}
 }

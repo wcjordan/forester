@@ -3,6 +3,9 @@ package game
 // LogStorageBuildTicks is the number of ticks (at 100ms each) to complete a Log Storage build (~3s).
 const LogStorageBuildTicks = 30
 
+// LogStorageCapacity is the maximum number of wood a single Log Storage can hold.
+const LogStorageCapacity = 100
+
 func init() { structures = append(structures, logStorageDef{}) }
 
 // logStorageDef implements StructureDef for the Log Storage structure.
@@ -25,11 +28,16 @@ func (logStorageDef) ShouldSpawn(s *State) bool {
 	return s.TotalWoodCut >= 10
 }
 
+// OnBuilt registers a new storage instance when a Log Storage is completed.
+func (logStorageDef) OnBuilt(s *State) {
+	s.getStorage(Wood).AddInstance(LogStorageCapacity)
+}
+
 // OnAdjacentTick deposits one wood into the storage when the player is adjacent.
 func (logStorageDef) OnAdjacentTick(s *State) {
 	if s.Player.Wood == 0 {
 		return
 	}
-	s.Player.Wood--
-	s.LogStorageDeposited++
+	deposited := s.getStorage(Wood).Deposit(1)
+	s.Player.Wood -= deposited
 }
