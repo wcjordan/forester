@@ -22,9 +22,15 @@ func New() *Game {
 // NewWithClock creates a new Game with the given clock. Use in tests to
 // inject a FakeClock for deterministic time control.
 func NewWithClock(clock Clock) *Game {
+	return NewWithClockAndRNG(clock, rand.New(rand.NewSource(time.Now().UnixNano())))
+}
+
+// NewWithClockAndRNG creates a new Game with injected clock and RNG. Use in
+// tests to get fully deterministic behavior (e.g. rand.New(rand.NewSource(0))).
+func NewWithClockAndRNG(clock Clock, rng *rand.Rand) *Game {
 	return &Game{
 		State:          newState(),
-		rng:            rand.New(rand.NewSource(time.Now().UnixNano())),
+		rng:            rng,
 		regrowCooldown: clock.Now().Add(RegrowthCooldown),
 		clock:          clock,
 	}
