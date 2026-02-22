@@ -148,7 +148,7 @@ func TestLogStorageWorkflow(t *testing.T) {
 	}
 
 	// ── Phase 5: Deposit wood into the log storage ────────────────────────────
-	// Player is at (49,47), directly adjacent (south) to LogStorage at (49,48).
+	// Player is at (49,47), directly adjacent to LogStorage at (49,48).
 	// Note: one deposit already fires in the same Tick() that completes the build
 	// (AdvanceBuild runs before TryDeposit). storedBefore captures whatever is
 	// already stored so we can verify at least one more deposit occurs here.
