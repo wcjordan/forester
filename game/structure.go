@@ -1,5 +1,7 @@
 package game
 
+import "time"
+
 // StructureDef describes the behavior of one structure type.
 // Each structure is registered in the structures slice (see log_storage.go etc.).
 type StructureDef interface {
@@ -12,7 +14,8 @@ type StructureDef interface {
 	ShouldSpawn(s *State) bool
 	// OnPlayerInteraction is called each tick the player is adjacent to this structure instance.
 	// origin is the top-left corner of the specific instance being interacted with.
-	OnPlayerInteraction(s *State, origin Point)
+	// now is the current clock time; implementations use it to check and set cooldowns.
+	OnPlayerInteraction(s *State, origin Point, now time.Time)
 	// OnBuilt is called once when the structure is completed.
 	OnBuilt(s *State)
 }

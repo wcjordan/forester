@@ -1,10 +1,15 @@
 package game
 
+import "time"
+
 // LogStorageBuildTicks is the number of ticks (at 100ms each) to complete a Log Storage build (~3s).
 const LogStorageBuildTicks = 30
 
 // LogStorageCapacity is the maximum number of wood a single Log Storage can hold.
 const LogStorageCapacity = 100
+
+// DepositTickInterval is how often the player auto-deposits one wood when adjacent to a storage structure.
+const DepositTickInterval = 500 * time.Millisecond
 
 func init() { structures = append(structures, logStorageDef{}) }
 
@@ -33,11 +38,18 @@ func (logStorageDef) OnBuilt(s *State) {
 	s.getStorage(Wood).AddInstance(Wood, LogStorageCapacity)
 }
 
-// OnPlayerInteraction deposits one wood into the storage when the player is adjacent.
-func (logStorageDef) OnPlayerInteraction(s *State, _ Point) {
+// OnPlayerInteraction deposits one wood into the storage when the player is adjacent
+// and the Deposit cooldown has expired.
+func (logStorageDef) OnPlayerInteraction(s *State, _ Point, now time.Time) {
+	if !s.Player.CooldownExpired(Deposit, now) {
+		return
+	}
 	if s.Player.Wood == 0 {
 		return
 	}
 	deposited := s.getStorage(Wood).Deposit(1)
 	s.Player.Wood -= deposited
+	if deposited > 0 {
+		s.Player.SetCooldown(Deposit, now.Add(DepositTickInterval))
+	}
 }

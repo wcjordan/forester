@@ -2,6 +2,7 @@ package game
 
 import (
 	"math"
+	"time"
 )
 
 // State holds all mutable game state.
@@ -243,7 +244,7 @@ func abs(n int) int {
 
 // TickAdjacentStructures calls OnPlayerInteraction once per structure instance
 // that the player is cardinally adjacent to.
-func (s *State) TickAdjacentStructures() {
+func (s *State) TickAdjacentStructures(now time.Time) {
 	seen := make(map[Point]bool)
 	for _, d := range [4][2]int{{0, -1}, {0, 1}, {-1, 0}, {1, 0}} {
 		p := Point{s.Player.X + d[0], s.Player.Y + d[1]}
@@ -252,7 +253,7 @@ func (s *State) TickAdjacentStructures() {
 			continue
 		}
 		seen[entry.Origin] = true
-		entry.Def.OnPlayerInteraction(s, entry.Origin)
+		entry.Def.OnPlayerInteraction(s, entry.Origin, now)
 	}
 }
 
