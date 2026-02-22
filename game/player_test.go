@@ -218,8 +218,9 @@ func TestTryDeposit(t *testing.T) {
 
 	t.Run("does not deposit when cooldown has not passed", func(t *testing.T) {
 		s := makeDepositState(5)
-		s.Player.DepositCooldown = time.Now().Add(time.Hour)
-		s.Player.TryDeposit(s)
+		now := time.Now()
+		s.Player.DepositCooldown = now.Add(time.Hour)
+		s.Player.TryDeposit(s, now)
 		if s.TotalStored(Wood) != 0 {
 			t.Errorf("TotalStored(Wood) = %d, want 0 when cooldown active", s.TotalStored(Wood))
 		}
@@ -227,7 +228,7 @@ func TestTryDeposit(t *testing.T) {
 
 	t.Run("deposits when cooldown has passed", func(t *testing.T) {
 		s := makeDepositState(5) // DepositCooldown is zero value (past)
-		s.Player.TryDeposit(s)
+		s.Player.TryDeposit(s, time.Now())
 		if s.TotalStored(Wood) != 1 {
 			t.Errorf("TotalStored(Wood) = %d, want 1", s.TotalStored(Wood))
 		}
@@ -235,16 +236,16 @@ func TestTryDeposit(t *testing.T) {
 
 	t.Run("sets cooldown after deposit", func(t *testing.T) {
 		s := makeDepositState(5)
-		before := time.Now()
-		s.Player.TryDeposit(s)
-		if !s.Player.DepositCooldown.After(before) {
+		now := time.Now()
+		s.Player.TryDeposit(s, now)
+		if !s.Player.DepositCooldown.After(now) {
 			t.Error("DepositCooldown should be set to a future time after deposit")
 		}
 	})
 
 	t.Run("does not set cooldown when nothing deposited", func(t *testing.T) {
 		s := makeDepositState(0) // no wood to deposit
-		s.Player.TryDeposit(s)
+		s.Player.TryDeposit(s, time.Now())
 		var zero time.Time
 		if s.Player.DepositCooldown != zero {
 			t.Error("DepositCooldown should remain zero when nothing was deposited")
