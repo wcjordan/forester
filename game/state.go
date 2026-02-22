@@ -243,7 +243,9 @@ func abs(n int) int {
 }
 
 // TickAdjacentStructures calls OnPlayerInteraction once per structure instance
-// that the player is cardinally adjacent to.
+// that the player is cardinally adjacent to, then commits any pending cooldowns.
+// Cooldowns are committed after all interactions so that multiple adjacent
+// structures of the same type all fire within the same tick.
 func (s *State) TickAdjacentStructures(now time.Time) {
 	seen := make(map[Point]bool)
 	for _, d := range [4][2]int{{0, -1}, {0, 1}, {-1, 0}, {1, 0}} {
@@ -255,6 +257,7 @@ func (s *State) TickAdjacentStructures(now time.Time) {
 		seen[entry.Origin] = true
 		entry.Def.OnPlayerInteraction(s, entry.Origin, now)
 	}
+	s.Player.commitCooldowns()
 }
 
 // newState creates an initial game state with defaults.

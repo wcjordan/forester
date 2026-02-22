@@ -16,11 +16,16 @@ type Player struct {
 	FacingDX, FacingDY int
 	Wood               int
 	Cooldowns          map[CooldownType]time.Time
+	pendingCooldowns   map[CooldownType]time.Time
 }
 
 // NewPlayer creates a player at the given position, facing north.
 func NewPlayer(x, y int) *Player {
-	return &Player{X: x, Y: y, FacingDX: 0, FacingDY: -1, Cooldowns: make(map[CooldownType]time.Time)}
+	return &Player{
+		X: x, Y: y, FacingDX: 0, FacingDY: -1,
+		Cooldowns:        make(map[CooldownType]time.Time),
+		pendingCooldowns: make(map[CooldownType]time.Time),
+	}
 }
 
 // CooldownExpired reports whether the given cooldown type has expired (or was never set).
@@ -28,9 +33,26 @@ func (p *Player) CooldownExpired(ct CooldownType, now time.Time) bool {
 	return now.After(p.Cooldowns[ct])
 }
 
-// SetCooldown sets the given cooldown type to expire at until.
+// SetCooldown immediately sets the given cooldown type. Use for direct state
+// manipulation (e.g. tests). Structure interactions should use QueueCooldown instead.
 func (p *Player) SetCooldown(ct CooldownType, until time.Time) {
 	p.Cooldowns[ct] = until
+}
+
+// QueueCooldown schedules a cooldown to be applied after the current interaction
+// tick completes. Call this from OnPlayerInteraction so that all adjacent
+// structure interactions within the same tick see the pre-tick cooldown state.
+func (p *Player) QueueCooldown(ct CooldownType, until time.Time) {
+	p.pendingCooldowns[ct] = until
+}
+
+// commitCooldowns applies all pending cooldowns and clears the pending set.
+// Called by TickAdjacentStructures after all interactions have been processed.
+func (p *Player) commitCooldowns() {
+	for ct, until := range p.pendingCooldowns {
+		p.Cooldowns[ct] = until
+	}
+	clear(p.pendingCooldowns)
 }
 
 // MovePlayer moves the player by (dx, dy), clamped to world bounds.

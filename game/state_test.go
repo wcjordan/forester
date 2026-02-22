@@ -257,10 +257,10 @@ func TestTickAdjacentStructures(t *testing.T) {
 		}
 	})
 
-	t.Run("deposit cooldown limits to one deposit per interval even with multiple adjacent instances", func(t *testing.T) {
+	t.Run("two adjacent instances each trigger an interaction", func(t *testing.T) {
 		// Player at (5,5). LogStorage A above (y=4), LogStorage B below (y=6).
-		// The Deposit cooldown is shared across all structure interactions, so only
-		// the first adjacent instance fires per cooldown interval.
+		// Cooldowns are queued during interactions and committed after all are
+		// processed, so both instances fire within the same tick.
 		w := NewWorld(20, 20)
 		w.SetStructure(5, 4, 1, 1, LogStorage)
 		w.IndexStructure(5, 4, 1, 1, logStorageDef{})
@@ -271,12 +271,12 @@ func TestTickAdjacentStructures(t *testing.T) {
 		s := &State{Player: p, World: w, Storage: make(map[ResourceType]*ResourceStorage)}
 		s.getStorage(Wood).AddInstance(Wood, LogStorageCapacity)
 		s.TickAdjacentStructures(time.Now())
-		// Deposit cooldown is set after the first interaction, blocking the second.
-		if s.Player.Wood != 4 {
-			t.Errorf("Wood = %d, want 4 (one deposit per cooldown interval)", s.Player.Wood)
+		// Two instances adjacent → two deposits.
+		if s.Player.Wood != 3 {
+			t.Errorf("Wood = %d, want 3 after two-instance deposit", s.Player.Wood)
 		}
-		if s.TotalStored(Wood) != 1 {
-			t.Errorf("TotalStored(Wood) = %d, want 1", s.TotalStored(Wood))
+		if s.TotalStored(Wood) != 2 {
+			t.Errorf("TotalStored(Wood) = %d, want 2", s.TotalStored(Wood))
 		}
 	})
 }

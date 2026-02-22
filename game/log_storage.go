@@ -50,6 +50,6 @@ func (logStorageDef) OnPlayerInteraction(s *State, _ Point, now time.Time) {
 	deposited := s.getStorage(Wood).Deposit(1)
 	s.Player.Wood -= deposited
 	if deposited > 0 {
-		s.Player.SetCooldown(Deposit, now.Add(DepositTickInterval))
+		s.Player.QueueCooldown(Deposit, now.Add(DepositTickInterval))
 	}
 }
