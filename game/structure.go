@@ -10,10 +10,18 @@ type StructureDef interface {
 	// ShouldSpawn returns true when domain conditions are met (e.g. enough wood cut).
 	// The generic spawn loop handles the "already placed" guard separately.
 	ShouldSpawn(s *State) bool
-	// OnAdjacentTick is called each tick the player is adjacent to the built structure.
-	OnAdjacentTick(s *State)
+	// OnPlayerInteraction is called each tick the player is adjacent to this structure instance.
+	// origin is the top-left corner of the specific instance being interacted with.
+	OnPlayerInteraction(s *State, origin Point)
 	// OnBuilt is called once when the structure is completed.
 	OnBuilt(s *State)
+}
+
+// StructureEntry pairs a StructureDef with the origin (top-left corner) of the
+// specific instance it belongs to.  Used as values in World.StructureIndex.
+type StructureEntry struct {
+	Def    StructureDef
+	Origin Point
 }
 
 // structures is the registry of all known structure definitions.

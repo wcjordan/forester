@@ -203,6 +203,7 @@ func TestTickAdjacentStructures(t *testing.T) {
 	makeDepositState := func(wood int) *State {
 		w := NewWorld(10, 10)
 		w.SetStructure(5, 4, 4, 4, LogStorage) // storage above player
+		w.IndexStructure(5, 4, 4, 4, logStorageDef{})
 		p := NewPlayer(5, 5)
 		p.Wood = wood
 		s := &State{Player: p, World: w, Storage: make(map[ResourceType]*ResourceStorage)}
@@ -246,6 +247,27 @@ func TestTickAdjacentStructures(t *testing.T) {
 		s.TickAdjacentStructures()
 		if s.Player.Wood != 1 {
 			t.Errorf("Wood = %d, want 1 after 2 deposits", s.Player.Wood)
+		}
+		if s.TotalStored(Wood) != 2 {
+			t.Errorf("TotalStored(Wood) = %d, want 2", s.TotalStored(Wood))
+		}
+	})
+
+	t.Run("two adjacent instances each trigger an interaction", func(t *testing.T) {
+		// Player at (5,5). LogStorage A above (y=4), LogStorage B below (y=6).
+		w := NewWorld(20, 20)
+		w.SetStructure(5, 4, 1, 1, LogStorage)
+		w.IndexStructure(5, 4, 1, 1, logStorageDef{})
+		w.SetStructure(5, 6, 1, 1, LogStorage)
+		w.IndexStructure(5, 6, 1, 1, logStorageDef{})
+		p := NewPlayer(5, 5)
+		p.Wood = 5
+		s := &State{Player: p, World: w, Storage: make(map[ResourceType]*ResourceStorage)}
+		s.getStorage(Wood).AddInstance(Wood, LogStorageCapacity)
+		s.TickAdjacentStructures()
+		// Two instances adjacent → two deposits.
+		if s.Player.Wood != 3 {
+			t.Errorf("Wood = %d, want 3 after two-instance deposit", s.Player.Wood)
 		}
 		if s.TotalStored(Wood) != 2 {
 			t.Errorf("TotalStored(Wood) = %d, want 2", s.TotalStored(Wood))

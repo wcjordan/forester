@@ -33,8 +33,8 @@ func (logStorageDef) OnBuilt(s *State) {
 	s.getStorage(Wood).AddInstance(Wood, LogStorageCapacity)
 }
 
-// OnAdjacentTick deposits one wood into the storage when the player is adjacent.
-func (logStorageDef) OnAdjacentTick(s *State) {
+// OnPlayerInteraction deposits one wood into the storage when the player is adjacent.
+func (logStorageDef) OnPlayerInteraction(s *State, _ Point) {
 	if s.Player.Wood == 0 {
 		return
 	}
