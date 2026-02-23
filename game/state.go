@@ -4,18 +4,16 @@ import "time"
 
 // State holds all mutable game state.
 type State struct {
-	Player          *Player
-	World           *World
-	TotalWoodCut    int
-	Building        *BuildOperation
-	Storage         map[ResourceType]*ResourceStorage
-	StorageByOrigin map[Point]*StorageInstance
+	Player              *Player
+	World               *World
+	FoundationDeposited map[Point]int
+	Storage             map[ResourceType]*ResourceStorage
+	StorageByOrigin     map[Point]*StorageInstance
 }
 
-// Move moves the player and checks for ghost contact.
+// Move moves the player.
 func (s *State) Move(dx, dy int) {
 	s.Player.MovePlayer(dx, dy, s.World)
-	s.checkGhostContact()
 }
 
 // getStorage returns (creating if needed) the ResourceStorage for the given type.
@@ -38,12 +36,10 @@ func (s *State) TotalStored(r ResourceType) int {
 }
 
 // Harvest harvests adjacent trees without moving the player.
-// Tracks total wood cut and spawns a ghost structure when the threshold is reached.
+// Spawns a foundation when the spawn condition is met.
 func (s *State) Harvest() {
-	before := s.Player.Wood
 	s.Player.HarvestAdjacent(s.World)
-	s.TotalWoodCut += s.Player.Wood - before
-	s.maybeSpawnGhosts()
+	s.maybeSpawnFoundation()
 }
 
 // TickAdjacentStructures calls OnPlayerInteraction once per structure instance
@@ -70,9 +66,10 @@ func newState() *State {
 	player := NewPlayer(world.Width/2, world.Height/2)
 
 	return &State{
-		Player:          player,
-		World:           world,
-		Storage:         make(map[ResourceType]*ResourceStorage),
-		StorageByOrigin: make(map[Point]*StorageInstance),
+		Player:              player,
+		World:               world,
+		FoundationDeposited: make(map[Point]int),
+		Storage:             make(map[ResourceType]*ResourceStorage),
+		StorageByOrigin:     make(map[Point]*StorageInstance),
 	}
 }

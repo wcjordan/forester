@@ -107,7 +107,7 @@ func (w *World) SetStructure(x, y, width, height int, stype StructureType) {
 
 // IndexStructure records every tile in the w×h footprint at (x, y) in the
 // StructureIndex, all sharing the same Origin so multi-tile instances can be
-// deduplicated by callers.  Call this for built structures only (not ghosts).
+// deduplicated by callers.
 func (w *World) IndexStructure(x, y, width, height int, def StructureDef) {
 	origin := Point{x, y}
 	for dy := 0; dy < height; dy++ {

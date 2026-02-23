@@ -5,64 +5,44 @@ import (
 	"time"
 )
 
-// makeStateWithForest creates a small test state with a clear grassland area
-// and one forest tile in front of the player for harvesting.
-func makeStateWithForest(playerX, playerY int) *State {
-	w := NewWorld(20, 20)
-	// Place forest in front of the player (player faces north by default)
-	w.Tiles[playerY-1][playerX] = Tile{Terrain: Forest, TreeSize: 5}
-	return &State{Player: NewPlayer(playerX, playerY), World: w}
-}
-
-func TestHarvestTracksTotalWoodCut(t *testing.T) {
-	s := makeStateWithForest(5, 5)
-	s.Harvest()
-	if s.TotalWoodCut != 1 {
-		t.Errorf("TotalWoodCut = %d, want 1", s.TotalWoodCut)
-	}
-	s.Harvest()
-	if s.TotalWoodCut != 2 {
-		t.Errorf("TotalWoodCut = %d, want 2", s.TotalWoodCut)
-	}
-}
-
-func TestGhostSpawnsAfter10WoodCut(t *testing.T) {
+func TestFoundationSpawnsWhenInventoryFull(t *testing.T) {
 	// Build a world big enough that there's a clear path from player to center.
 	w := NewWorld(30, 30)
 	// Player at (5, 5) facing north; forest tile at (5, 4) with enough wood.
-	w.Tiles[4][5] = Tile{Terrain: Forest, TreeSize: 20}
+	w.Tiles[4][5] = Tile{Terrain: Forest, TreeSize: MaxWood}
 	p := NewPlayer(5, 5)
 	s := &State{Player: p, World: w}
 
-	// Harvest 9 times — ghost should not appear yet.
-	for range 9 {
+	// Harvest MaxWood-1 times — foundation should not appear yet.
+	for range MaxWood - 1 {
 		s.Harvest()
 	}
-	if s.HasStructureOfType(GhostLogStorage) {
-		t.Fatal("ghost appeared before 10 wood cut")
+	if s.HasStructureOfType(FoundationLogStorage) {
+		t.Fatal("foundation appeared before inventory full")
 	}
 
-	// 10th harvest — ghost should now appear.
+	// Final harvest fills inventory — foundation should now appear.
 	s.Harvest()
-	if !s.HasStructureOfType(GhostLogStorage) {
-		t.Error("ghost did not appear after 10 wood cut")
+	if !s.HasStructureOfType(FoundationLogStorage) {
+		t.Error("foundation did not appear when inventory became full")
 	}
 }
 
-func TestGhostDoesNotSpawnTwice(t *testing.T) {
+func TestFoundationDoesNotSpawnTwice(t *testing.T) {
 	w := NewWorld(30, 30)
 	for i := 0; i < 15; i++ {
 		w.Tiles[4][5+i] = Tile{Terrain: Forest, TreeSize: 1}
 	}
 	p := NewPlayer(5, 5)
-	s := &State{Player: p, World: w, TotalWoodCut: 10}
+	p.Wood = MaxWood
+	s := &State{Player: p, World: w}
 
-	s.maybeSpawnGhosts()
-	// Count ghost tiles.
+	s.maybeSpawnFoundation()
+	// Count foundation tiles.
 	count := 0
 	for y := range w.Tiles {
 		for x := range w.Tiles[y] {
-			if w.Tiles[y][x].Structure == GhostLogStorage {
+			if w.Tiles[y][x].Structure == FoundationLogStorage {
 				count++
 			}
 		}
@@ -70,134 +50,131 @@ func TestGhostDoesNotSpawnTwice(t *testing.T) {
 	firstCount := count
 
 	// Call again — should not add more.
-	s.maybeSpawnGhosts()
+	s.maybeSpawnFoundation()
 	count = 0
 	for y := range w.Tiles {
 		for x := range w.Tiles[y] {
-			if w.Tiles[y][x].Structure == GhostLogStorage {
+			if w.Tiles[y][x].Structure == FoundationLogStorage {
 				count++
 			}
 		}
 	}
 	if count != firstCount {
-		t.Errorf("ghost tile count changed from %d to %d on second spawn attempt", firstCount, count)
+		t.Errorf("foundation tile count changed from %d to %d on second spawn attempt", firstCount, count)
 	}
 }
 
-func TestGhostLocationIsAllGrassland(t *testing.T) {
+func TestFoundationLocationIsAllGrassland(t *testing.T) {
 	w := NewWorld(30, 30)
 	p := NewPlayer(5, 15)
-	s := &State{Player: p, World: w, TotalWoodCut: 10}
-	s.maybeSpawnGhosts()
+	p.Wood = MaxWood
+	s := &State{Player: p, World: w}
+	s.maybeSpawnFoundation()
 
-	// Find the ghost and verify all 16 tiles are on grassland terrain (underlying).
+	// Find the foundation and verify all 16 tiles are on grassland terrain (underlying).
 	for y := range w.Tiles {
 		for x := range w.Tiles[y] {
-			if w.Tiles[y][x].Structure == GhostLogStorage {
-				// This tile is part of the ghost footprint — check original terrain.
+			if w.Tiles[y][x].Structure == FoundationLogStorage {
+				// This tile is part of the foundation footprint — check original terrain.
 				// Since we built on grassland, terrain should still be Grassland.
 				if w.Tiles[y][x].Terrain != Grassland {
-					t.Errorf("ghost tile (%d,%d) is on non-grassland terrain", x, y)
+					t.Errorf("foundation tile (%d,%d) is on non-grassland terrain", x, y)
 				}
 			}
 		}
 	}
 }
 
-func TestGhostLocationBetweenPlayerAndSpawn(t *testing.T) {
+func TestFoundationLocationBetweenPlayerAndSpawn(t *testing.T) {
 	w := NewWorld(30, 30)
 	// Player at (2, 15); spawn at (15, 15).
 	p := NewPlayer(2, 15)
-	s := &State{Player: p, World: w, TotalWoodCut: 10}
-	s.maybeSpawnGhosts()
+	p.Wood = MaxWood
+	s := &State{Player: p, World: w}
+	s.maybeSpawnFoundation()
 
 	spawnX := w.Width / 2
-	// Find ghost top-left.
+	// Find foundation top-left.
 	gx, gy := -1, -1
 	for y := range w.Tiles {
 		for x := range w.Tiles[y] {
-			if w.Tiles[y][x].Structure == GhostLogStorage && gx == -1 {
+			if w.Tiles[y][x].Structure == FoundationLogStorage && gx == -1 {
 				gx, gy = x, y
 			}
 		}
 	}
 	if gx == -1 {
-		t.Fatal("no ghost placed")
+		t.Fatal("no foundation placed")
 	}
 	_ = gy
-	// Ghost x-coordinate should be between player and spawn center.
+	// Foundation x-coordinate should be between player and spawn center.
 	if gx < p.X || gx > spawnX {
-		t.Errorf("ghost x=%d not between player x=%d and spawn x=%d", gx, p.X, spawnX)
+		t.Errorf("foundation x=%d not between player x=%d and spawn x=%d", gx, p.X, spawnX)
 	}
 }
 
-func TestBuildMechanic(t *testing.T) {
-	// Set up a world with a ghost at (5, 5) and player adjacent.
-	makeGhostState := func() *State {
+func TestFoundationBuildMechanic(t *testing.T) {
+	// Set up a world with an indexed foundation at (5,5) and player just west at (4,5).
+	makeFoundationState := func(wood int) *State {
 		w := NewWorld(20, 20)
-		w.SetStructure(5, 5, 4, 4, GhostLogStorage)
-		p := NewPlayer(4, 5) // just outside the ghost footprint
-		return &State{Player: p, World: w}
+		w.SetStructure(5, 5, 4, 4, FoundationLogStorage)
+		w.IndexStructure(5, 5, 4, 4, logStorageDef{})
+		p := NewPlayer(4, 5)
+		p.Wood = wood
+		return &State{
+			Player:              p,
+			World:               w,
+			FoundationDeposited: make(map[Point]int),
+			Storage:             make(map[ResourceType]*ResourceStorage),
+			StorageByOrigin:     make(map[Point]*StorageInstance),
+		}
 	}
 
-	t.Run("walking onto ghost tile starts build", func(t *testing.T) {
-		s := makeGhostState()
-		s.Move(1, 0) // step into (5,5) — ghost tile
-		if s.Building == nil {
-			t.Fatal("Building should be non-nil after stepping onto ghost")
-		}
-		if s.Building.TotalTicks != LogStorageBuildTicks {
-			t.Errorf("TotalTicks = %d, want %d", s.Building.TotalTicks, LogStorageBuildTicks)
+	t.Run("foundation blocks player movement", func(t *testing.T) {
+		s := makeFoundationState(0)
+		s.Move(1, 0) // try to step into (5,5) — foundation tile
+		if s.Player.X != 4 {
+			t.Errorf("player X = %d, want 4 (foundation should block movement)", s.Player.X)
 		}
 	})
 
-	t.Run("player nudged outside footprint after ghost contact", func(t *testing.T) {
-		s := makeGhostState()
-		s.Move(1, 0) // step into (5,5)
-		px, py := s.Player.X, s.Player.Y
-		// Player must be outside the 4×4 footprint [5..8] x [5..8].
-		insideX := px >= 5 && px <= 8
-		insideY := py >= 5 && py <= 8
-		if insideX && insideY {
-			t.Errorf("player at (%d,%d) is still inside ghost footprint [5-8,5-8]", px, py)
+	t.Run("adjacent deposit reduces player wood", func(t *testing.T) {
+		s := makeFoundationState(5)
+		s.TickAdjacentStructures(time.Now())
+		if s.Player.Wood != 4 {
+			t.Errorf("Wood = %d, want 4 after one deposit", s.Player.Wood)
+		}
+		origin := Point{5, 5}
+		if s.FoundationDeposited[origin] != 1 {
+			t.Errorf("FoundationDeposited = %d, want 1", s.FoundationDeposited[origin])
 		}
 	})
 
-	t.Run("AdvanceBuild increments progress", func(t *testing.T) {
-		s := makeGhostState()
-		s.Move(1, 0)
-		if s.Building == nil {
-			t.Fatal("Building is nil")
-		}
-		s.AdvanceBuild()
-		if s.Building.ProgressTicks != 1 {
-			t.Errorf("ProgressTicks = %d, want 1", s.Building.ProgressTicks)
+	t.Run("deposit respects cooldown", func(t *testing.T) {
+		s := makeFoundationState(5)
+		t0 := time.Now()
+		s.TickAdjacentStructures(t0)
+		s.TickAdjacentStructures(t0) // same timestamp — cooldown blocks
+		origin := Point{5, 5}
+		if s.FoundationDeposited[origin] != 1 {
+			t.Errorf("FoundationDeposited = %d, want 1 (second tick should be blocked by cooldown)", s.FoundationDeposited[origin])
 		}
 	})
 
-	t.Run("build completes and tiles become LogStorage", func(t *testing.T) {
-		s := makeGhostState()
-		s.Move(1, 0)
-		if s.Building == nil {
-			t.Fatal("Building is nil")
+	t.Run("foundation completes after BuildCost deposits", func(t *testing.T) {
+		s := makeFoundationState(LogStorageBuildCost)
+		t0 := time.Now()
+		for i := range LogStorageBuildCost {
+			s.TickAdjacentStructures(t0.Add(time.Duration(i) * (DepositTickInterval + time.Millisecond)))
 		}
-		s.Building.ProgressTicks = s.Building.TotalTicks - 1
-		s.AdvanceBuild()
-		if s.Building != nil {
-			t.Error("Building should be nil after completion")
+		if s.HasStructureOfType(FoundationLogStorage) {
+			t.Error("FoundationLogStorage tiles should be gone after build completes")
 		}
 		if !s.HasStructureOfType(LogStorage) {
 			t.Error("LogStorage tiles should exist after build completes")
 		}
-	})
-
-	t.Run("ghost tiles replaced by LogStorage after build", func(t *testing.T) {
-		s := makeGhostState()
-		s.Move(1, 0)
-		s.Building.ProgressTicks = s.Building.TotalTicks - 1
-		s.AdvanceBuild()
-		if s.HasStructureOfType(GhostLogStorage) {
-			t.Error("GhostLogStorage tiles should be gone after build completes")
+		if s.Player.Wood != 0 {
+			t.Errorf("player Wood = %d, want 0 (all wood deposited)", s.Player.Wood)
 		}
 	})
 }
@@ -378,7 +355,7 @@ func TestHasStructureOfType(t *testing.T) {
 	if !s.HasStructureOfType(LogStorage) {
 		t.Error("should detect LogStorage after SetStructure")
 	}
-	if s.HasStructureOfType(GhostLogStorage) {
-		t.Error("should not detect GhostLogStorage when none placed")
+	if s.HasStructureOfType(FoundationLogStorage) {
+		t.Error("should not detect FoundationLogStorage when none placed")
 	}
 }

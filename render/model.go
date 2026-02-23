@@ -24,7 +24,7 @@ var (
 	playerStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))           // blue
 	forestStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))            // green
 	stumpStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))            // dark gray
-	ghostStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))            // yellow (dim)
+	foundationStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))            // yellow (dim)
 	logStorageStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Bold(true) // bold yellow
 )
 
@@ -145,8 +145,8 @@ func (m Model) View() string {
 
 			// Structure overlays take priority over terrain.
 			switch tile.Structure {
-			case game.GhostLogStorage:
-				sb.WriteString(ghostStyle.Render("?"))
+			case game.FoundationLogStorage:
+				sb.WriteString(foundationStyle.Render("?"))
 				continue
 			case game.LogStorage:
 				sb.WriteString(logStorageStyle.Render("L"))
@@ -177,8 +177,10 @@ func (m Model) View() string {
 	// Status bar.
 	status := fmt.Sprintf(" Player: (%d, %d)  Wood: %d/%d",
 		player.X, player.Y, player.Wood, game.MaxWood)
-	if b := m.game.State.Building; b != nil {
-		status += "  " + buildProgressBar(b.Progress())
+	for _, deposited := range m.game.State.FoundationDeposited {
+		progress := float64(deposited) / float64(game.LogStorageBuildCost)
+		status += "  " + buildProgressBar(progress)
+		break // show at most one foundation progress bar
 	}
 	sb.WriteByte('\n')
 	sb.WriteString(status)
@@ -200,7 +202,7 @@ func clamp(v, lo, hi int) int {
 // e.g. "Building: ████░░░░ 75%"
 func buildProgressBar(progress float64) string {
 	const width = 8
-	filled := int(progress * width)
+	filled := clamp(int(progress*width), 0, width)
 	bar := strings.Repeat("█", filled) + strings.Repeat("░", width-filled)
 	return fmt.Sprintf("Building: %s %d%%", bar, int(progress*100))
 }

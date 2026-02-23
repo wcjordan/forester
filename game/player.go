@@ -56,6 +56,7 @@ func (p *Player) commitCooldowns() {
 }
 
 // MovePlayer moves the player by (dx, dy), clamped to world bounds.
+// Both LogStorage and FoundationLogStorage block movement.
 // Updates the player's facing direction whenever a non-zero direction is given.
 func (p *Player) MovePlayer(dx, dy int, w *World) {
 	if dx != 0 || dy != 0 {
@@ -66,7 +67,7 @@ func (p *Player) MovePlayer(dx, dy int, w *World) {
 	ny := p.Y + dy
 	if w.InBounds(nx, ny) {
 		tile := w.TileAt(nx, ny)
-		if tile == nil || tile.Structure != LogStorage {
+		if tile == nil || (tile.Structure != LogStorage && tile.Structure != FoundationLogStorage) {
 			p.X = nx
 			p.Y = ny
 		}

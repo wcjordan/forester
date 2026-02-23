@@ -2,8 +2,8 @@ package game
 
 import "time"
 
-// LogStorageBuildTicks is the number of ticks (at 100ms each) to complete a Log Storage build (~3s).
-const LogStorageBuildTicks = 30
+// LogStorageBuildCost is the number of wood required to complete a Log Storage foundation.
+const LogStorageBuildCost = 20
 
 // LogStorageCapacity is the maximum number of wood a single Log Storage can hold.
 const LogStorageCapacity = 100
@@ -16,8 +16,8 @@ func init() { structures = append(structures, logStorageDef{}) }
 // logStorageDef implements StructureDef for the Log Storage structure.
 type logStorageDef struct{}
 
-// GhostType returns the planned/ghost tile type for Log Storage.
-func (logStorageDef) GhostType() StructureType { return GhostLogStorage }
+// FoundationType returns the foundation tile type for Log Storage.
+func (logStorageDef) FoundationType() StructureType { return FoundationLogStorage }
 
 // BuiltType returns the built tile type for Log Storage.
 func (logStorageDef) BuiltType() StructureType { return LogStorage }
@@ -25,12 +25,12 @@ func (logStorageDef) BuiltType() StructureType { return LogStorage }
 // Footprint returns the 4×4 dimensions of a Log Storage.
 func (logStorageDef) Footprint() (w, h int) { return 4, 4 }
 
-// BuildTicks returns how many ticks it takes to build a Log Storage.
-func (logStorageDef) BuildTicks() int { return LogStorageBuildTicks }
+// BuildCost returns the number of wood required to complete a Log Storage foundation.
+func (logStorageDef) BuildCost() int { return LogStorageBuildCost }
 
-// ShouldSpawn returns true once 10 wood has been cut.
+// ShouldSpawn returns true when the player's inventory is full.
 func (logStorageDef) ShouldSpawn(s *State) bool {
-	return s.TotalWoodCut >= 10
+	return s.Player.Wood >= MaxWood
 }
 
 // OnBuilt registers a new storage instance when a Log Storage is completed.
@@ -42,15 +42,32 @@ func (logStorageDef) OnBuilt(s *State, origin Point) {
 	s.StorageByOrigin[origin] = inst
 }
 
-// OnPlayerInteraction deposits one wood into the specific adjacent storage instance
-// when the Deposit cooldown has expired.
-func (logStorageDef) OnPlayerInteraction(s *State, origin Point, now time.Time) {
+// OnPlayerInteraction handles adjacent-player interaction for both foundation and built states.
+// When adjacent to a foundation, deposits one wood toward the build cost each cooldown tick.
+// When adjacent to a built storage, deposits one wood into the storage instance.
+func (d logStorageDef) OnPlayerInteraction(s *State, origin Point, now time.Time) {
 	if !s.Player.CooldownExpired(Deposit, now) {
 		return
 	}
 	if s.Player.Wood == 0 {
 		return
 	}
+
+	tile := s.World.TileAt(origin.X, origin.Y)
+	if tile != nil && tile.Structure == FoundationLogStorage {
+		s.FoundationDeposited[origin]++
+		s.Player.Wood--
+		s.Player.QueueCooldown(Deposit, now.Add(DepositTickInterval))
+		if s.FoundationDeposited[origin] >= d.BuildCost() {
+			w, h := d.Footprint()
+			s.World.SetStructure(origin.X, origin.Y, w, h, LogStorage)
+			s.World.IndexStructure(origin.X, origin.Y, w, h, d)
+			delete(s.FoundationDeposited, origin)
+			d.OnBuilt(s, origin)
+		}
+		return
+	}
+
 	inst := s.StorageByOrigin[origin]
 	if inst == nil {
 		return
