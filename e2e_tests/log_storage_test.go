@@ -157,6 +157,42 @@ func TestLogStorageWorkflow(t *testing.T) {
 		t.Fatalf("phase 4: expected LogStorage at (49,48), got %v", lsTile)
 	}
 
+	// ── Phase 5: Deposit wood into the built log storage ─────────────────────
+	// All 20 wood was spent building the foundation, so player.Wood == 0.
+	// Move north to the original harvest position (48,45) to restock from the
+	// remaining tree wood (Phase 2 left ~6 wood across the three tiles at y=44).
+	// Then return south to (48,48), adjacent to the built LogStorage, and deposit.
+	announcePhase(m, "Phase 5: Restock wood and deposit into built log storage")
+	for _, dir := range []string{"w", "w", "w"} {
+		moveDir(&m, clock, g, dir)
+	}
+	// Tick until the player harvests some wood from the forest at y=44.
+	const maxRestockTicks = 20
+	for i := range maxRestockTicks {
+		tick(&m, clock)
+		if g.State.Player.Wood > 0 {
+			break
+		}
+		if i == maxRestockTicks-1 {
+			t.Fatal("phase 5: could not harvest wood for storage deposit")
+		}
+	}
+	// Return south to be adjacent to the LogStorage again.
+	for _, dir := range []string{"s", "s", "s"} {
+		moveDir(&m, clock, g, dir)
+	}
+	storedBefore := g.State.TotalStored(game.Wood)
+	const maxDepositTicks = 30
+	for i := range maxDepositTicks {
+		tick(&m, clock)
+		if g.State.TotalStored(game.Wood) > storedBefore {
+			break
+		}
+		if i == maxDepositTicks-1 {
+			t.Fatal("phase 5: wood was not deposited into built log storage")
+		}
+	}
+
 	// ── Assertions ────────────────────────────────────────────────────────────
 
 	// 1. Player position: still at (48,48) — foundation blocked east all along.
@@ -185,10 +221,10 @@ func TestLogStorageWorkflow(t *testing.T) {
 		t.Errorf("expected 'L' (LogStorage) at screen(col=41,row=11), got %q", lsChar)
 	}
 
-	// 4. Built storage was registered on completion.
-	if _, ok := g.State.StorageByOrigin[game.Point{X: 49, Y: 48}]; !ok {
-		t.Error("expected StorageByOrigin entry for LogStorage at (49,48)")
+	// 4. Log storage contains deposited wood.
+	if g.State.TotalStored(game.Wood) == 0 {
+		t.Error("expected wood to be stored in log storage after deposit")
 	}
 
-	announcePhase(m, "Done — LogStorage built from foundation deposits")
+	announcePhase(m, fmt.Sprintf("Done — LogStorage built and %d wood deposited", g.State.TotalStored(game.Wood)))
 }
