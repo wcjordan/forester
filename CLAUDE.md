@@ -185,7 +185,7 @@ If issues are found:
 ### Code Quality
 
 - When committing:
-  - Tests should be passing and code should be linted
+  - Tests should be passing and code should be linted (`make check` should pass)
   - Self-review changes
   - Ensure commit message explains "why"
 

@@ -19,10 +19,11 @@ type Point struct{ X, Y int }
 
 // World represents the game map as a 2D grid of tiles.
 type World struct {
-	Width          int
-	Height         int
-	Tiles          [][]Tile
-	StructureIndex map[Point]StructureEntry
+	Width              int
+	Height             int
+	Tiles              [][]Tile
+	StructureIndex     map[Point]StructureEntry
+	StructureTypeIndex map[StructureType]map[Point]struct{}
 }
 
 // NewWorld creates a world with the given dimensions, filled with grassland.
@@ -36,10 +37,11 @@ func NewWorld(width, height int) *World {
 	}
 
 	return &World{
-		Width:          width,
-		Height:         height,
-		Tiles:          tiles,
-		StructureIndex: make(map[Point]StructureEntry),
+		Width:              width,
+		Height:             height,
+		Tiles:              tiles,
+		StructureIndex:     make(map[Point]StructureEntry),
+		StructureTypeIndex: make(map[StructureType]map[Point]struct{}),
 	}
 }
 
@@ -74,12 +76,30 @@ func (w *World) TileAt(x, y int) *Tile {
 
 // SetStructure stamps a rectangle of tiles (x, y) to (x+width-1, y+height-1)
 // with the given structure type. Out-of-bounds tiles are skipped.
+// It also maintains StructureTypeIndex.
 func (w *World) SetStructure(x, y, width, height int, stype StructureType) {
 	for dy := 0; dy < height; dy++ {
 		for dx := 0; dx < width; dx++ {
-			tile := w.TileAt(x+dx, y+dy)
-			if tile != nil {
-				tile.Structure = stype
+			pt := Point{x + dx, y + dy}
+			tile := w.TileAt(pt.X, pt.Y)
+			if tile == nil {
+				continue
+			}
+			// Remove old entry from type index.
+			if old := tile.Structure; old != NoStructure {
+				inner := w.StructureTypeIndex[old]
+				delete(inner, pt)
+				if len(inner) == 0 {
+					delete(w.StructureTypeIndex, old)
+				}
+			}
+			tile.Structure = stype
+			// Add new entry to type index.
+			if stype != NoStructure {
+				if w.StructureTypeIndex[stype] == nil {
+					w.StructureTypeIndex[stype] = make(map[Point]struct{})
+				}
+				w.StructureTypeIndex[stype][pt] = struct{}{}
 			}
 		}
 	}

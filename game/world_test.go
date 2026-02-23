@@ -144,6 +144,55 @@ func TestSetStructure(t *testing.T) {
 	})
 }
 
+func TestSetStructureTypeIndex(t *testing.T) {
+	t.Run("stamps populate type index", func(t *testing.T) {
+		w := NewWorld(10, 10)
+		w.SetStructure(2, 3, 2, 2, LogStorage)
+		pts := w.StructureTypeIndex[LogStorage]
+		if len(pts) != 4 {
+			t.Fatalf("type index has %d points, want 4", len(pts))
+		}
+		for dy := 0; dy < 2; dy++ {
+			for dx := 0; dx < 2; dx++ {
+				p := Point{2 + dx, 3 + dy}
+				if _, ok := pts[p]; !ok {
+					t.Errorf("expected point %v in type index", p)
+				}
+			}
+		}
+	})
+
+	t.Run("ghost to built transition removes ghost entries", func(t *testing.T) {
+		w := NewWorld(10, 10)
+		w.SetStructure(1, 1, 2, 2, GhostLogStorage)
+		if len(w.StructureTypeIndex[GhostLogStorage]) != 4 {
+			t.Fatalf("expected 4 ghost entries after placement")
+		}
+		w.SetStructure(1, 1, 2, 2, LogStorage)
+		if len(w.StructureTypeIndex[GhostLogStorage]) != 0 {
+			t.Errorf("ghost entries should be gone after overwrite, got %d", len(w.StructureTypeIndex[GhostLogStorage]))
+		}
+		if _, exists := w.StructureTypeIndex[GhostLogStorage]; exists {
+			t.Error("ghost key should be removed from index when empty")
+		}
+		if len(w.StructureTypeIndex[LogStorage]) != 4 {
+			t.Errorf("expected 4 built entries, got %d", len(w.StructureTypeIndex[LogStorage]))
+		}
+	})
+
+	t.Run("clearing tiles removes entries", func(t *testing.T) {
+		w := NewWorld(10, 10)
+		w.SetStructure(0, 0, 3, 3, LogStorage)
+		w.SetStructure(0, 0, 3, 3, NoStructure)
+		if len(w.StructureTypeIndex[LogStorage]) != 0 {
+			t.Errorf("expected no entries after clear, got %d", len(w.StructureTypeIndex[LogStorage]))
+		}
+		if _, exists := w.StructureTypeIndex[LogStorage]; exists {
+			t.Error("key should be removed from index when empty")
+		}
+	})
+}
+
 func TestIndexStructure(t *testing.T) {
 	t.Run("single tile entry has correct origin", func(t *testing.T) {
 		w := NewWorld(10, 10)
