@@ -2,7 +2,7 @@ package game
 
 import "math"
 
-// checkGhostContact starts a build operation when the player steps onto a ghost tile.
+// checkGhostContact starts a build operation when the player steps onto a foundation tile.
 func (s *State) checkGhostContact() {
 	if s.Building != nil {
 		return
@@ -11,11 +11,11 @@ func (s *State) checkGhostContact() {
 	if tile == nil {
 		return
 	}
-	def := findDefForGhostStructureType(tile.Structure)
+	def := findDefForFoundationType(tile.Structure)
 	if def == nil {
 		return
 	}
-	gx, gy, ok := s.ghostOriginFor(def.GhostType())
+	gx, gy, ok := s.foundationOriginFor(def.FoundationType())
 	if !ok {
 		return
 	}

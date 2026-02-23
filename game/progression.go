@@ -5,10 +5,10 @@ func (s *State) HasStructureOfType(stype StructureType) bool {
 	return len(s.World.StructureTypeIndex[stype]) > 0
 }
 
-// ghostOriginFor returns the top-left corner of the current ghost footprint for the given type.
-// ok is false if no ghost of that type exists.
+// foundationOriginFor returns the top-left corner of the current foundation footprint for the given type.
+// ok is false if no foundation of that type exists.
 // Selects the topmost-leftmost point (matching the original row-major scan order).
-func (s *State) ghostOriginFor(st StructureType) (x, y int, ok bool) {
+func (s *State) foundationOriginFor(st StructureType) (x, y int, ok bool) {
 	pts := s.World.StructureTypeIndex[st]
 	if len(pts) == 0 {
 		return 0, 0, false
@@ -23,20 +23,20 @@ func (s *State) ghostOriginFor(st StructureType) (x, y int, ok bool) {
 	return x, y, true
 }
 
-// maybeSpawnGhosts checks each registered structure definition and places a ghost
-// when its spawn condition is met and no ghost or built instance already exists.
+// maybeSpawnGhosts checks each registered structure definition and places a foundation
+// when its spawn condition is met and no foundation or built instance already exists.
 func (s *State) maybeSpawnGhosts() {
 	for _, def := range structures {
 		if !def.ShouldSpawn(s) {
 			continue
 		}
-		if s.HasStructureOfType(def.GhostType()) || s.HasStructureOfType(def.BuiltType()) {
+		if s.HasStructureOfType(def.FoundationType()) || s.HasStructureOfType(def.BuiltType()) {
 			continue
 		}
 		w, h := def.Footprint()
 		cx, cy := s.findValidLocation(w, h)
 		if cx >= 0 {
-			s.World.SetStructure(cx, cy, w, h, def.GhostType())
+			s.World.SetStructure(cx, cy, w, h, def.FoundationType())
 		}
 	}
 }

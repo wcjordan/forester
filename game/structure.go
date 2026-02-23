@@ -5,7 +5,7 @@ import "time"
 // StructureDef describes the behavior of one structure type.
 // Each structure is registered in the structures slice (see log_storage.go etc.).
 type StructureDef interface {
-	GhostType() StructureType
+	FoundationType() StructureType
 	BuiltType() StructureType
 	Footprint() (w, h int)
 	BuildTicks() int
@@ -42,13 +42,13 @@ func findDefForStructureType(st StructureType) StructureDef {
 	return nil
 }
 
-// findDefForGhostStructureType returns the StructureDef whose GhostType matches st, or nil.
-func findDefForGhostStructureType(st StructureType) StructureDef {
+// findDefForFoundationType returns the StructureDef whose FoundationType matches st, or nil.
+func findDefForFoundationType(st StructureType) StructureDef {
 	if st == NoStructure {
 		return nil
 	}
 	for _, def := range structures {
-		if def.GhostType() == st {
+		if def.FoundationType() == st {
 			return def
 		}
 	}

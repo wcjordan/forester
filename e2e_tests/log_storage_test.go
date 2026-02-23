@@ -112,7 +112,7 @@ func TestLogStorageWorkflow(t *testing.T) {
 	const maxHarvestTicks = 30
 	for i := range maxHarvestTicks {
 		tick(&m, clock)
-		if g.State.HasStructureOfType(game.GhostLogStorage) {
+		if g.State.HasStructureOfType(game.FoundationLogStorage) {
 			break
 		}
 		if i == maxHarvestTicks-1 {

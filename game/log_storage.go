@@ -16,8 +16,8 @@ func init() { structures = append(structures, logStorageDef{}) }
 // logStorageDef implements StructureDef for the Log Storage structure.
 type logStorageDef struct{}
 
-// GhostType returns the planned/ghost tile type for Log Storage.
-func (logStorageDef) GhostType() StructureType { return GhostLogStorage }
+// FoundationType returns the foundation tile type for Log Storage.
+func (logStorageDef) FoundationType() StructureType { return FoundationLogStorage }
 
 // BuiltType returns the built tile type for Log Storage.
 func (logStorageDef) BuiltType() StructureType { return LogStorage }

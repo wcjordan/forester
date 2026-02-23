@@ -140,7 +140,7 @@ func TestSetStructure(t *testing.T) {
 	t.Run("clips out-of-bounds tiles gracefully", func(t *testing.T) {
 		w := NewWorld(5, 5)
 		// Should not panic even if rect extends outside world.
-		w.SetStructure(3, 3, 4, 4, GhostLogStorage)
+		w.SetStructure(3, 3, 4, 4, FoundationLogStorage)
 	})
 }
 
@@ -162,18 +162,18 @@ func TestSetStructureTypeIndex(t *testing.T) {
 		}
 	})
 
-	t.Run("ghost to built transition removes ghost entries", func(t *testing.T) {
+	t.Run("foundation to built transition removes foundation entries", func(t *testing.T) {
 		w := NewWorld(10, 10)
-		w.SetStructure(1, 1, 2, 2, GhostLogStorage)
-		if len(w.StructureTypeIndex[GhostLogStorage]) != 4 {
-			t.Fatalf("expected 4 ghost entries after placement")
+		w.SetStructure(1, 1, 2, 2, FoundationLogStorage)
+		if len(w.StructureTypeIndex[FoundationLogStorage]) != 4 {
+			t.Fatalf("expected 4 foundation entries after placement")
 		}
 		w.SetStructure(1, 1, 2, 2, LogStorage)
-		if len(w.StructureTypeIndex[GhostLogStorage]) != 0 {
-			t.Errorf("ghost entries should be gone after overwrite, got %d", len(w.StructureTypeIndex[GhostLogStorage]))
+		if len(w.StructureTypeIndex[FoundationLogStorage]) != 0 {
+			t.Errorf("foundation entries should be gone after overwrite, got %d", len(w.StructureTypeIndex[FoundationLogStorage]))
 		}
-		if _, exists := w.StructureTypeIndex[GhostLogStorage]; exists {
-			t.Error("ghost key should be removed from index when empty")
+		if _, exists := w.StructureTypeIndex[FoundationLogStorage]; exists {
+			t.Error("foundation key should be removed from index when empty")
 		}
 		if len(w.StructureTypeIndex[LogStorage]) != 4 {
 			t.Errorf("expected 4 built entries, got %d", len(w.StructureTypeIndex[LogStorage]))

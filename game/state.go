@@ -12,7 +12,7 @@ type State struct {
 	StorageByOrigin map[Point]*StorageInstance
 }
 
-// Move moves the player and checks for ghost contact.
+// Move moves the player and checks for foundation contact.
 func (s *State) Move(dx, dy int) {
 	s.Player.MovePlayer(dx, dy, s.World)
 	s.checkGhostContact()
@@ -38,7 +38,7 @@ func (s *State) TotalStored(r ResourceType) int {
 }
 
 // Harvest harvests adjacent trees without moving the player.
-// Tracks total wood cut and spawns a ghost structure when the threshold is reached.
+// Tracks total wood cut and spawns a foundation when the threshold is reached.
 func (s *State) Harvest() {
 	before := s.Player.Wood
 	s.Player.HarvestAdjacent(s.World)

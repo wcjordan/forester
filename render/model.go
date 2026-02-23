@@ -24,7 +24,7 @@ var (
 	playerStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))           // blue
 	forestStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))            // green
 	stumpStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))            // dark gray
-	ghostStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))            // yellow (dim)
+	foundationStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))            // yellow (dim)
 	logStorageStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Bold(true) // bold yellow
 )
 
@@ -145,8 +145,8 @@ func (m Model) View() string {
 
 			// Structure overlays take priority over terrain.
 			switch tile.Structure {
-			case game.GhostLogStorage:
-				sb.WriteString(ghostStyle.Render("?"))
+			case game.FoundationLogStorage:
+				sb.WriteString(foundationStyle.Render("?"))
 				continue
 			case game.LogStorage:
 				sb.WriteString(logStorageStyle.Render("L"))
