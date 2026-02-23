@@ -28,6 +28,12 @@ func (logStorageDef) Footprint() (w, h int) { return 4, 4 }
 // BuildCost returns the number of wood required to complete a Log Storage foundation.
 func (logStorageDef) BuildCost() int { return LogStorageBuildCost }
 
+// StorageResource returns the resource type stored by a Log Storage.
+func (logStorageDef) StorageResource() ResourceType { return Wood }
+
+// StorageCapacity returns the capacity of a single Log Storage instance.
+func (logStorageDef) StorageCapacity() int { return LogStorageCapacity }
+
 // ShouldSpawn returns true when the player's inventory is full.
 func (logStorageDef) ShouldSpawn(s *State) bool {
 	return s.Player.Wood >= MaxWood
