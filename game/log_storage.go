@@ -28,53 +28,51 @@ func (logStorageDef) Footprint() (w, h int) { return 4, 4 }
 // BuildCost returns the number of wood required to complete a Log Storage foundation.
 func (logStorageDef) BuildCost() int { return LogStorageBuildCost }
 
+// StorageResource returns the resource type stored by a Log Storage.
+func (logStorageDef) StorageResource() ResourceType { return Wood }
+
+// StorageCapacity returns the capacity of a single Log Storage instance.
+func (logStorageDef) StorageCapacity() int { return LogStorageCapacity }
+
 // ShouldSpawn returns true when the player's inventory is full.
-func (logStorageDef) ShouldSpawn(s *State) bool {
-	return s.Player.Wood >= MaxWood
+func (logStorageDef) ShouldSpawn(env *Env) bool {
+	return env.State.Player.Wood >= MaxWood
 }
 
 // OnBuilt registers a new storage instance when a Log Storage is completed.
-func (logStorageDef) OnBuilt(s *State, origin Point) {
-	inst := s.getStorage(Wood).AddInstance(Wood, LogStorageCapacity)
-	if s.StorageByOrigin == nil {
-		s.StorageByOrigin = make(map[Point]*StorageInstance)
-	}
-	s.StorageByOrigin[origin] = inst
+func (logStorageDef) OnBuilt(env *Env, origin Point) {
+	env.Stores.Register(origin, Wood, LogStorageCapacity)
 }
 
 // OnPlayerInteraction handles adjacent-player interaction for both foundation and built states.
 // When adjacent to a foundation, deposits one wood toward the build cost each cooldown tick.
 // When adjacent to a built storage, deposits one wood into the storage instance.
-func (d logStorageDef) OnPlayerInteraction(s *State, origin Point, now time.Time) {
-	if !s.Player.CooldownExpired(Deposit, now) {
+func (d logStorageDef) OnPlayerInteraction(env *Env, origin Point, now time.Time) {
+	if !env.State.Player.CooldownExpired(Deposit, now) {
 		return
 	}
-	if s.Player.Wood == 0 {
+	if env.State.Player.Wood == 0 {
 		return
 	}
 
-	tile := s.World.TileAt(origin.X, origin.Y)
+	tile := env.State.World.TileAt(origin.X, origin.Y)
 	if tile != nil && tile.Structure == FoundationLogStorage {
-		s.FoundationDeposited[origin]++
-		s.Player.Wood--
-		s.Player.QueueCooldown(Deposit, now.Add(DepositTickInterval))
-		if s.FoundationDeposited[origin] >= d.BuildCost() {
+		env.State.FoundationDeposited[origin]++
+		env.State.Player.Wood--
+		env.State.Player.QueueCooldown(Deposit, now.Add(DepositTickInterval))
+		if env.State.FoundationDeposited[origin] >= d.BuildCost() {
 			w, h := d.Footprint()
-			s.World.SetStructure(origin.X, origin.Y, w, h, LogStorage)
-			s.World.IndexStructure(origin.X, origin.Y, w, h, d)
-			delete(s.FoundationDeposited, origin)
-			d.OnBuilt(s, origin)
+			env.State.World.SetStructure(origin.X, origin.Y, w, h, LogStorage)
+			env.State.World.IndexStructure(origin.X, origin.Y, w, h, d)
+			delete(env.State.FoundationDeposited, origin)
+			d.OnBuilt(env, origin)
 		}
 		return
 	}
 
-	inst := s.StorageByOrigin[origin]
-	if inst == nil {
-		return
-	}
-	deposited := inst.Deposit(1)
-	s.Player.Wood -= deposited
+	deposited := env.Stores.DepositAt(origin, 1)
+	env.State.Player.Wood -= deposited
 	if deposited > 0 {
-		s.Player.QueueCooldown(Deposit, now.Add(DepositTickInterval))
+		env.State.Player.QueueCooldown(Deposit, now.Add(DepositTickInterval))
 	}
 }

@@ -181,11 +181,11 @@ func TestLogStorageWorkflow(t *testing.T) {
 	for _, dir := range []string{"s", "s", "s"} {
 		moveDir(&m, clock, g, dir)
 	}
-	storedBefore := g.State.TotalStored(game.Wood)
+	storedBefore := g.Stores.Total(game.Wood)
 	const maxDepositTicks = 30
 	for i := range maxDepositTicks {
 		tick(&m, clock)
-		if g.State.TotalStored(game.Wood) > storedBefore {
+		if g.Stores.Total(game.Wood) > storedBefore {
 			break
 		}
 		if i == maxDepositTicks-1 {
@@ -222,9 +222,9 @@ func TestLogStorageWorkflow(t *testing.T) {
 	}
 
 	// 4. Log storage contains deposited wood.
-	if g.State.TotalStored(game.Wood) == 0 {
+	if g.Stores.Total(game.Wood) == 0 {
 		t.Error("expected wood to be stored in log storage after deposit")
 	}
 
-	announcePhase(m, fmt.Sprintf("Done — LogStorage built and %d wood deposited", g.State.TotalStored(game.Wood)))
+	announcePhase(m, fmt.Sprintf("Done — LogStorage built and %d wood deposited", g.Stores.Total(game.Wood)))
 }
