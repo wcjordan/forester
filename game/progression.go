@@ -2,27 +2,25 @@ package game
 
 // HasStructureOfType returns true if any tile in the world has the given structure type.
 func (s *State) HasStructureOfType(stype StructureType) bool {
-	for y := range s.World.Tiles {
-		for x := range s.World.Tiles[y] {
-			if s.World.Tiles[y][x].Structure == stype {
-				return true
-			}
-		}
-	}
-	return false
+	return len(s.World.StructureTypeIndex[stype]) > 0
 }
 
 // ghostOriginFor returns the top-left corner of the current ghost footprint for the given type.
 // ok is false if no ghost of that type exists.
+// Selects the topmost-leftmost point (matching the original row-major scan order).
 func (s *State) ghostOriginFor(st StructureType) (x, y int, ok bool) {
-	for row := range s.World.Tiles {
-		for col := range s.World.Tiles[row] {
-			if s.World.Tiles[row][col].Structure == st {
-				return col, row, true
-			}
+	pts := s.World.StructureTypeIndex[st]
+	if len(pts) == 0 {
+		return 0, 0, false
+	}
+	first := true
+	for p := range pts {
+		if first || p.Y < y || (p.Y == y && p.X < x) {
+			x, y = p.X, p.Y
+			first = false
 		}
 	}
-	return 0, 0, false
+	return x, y, true
 }
 
 // maybeSpawnGhosts checks each registered structure definition and places a ghost
