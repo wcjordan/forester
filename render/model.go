@@ -31,11 +31,10 @@ var (
 // Model is the bubbletea model for the game. It owns viewport dimensions
 // and delegates all game logic to game.Game.
 type Model struct {
-	game         *game.Game
-	termWidth    int
-	termHeight   int
-	lastMoveTime time.Time
-	clock        game.Clock
+	game       *game.Game
+	termWidth  int
+	termHeight int
+	clock      game.Clock
 }
 
 // NewModel creates a Model wrapping the given game using the system clock.
@@ -71,41 +70,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "up", "w":
-			if m.canMove() {
-				m.game.State.Move(0, -1)
-				m.lastMoveTime = m.clock.Now()
-			}
+			m.game.State.Player.Move(0, -1, m.game.State.World, m.clock.Now())
 		case "down", "s":
-			if m.canMove() {
-				m.game.State.Move(0, 1)
-				m.lastMoveTime = m.clock.Now()
-			}
+			m.game.State.Player.Move(0, 1, m.game.State.World, m.clock.Now())
 		case "left", "a":
-			if m.canMove() {
-				m.game.State.Move(-1, 0)
-				m.lastMoveTime = m.clock.Now()
-			}
+			m.game.State.Player.Move(-1, 0, m.game.State.World, m.clock.Now())
 		case "right", "d":
-			if m.canMove() {
-				m.game.State.Move(1, 0)
-				m.lastMoveTime = m.clock.Now()
-			}
+			m.game.State.Player.Move(1, 0, m.game.State.World, m.clock.Now())
 		}
 	}
 
 	return m, nil
-}
-
-// canMove returns true if enough time has elapsed since the last move,
-// based on the terrain the player is currently standing on.
-func (m Model) canMove() bool {
-	p := m.game.State.Player
-	tile := m.game.State.World.TileAt(p.X, p.Y)
-	cooldown := game.DefaultMoveCooldown
-	if tile != nil {
-		cooldown = game.MoveCooldownFor(tile)
-	}
-	return m.clock.Now().Sub(m.lastMoveTime) >= cooldown
 }
 
 // View renders the current game state to a string.

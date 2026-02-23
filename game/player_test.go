@@ -8,23 +8,24 @@ import (
 func TestMovePlayer(t *testing.T) {
 	w := NewWorld(10, 10)
 	p := NewPlayer(5, 5)
+	t0 := time.Now()
 
-	p.MovePlayer(1, 0, w)
+	p.Move(1, 0, w, t0)
 	if p.X != 6 || p.Y != 5 {
 		t.Errorf("after move right: got (%d,%d), want (6,5)", p.X, p.Y)
 	}
 
-	p.MovePlayer(0, 1, w)
+	p.Move(0, 1, w, t0.Add(200*time.Millisecond))
 	if p.X != 6 || p.Y != 6 {
 		t.Errorf("after move down: got (%d,%d), want (6,6)", p.X, p.Y)
 	}
 
-	p.MovePlayer(-1, 0, w)
+	p.Move(-1, 0, w, t0.Add(400*time.Millisecond))
 	if p.X != 5 || p.Y != 6 {
 		t.Errorf("after move left: got (%d,%d), want (5,6)", p.X, p.Y)
 	}
 
-	p.MovePlayer(0, -1, w)
+	p.Move(0, -1, w, t0.Add(600*time.Millisecond))
 	if p.X != 5 || p.Y != 5 {
 		t.Errorf("after move up: got (%d,%d), want (5,5)", p.X, p.Y)
 	}
@@ -32,25 +33,26 @@ func TestMovePlayer(t *testing.T) {
 
 func TestMovePlayerBounds(t *testing.T) {
 	w := NewWorld(10, 10)
+	t0 := time.Now()
 
 	// At left/top edge — cannot move further.
 	p := NewPlayer(0, 0)
-	p.MovePlayer(-1, 0, w)
+	p.Move(-1, 0, w, t0)
 	if p.X != 0 {
 		t.Errorf("moved past left edge: X = %d, want 0", p.X)
 	}
-	p.MovePlayer(0, -1, w)
+	p.Move(0, -1, w, t0.Add(200*time.Millisecond))
 	if p.Y != 0 {
 		t.Errorf("moved past top edge: Y = %d, want 0", p.Y)
 	}
 
 	// At right/bottom edge — cannot move further.
 	p = NewPlayer(9, 9)
-	p.MovePlayer(1, 0, w)
+	p.Move(1, 0, w, t0)
 	if p.X != 9 {
 		t.Errorf("moved past right edge: X = %d, want 9", p.X)
 	}
-	p.MovePlayer(0, 1, w)
+	p.Move(0, 1, w, t0.Add(200*time.Millisecond))
 	if p.Y != 9 {
 		t.Errorf("moved past bottom edge: Y = %d, want 9", p.Y)
 	}
@@ -156,12 +158,36 @@ func TestHarvestAdjacent(t *testing.T) {
 	})
 }
 
+func TestPlayerMoveCooldown(t *testing.T) {
+	w := NewWorld(10, 10)
+	p := NewPlayer(5, 5)
+	t0 := time.Now()
+
+	// First move always succeeds (Move cooldown unset — zero time is always expired).
+	p.Move(1, 0, w, t0)
+	if p.X != 6 {
+		t.Fatalf("first move: X = %d, want 6", p.X)
+	}
+
+	// Same timestamp: cooldown not elapsed — move blocked.
+	p.Move(1, 0, w, t0)
+	if p.X != 6 {
+		t.Errorf("same-timestamp move: X = %d, want 6 (cooldown should block)", p.X)
+	}
+
+	// After cooldown elapses: move succeeds.
+	p.Move(1, 0, w, t0.Add(DefaultMoveCooldown))
+	if p.X != 7 {
+		t.Errorf("after cooldown: X = %d, want 7", p.X)
+	}
+}
+
 func TestMovePlayerStructureBlocking(t *testing.T) {
 	t.Run("blocked by LogStorage", func(t *testing.T) {
 		w := NewWorld(10, 10)
 		w.SetStructure(6, 5, 1, 1, LogStorage)
 		p := NewPlayer(5, 5)
-		p.MovePlayer(1, 0, w) // try to move into (6,5)
+		p.Move(1, 0, w, time.Now()) // try to move into (6,5)
 		if p.X != 5 {
 			t.Errorf("X = %d, want 5 (should be blocked by LogStorage)", p.X)
 		}
@@ -171,7 +197,7 @@ func TestMovePlayerStructureBlocking(t *testing.T) {
 		w := NewWorld(10, 10)
 		w.SetStructure(6, 5, 1, 1, FoundationLogStorage)
 		p := NewPlayer(5, 5)
-		p.MovePlayer(1, 0, w)
+		p.Move(1, 0, w, time.Now())
 		if p.X != 5 {
 			t.Errorf("X = %d, want 5 (foundation tiles should block movement)", p.X)
 		}

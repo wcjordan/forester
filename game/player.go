@@ -8,6 +8,8 @@ type CooldownType int
 const (
 	// Deposit is the cooldown type for depositing resources into a storage structure.
 	Deposit CooldownType = iota
+	// Move is the cooldown type for player movement.
+	Move
 )
 
 // Player represents the player character.
@@ -29,8 +31,9 @@ func NewPlayer(x, y int) *Player {
 }
 
 // CooldownExpired reports whether the given cooldown type has expired (or was never set).
+// Returns true when now is at or after the stored expiry time.
 func (p *Player) CooldownExpired(ct CooldownType, now time.Time) bool {
-	return now.After(p.Cooldowns[ct])
+	return !now.Before(p.Cooldowns[ct])
 }
 
 // SetCooldown immediately sets the given cooldown type. Use for direct state
@@ -55,23 +58,35 @@ func (p *Player) commitCooldowns() {
 	clear(p.pendingCooldowns)
 }
 
-// MovePlayer moves the player by (dx, dy), clamped to world bounds.
-// Both LogStorage and FoundationLogStorage block movement.
-// Updates the player's facing direction whenever a non-zero direction is given.
-func (p *Player) MovePlayer(dx, dy int, w *World) {
+// Move attempts to move the player by (dx, dy).
+// The move is skipped if the move cooldown has not elapsed since the last move attempt.
+// Cooldown duration is based on the terrain of the tile the player currently stands on.
+// Movement is blocked by world bounds and any tile that contains a structure.
+// Updates the player's facing direction when the cooldown is satisfied.
+func (p *Player) Move(dx, dy int, w *World, now time.Time) {
+	tile := w.TileAt(p.X, p.Y)
+	cooldown := DefaultMoveCooldown
+	if tile != nil {
+		cooldown = MoveCooldownFor(tile)
+	}
+	if !p.CooldownExpired(Move, now) {
+		return
+	}
+	p.SetCooldown(Move, now.Add(cooldown))
 	if dx != 0 || dy != 0 {
 		p.FacingDX = dx
 		p.FacingDY = dy
 	}
-	nx := p.X + dx
-	ny := p.Y + dy
-	if w.InBounds(nx, ny) {
-		tile := w.TileAt(nx, ny)
-		if tile == nil || (tile.Structure != LogStorage && tile.Structure != FoundationLogStorage) {
-			p.X = nx
-			p.Y = ny
-		}
+	nx, ny := p.X+dx, p.Y+dy
+	if !w.InBounds(nx, ny) {
+		return
 	}
+	destTile := w.TileAt(nx, ny)
+	if destTile != nil && destTile.Structure != NoStructure {
+		return
+	}
+	p.X = nx
+	p.Y = ny
 }
 
 // DefaultMoveCooldown is the minimum time between moves on standard terrain.

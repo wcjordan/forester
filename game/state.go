@@ -11,11 +11,6 @@ type State struct {
 	StorageByOrigin     map[Point]*StorageInstance
 }
 
-// Move moves the player.
-func (s *State) Move(dx, dy int) {
-	s.Player.MovePlayer(dx, dy, s.World)
-}
-
 // getStorage returns (creating if needed) the ResourceStorage for the given type.
 func (s *State) getStorage(r ResourceType) *ResourceStorage {
 	if s.Storage == nil {
