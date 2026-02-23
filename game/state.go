@@ -6,7 +6,6 @@ import "time"
 type State struct {
 	Player              *Player
 	World               *World
-	TotalWoodCut        int
 	FoundationDeposited map[Point]int
 	Storage             map[ResourceType]*ResourceStorage
 	StorageByOrigin     map[Point]*StorageInstance
@@ -37,11 +36,9 @@ func (s *State) TotalStored(r ResourceType) int {
 }
 
 // Harvest harvests adjacent trees without moving the player.
-// Tracks total wood cut and spawns a foundation when the threshold is reached.
+// Spawns a foundation when the spawn condition is met.
 func (s *State) Harvest() {
-	before := s.Player.Wood
 	s.Player.HarvestAdjacent(s.World)
-	s.TotalWoodCut += s.Player.Wood - before
 	s.maybeSpawnGhosts()
 }
 

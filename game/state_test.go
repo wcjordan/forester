@@ -5,47 +5,26 @@ import (
 	"time"
 )
 
-// makeStateWithForest creates a small test state with a clear grassland area
-// and one forest tile in front of the player for harvesting.
-func makeStateWithForest(playerX, playerY int) *State {
-	w := NewWorld(20, 20)
-	// Place forest in front of the player (player faces north by default)
-	w.Tiles[playerY-1][playerX] = Tile{Terrain: Forest, TreeSize: 5}
-	return &State{Player: NewPlayer(playerX, playerY), World: w}
-}
-
-func TestHarvestTracksTotalWoodCut(t *testing.T) {
-	s := makeStateWithForest(5, 5)
-	s.Harvest()
-	if s.TotalWoodCut != 1 {
-		t.Errorf("TotalWoodCut = %d, want 1", s.TotalWoodCut)
-	}
-	s.Harvest()
-	if s.TotalWoodCut != 2 {
-		t.Errorf("TotalWoodCut = %d, want 2", s.TotalWoodCut)
-	}
-}
-
-func TestFoundationSpawnsAfter10WoodCut(t *testing.T) {
+func TestFoundationSpawnsWhenInventoryFull(t *testing.T) {
 	// Build a world big enough that there's a clear path from player to center.
 	w := NewWorld(30, 30)
 	// Player at (5, 5) facing north; forest tile at (5, 4) with enough wood.
-	w.Tiles[4][5] = Tile{Terrain: Forest, TreeSize: 20}
+	w.Tiles[4][5] = Tile{Terrain: Forest, TreeSize: MaxWood}
 	p := NewPlayer(5, 5)
 	s := &State{Player: p, World: w}
 
-	// Harvest 9 times — foundation should not appear yet.
-	for range 9 {
+	// Harvest MaxWood-1 times — foundation should not appear yet.
+	for range MaxWood - 1 {
 		s.Harvest()
 	}
 	if s.HasStructureOfType(FoundationLogStorage) {
-		t.Fatal("foundation appeared before 10 wood cut")
+		t.Fatal("foundation appeared before inventory full")
 	}
 
-	// 10th harvest — foundation should now appear.
+	// Final harvest fills inventory — foundation should now appear.
 	s.Harvest()
 	if !s.HasStructureOfType(FoundationLogStorage) {
-		t.Error("foundation did not appear after 10 wood cut")
+		t.Error("foundation did not appear when inventory became full")
 	}
 }
 
@@ -55,7 +34,8 @@ func TestFoundationDoesNotSpawnTwice(t *testing.T) {
 		w.Tiles[4][5+i] = Tile{Terrain: Forest, TreeSize: 1}
 	}
 	p := NewPlayer(5, 5)
-	s := &State{Player: p, World: w, TotalWoodCut: 10}
+	p.Wood = MaxWood
+	s := &State{Player: p, World: w}
 
 	s.maybeSpawnGhosts()
 	// Count foundation tiles.
@@ -87,7 +67,8 @@ func TestFoundationDoesNotSpawnTwice(t *testing.T) {
 func TestFoundationLocationIsAllGrassland(t *testing.T) {
 	w := NewWorld(30, 30)
 	p := NewPlayer(5, 15)
-	s := &State{Player: p, World: w, TotalWoodCut: 10}
+	p.Wood = MaxWood
+	s := &State{Player: p, World: w}
 	s.maybeSpawnGhosts()
 
 	// Find the foundation and verify all 16 tiles are on grassland terrain (underlying).
@@ -108,7 +89,8 @@ func TestFoundationLocationBetweenPlayerAndSpawn(t *testing.T) {
 	w := NewWorld(30, 30)
 	// Player at (2, 15); spawn at (15, 15).
 	p := NewPlayer(2, 15)
-	s := &State{Player: p, World: w, TotalWoodCut: 10}
+	p.Wood = MaxWood
+	s := &State{Player: p, World: w}
 	s.maybeSpawnGhosts()
 
 	spawnX := w.Width / 2

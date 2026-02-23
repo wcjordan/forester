@@ -28,9 +28,9 @@ func (logStorageDef) Footprint() (w, h int) { return 4, 4 }
 // BuildCost returns the number of wood required to complete a Log Storage foundation.
 func (logStorageDef) BuildCost() int { return LogStorageBuildCost }
 
-// ShouldSpawn returns true once 10 wood has been cut.
+// ShouldSpawn returns true when the player's inventory is full.
 func (logStorageDef) ShouldSpawn(s *State) bool {
-	return s.TotalWoodCut >= 10
+	return s.Player.Wood >= MaxWood
 }
 
 // OnBuilt registers a new storage instance when a Log Storage is completed.

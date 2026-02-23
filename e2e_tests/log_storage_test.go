@@ -104,7 +104,7 @@ func TestLogStorageWorkflow(t *testing.T) {
 
 	// ── Phase 2: Harvest until foundation appears and player has full wood ────
 	// Forward arc faces north: (48,44) size=8, (47,44) size=10, (49,44) size=9.
-	// 3 wood/tick → TotalWoodCut≥10 after ~4 ticks; foundation spawns automatically.
+	// 3 wood/tick → player.Wood reaches MaxWood (20) after ~7 ticks; foundation spawns automatically.
 	// Continue until player.Wood == MaxWood (20) so there's enough to build the foundation.
 	announcePhase(m, "Phase 2: Harvest wood until foundation log storage appears")
 	const maxHarvestTicks = 30
