@@ -11,14 +11,14 @@ type StructureDef interface {
 	BuildCost() int
 	// ShouldSpawn returns true when domain conditions are met (e.g. enough wood cut).
 	// The generic spawn loop handles the "already placed" guard separately.
-	ShouldSpawn(s *State) bool
+	ShouldSpawn(env *Env) bool
 	// OnPlayerInteraction is called each tick the player is adjacent to this structure instance.
 	// origin is the top-left corner of the specific instance being interacted with.
 	// now is the current clock time; implementations use it to check and set cooldowns.
-	OnPlayerInteraction(s *State, origin Point, now time.Time)
+	OnPlayerInteraction(env *Env, origin Point, now time.Time)
 	// OnBuilt is called once when the structure is completed.
 	// origin is the top-left corner of the specific instance that was just built.
-	OnBuilt(s *State, origin Point)
+	OnBuilt(env *Env, origin Point)
 }
 
 // StructureEntry pairs a StructureDef with the origin (top-left corner) of the

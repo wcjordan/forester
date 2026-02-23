@@ -2,46 +2,26 @@ package game
 
 import "time"
 
-// State holds all mutable game state.
+// State holds serializable game state (truth data).
+// Derived runtime structures (e.g. StorageManager) live on Game.
 type State struct {
 	Player              *Player
 	World               *World
 	FoundationDeposited map[Point]int
-	Storage             map[ResourceType]*ResourceStorage
-	StorageByOrigin     map[Point]*StorageInstance
-}
-
-// getStorage returns (creating if needed) the ResourceStorage for the given type.
-func (s *State) getStorage(r ResourceType) *ResourceStorage {
-	if s.Storage == nil {
-		s.Storage = make(map[ResourceType]*ResourceStorage)
-	}
-	if s.Storage[r] == nil {
-		s.Storage[r] = &ResourceStorage{}
-	}
-	return s.Storage[r]
-}
-
-// TotalStored returns the total stored amount for a resource type.
-func (s *State) TotalStored(r ResourceType) int {
-	if s.Storage[r] == nil {
-		return 0
-	}
-	return s.Storage[r].Total()
 }
 
 // Harvest harvests adjacent trees without moving the player.
 // Spawns a foundation when the spawn condition is met.
-func (s *State) Harvest() {
+func (s *State) Harvest(env *Env) {
 	s.Player.HarvestAdjacent(s.World)
-	s.maybeSpawnFoundation()
+	s.maybeSpawnFoundation(env)
 }
 
 // TickAdjacentStructures calls OnPlayerInteraction once per structure instance
 // that the player is cardinally adjacent to, then commits any pending cooldowns.
 // Cooldowns are committed after all interactions so that multiple adjacent
 // structures of the same type all fire within the same tick.
-func (s *State) TickAdjacentStructures(now time.Time) {
+func (s *State) TickAdjacentStructures(env *Env, now time.Time) {
 	seen := make(map[Point]bool)
 	for _, d := range [4][2]int{{0, -1}, {0, 1}, {-1, 0}, {1, 0}} {
 		p := Point{s.Player.X + d[0], s.Player.Y + d[1]}
@@ -50,7 +30,7 @@ func (s *State) TickAdjacentStructures(now time.Time) {
 			continue
 		}
 		seen[entry.Origin] = true
-		entry.Def.OnPlayerInteraction(s, entry.Origin, now)
+		entry.Def.OnPlayerInteraction(env, entry.Origin, now)
 	}
 	s.Player.commitCooldowns()
 }
@@ -64,7 +44,5 @@ func newState() *State {
 		Player:              player,
 		World:               world,
 		FoundationDeposited: make(map[Point]int),
-		Storage:             make(map[ResourceType]*ResourceStorage),
-		StorageByOrigin:     make(map[Point]*StorageInstance),
 	}
 }

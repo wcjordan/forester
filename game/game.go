@@ -8,6 +8,7 @@ import (
 // Game is the top-level orchestrator that owns the game state and loop.
 type Game struct {
 	State          *State
+	Stores         *StorageManager
 	rng            *rand.Rand
 	regrowCooldown time.Time
 	clock          Clock
@@ -29,18 +30,25 @@ func NewWithClock(clock Clock) *Game {
 func NewWithClockAndRNG(clock Clock, rng *rand.Rand) *Game {
 	return &Game{
 		State:          newState(),
+		Stores:         NewStorageManager(),
 		rng:            rng,
 		regrowCooldown: clock.Now().Add(RegrowthCooldown),
 		clock:          clock,
 	}
 }
 
+// env returns the runtime context for the current tick.
+func (g *Game) env() *Env {
+	return &Env{State: g.State, Stores: g.Stores}
+}
+
 // Tick advances the game: harvests trees, handles adjacent-structure interactions,
 // and fires probabilistic regrowth.
 func (g *Game) Tick() {
 	now := g.clock.Now()
-	g.State.Harvest()
-	g.State.TickAdjacentStructures(now)
+	env := g.env()
+	g.State.Harvest(env)
+	g.State.TickAdjacentStructures(env, now)
 	if now.After(g.regrowCooldown) {
 		g.State.World.Regrow(g.rng)
 		g.regrowCooldown = now.Add(RegrowthCooldown)

@@ -7,9 +7,9 @@ func (s *State) HasStructureOfType(stype StructureType) bool {
 
 // maybeSpawnFoundation checks each registered structure definition and places a foundation
 // when its spawn condition is met and no foundation or built instance already exists.
-func (s *State) maybeSpawnFoundation() {
+func (s *State) maybeSpawnFoundation(env *Env) {
 	for _, def := range structures {
-		if !def.ShouldSpawn(s) {
+		if !def.ShouldSpawn(env) {
 			continue
 		}
 		if s.HasStructureOfType(def.FoundationType()) || s.HasStructureOfType(def.BuiltType()) {
