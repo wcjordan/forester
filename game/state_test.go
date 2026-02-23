@@ -331,8 +331,8 @@ func TestDepositRespectsInstanceCapacity(t *testing.T) {
 	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int)}
 	stores := NewStorageManager()
 	stores.Register(origin, Wood, 2)
+	stores.DepositAt(origin, 2) // fill to capacity via the proper API
 	inst := stores.FindByOrigin(origin)
-	inst.Stored = 2 // already full
 	env := &Env{State: s, Stores: stores}
 
 	s.TickAdjacentStructures(env, time.Now())
