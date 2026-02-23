@@ -8,6 +8,8 @@ type CooldownType int
 const (
 	// Deposit is the cooldown type for depositing resources into a storage structure.
 	Deposit CooldownType = iota
+	// Move is the cooldown type for player movement.
+	Move
 )
 
 // Player represents the player character.
@@ -17,7 +19,6 @@ type Player struct {
 	Wood               int
 	Cooldowns          map[CooldownType]time.Time
 	pendingCooldowns   map[CooldownType]time.Time
-	lastMoveTime       time.Time
 }
 
 // NewPlayer creates a player at the given position, facing north.
@@ -30,8 +31,9 @@ func NewPlayer(x, y int) *Player {
 }
 
 // CooldownExpired reports whether the given cooldown type has expired (or was never set).
+// Returns true when now is at or after the stored expiry time.
 func (p *Player) CooldownExpired(ct CooldownType, now time.Time) bool {
-	return now.After(p.Cooldowns[ct])
+	return !now.Before(p.Cooldowns[ct])
 }
 
 // SetCooldown immediately sets the given cooldown type. Use for direct state
@@ -67,10 +69,10 @@ func (p *Player) Move(dx, dy int, w *World, now time.Time) {
 	if tile != nil {
 		cooldown = MoveCooldownFor(tile)
 	}
-	if !p.lastMoveTime.IsZero() && now.Sub(p.lastMoveTime) < cooldown {
+	if !p.CooldownExpired(Move, now) {
 		return
 	}
-	p.lastMoveTime = now
+	p.SetCooldown(Move, now.Add(cooldown))
 	if dx != 0 || dy != 0 {
 		p.FacingDX = dx
 		p.FacingDY = dy

@@ -163,7 +163,7 @@ func TestPlayerMoveCooldown(t *testing.T) {
 	p := NewPlayer(5, 5)
 	t0 := time.Now()
 
-	// First move always succeeds (lastMoveTime is zero).
+	// First move always succeeds (Move cooldown unset — zero time is always expired).
 	p.Move(1, 0, w, t0)
 	if p.X != 6 {
 		t.Fatalf("first move: X = %d, want 6", p.X)
