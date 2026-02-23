@@ -8,7 +8,7 @@ type StructureDef interface {
 	FoundationType() StructureType
 	BuiltType() StructureType
 	Footprint() (w, h int)
-	BuildTicks() int
+	BuildCost() int
 	// ShouldSpawn returns true when domain conditions are met (e.g. enough wood cut).
 	// The generic spawn loop handles the "already placed" guard separately.
 	ShouldSpawn(s *State) bool
@@ -31,45 +31,3 @@ type StructureEntry struct {
 // structures is the registry of all known structure definitions.
 // Each definition registers itself via init() in its own file.
 var structures []StructureDef
-
-// findDefForStructureType returns the StructureDef whose BuiltType matches st, or nil.
-func findDefForStructureType(st StructureType) StructureDef {
-	for _, def := range structures {
-		if def.BuiltType() == st {
-			return def
-		}
-	}
-	return nil
-}
-
-// findDefForFoundationType returns the StructureDef whose FoundationType matches st, or nil.
-func findDefForFoundationType(st StructureType) StructureDef {
-	if st == NoStructure {
-		return nil
-	}
-	for _, def := range structures {
-		if def.FoundationType() == st {
-			return def
-		}
-	}
-	return nil
-}
-
-// BuildOperation tracks an in-progress structure build.
-type BuildOperation struct {
-	X, Y          int
-	Width, Height int
-	Target        StructureType
-	ProgressTicks int
-	TotalTicks    int
-}
-
-// Progress returns build completion as a fraction in [0, 1].
-func (b *BuildOperation) Progress() float64 {
-	return float64(b.ProgressTicks) / float64(b.TotalTicks)
-}
-
-// Done returns true when the build is complete.
-func (b *BuildOperation) Done() bool {
-	return b.ProgressTicks >= b.TotalTicks
-}

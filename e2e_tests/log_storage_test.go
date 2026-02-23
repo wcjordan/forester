@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -71,19 +70,18 @@ func moveDir(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) {
 // TestLogStorageWorkflow is a full end-to-end scenario:
 //
 //  1. Navigate to a harvest position (48, 45) adjacent to forest.
-//  2. Tick until enough wood is cut to trigger the ghost log storage.
-//  3. Walk onto the ghost tile to start the build, which nudges the player to (49, 47).
-//  4. Tick until build completes (30 ticks).
-//  5. Deposit wood into the completed log storage.
-//  6. Verify player position, UI tile icons, and status bar text.
+//  2. Tick until enough wood is cut and player has full inventory (20 wood).
+//  3. Navigate adjacent to the foundation (south×3 → player blocked west of foundation).
+//  4. Tick until the foundation completes via resource deposits (20 wood × 500ms each).
+//  5. Verify player position, LogStorage tile renders as 'L', and built storage registered.
 //
 // World layout facts for seed 42 used in assertions:
 //   - Harvest arc from (48,45) facing north: (48,44), (47,44), (49,44) — all Forest.
-//   - Ghost spawns at 4×4 footprint (49,48)–(52,51).
-//   - After ghost contact at (49,48) player is nudged to (49,47).
-//   - With terminal 80×24 and player at (49,47): vpX=9, vpY=36.
-//     LogStorage corner (49,48) maps to screen (col=40, row=12).
-//     Harvested trees (47–49, 44) map to screen (col=38–40, row=8).
+//   - Foundation spawns at 4×4 footprint (49,48)–(52,51).
+//   - Player moves south×3 from (48,45) → (48,48), adjacent to foundation west edge.
+//   - Foundation blocks eastward movement: player stays at (48,48).
+//   - With terminal 80×24 and player at (48,48): vpX=8, vpY=37.
+//     LogStorage corner (49,48) maps to screen (col=41, row=11).
 func TestLogStorageWorkflow(t *testing.T) {
 	// ── Setup ────────────────────────────────────────────────────────────────
 	clock := game.NewFakeClock()
@@ -95,7 +93,6 @@ func TestLogStorageWorkflow(t *testing.T) {
 
 	// ── Phase 1: Navigate to harvest position (48, 45) ───────────────────────
 	// Path: west×2 → (48,50), then north×5 → (48,45).
-	// Tiles along path: all Grassland except the last two northward steps (Forest).
 	announcePhase(m, "Phase 1: Navigate to harvest position")
 	for _, dir := range []string{"a", "a", "w", "w", "w", "w", "w"} {
 		moveDir(&m, clock, g, dir)
@@ -105,94 +102,75 @@ func TestLogStorageWorkflow(t *testing.T) {
 			g.State.Player.X, g.State.Player.Y)
 	}
 
-	// ── Phase 2: Harvest until ghost log storage appears ─────────────────────
+	// ── Phase 2: Harvest until foundation appears and player has full wood ────
 	// Forward arc faces north: (48,44) size=8, (47,44) size=10, (49,44) size=9.
-	// 3 wood/tick → TotalWoodCut≥10 after ~4 ticks; ghost spawns automatically.
-	announcePhase(m, "Phase 2: Harvest wood until ghost log storage appears")
+	// 3 wood/tick → TotalWoodCut≥10 after ~4 ticks; foundation spawns automatically.
+	// Continue until player.Wood == MaxWood (20) so there's enough to build the foundation.
+	announcePhase(m, "Phase 2: Harvest wood until foundation log storage appears")
 	const maxHarvestTicks = 30
 	for i := range maxHarvestTicks {
 		tick(&m, clock)
-		if g.State.HasStructureOfType(game.FoundationLogStorage) {
+		if g.State.HasStructureOfType(game.FoundationLogStorage) && g.State.Player.Wood >= game.LogStorageBuildCost {
 			break
 		}
 		if i == maxHarvestTicks-1 {
-			t.Fatal("phase 2: ghost log storage did not appear after harvesting")
+			t.Fatal("phase 2: foundation did not appear or player did not accumulate enough wood")
 		}
 	}
 
-	// ── Phase 3: Step onto ghost tile to trigger build ────────────────────────
-	// From (48,45): south×3 → (48,48), then east → (49,48) which is the ghost.
-	// checkGhostContact fires; build starts; player is nudged to (49,47).
-	announcePhase(m, "Phase 3: Step onto ghost tile to start build")
-	for _, dir := range []string{"s", "s", "s", "d"} {
+	// ── Phase 3: Navigate adjacent to foundation ──────────────────────────────
+	// From (48,45): south×3 → (48,48). Foundation at (49,48) blocks east movement.
+	// Player ends up at (48,48), adjacent to the foundation's west edge.
+	announcePhase(m, "Phase 3: Navigate adjacent to foundation")
+	for _, dir := range []string{"s", "s", "s"} {
 		moveDir(&m, clock, g, dir)
 	}
-	if g.State.Building == nil {
-		t.Fatal("phase 3: build should have started after stepping on ghost tile")
-	}
-	if g.State.Player.X != 49 || g.State.Player.Y != 47 {
-		t.Errorf("phase 3: expected player nudged to (49,47), got (%d,%d)",
+	// Attempting to move east into the foundation should be blocked.
+	moveDir(&m, clock, g, "d")
+	if g.State.Player.X != 48 || g.State.Player.Y != 48 {
+		t.Errorf("phase 3: expected player at (48,48) (foundation blocks east), got (%d,%d)",
 			g.State.Player.X, g.State.Player.Y)
 	}
 
-	// ── Phase 4: Complete build (30 ticks) ────────────────────────────────────
-	announcePhase(m, "Phase 4: Build log storage (30 ticks)")
-	const maxBuildTicks = 40
+	// ── Phase 4: Deposit wood to complete the foundation ─────────────────────
+	// Player at (48,48) is adjacent to foundation. Each tick fires TickAdjacentStructures.
+	// Deposit cooldown is 500ms; one deposit every 5 ticks (at 100ms each).
+	// Foundation completes after LogStorageBuildCost (20) deposits.
+	announcePhase(m, "Phase 4: Build foundation via resource deposit")
+	const maxBuildTicks = 120
 	for i := range maxBuildTicks {
 		tick(&m, clock)
-		if g.State.Building == nil {
+		if g.State.HasStructureOfType(game.LogStorage) {
 			break
 		}
 		if i == maxBuildTicks-1 {
-			t.Fatal("phase 4: build did not complete within expected ticks")
+			t.Fatal("phase 4: foundation did not complete within expected ticks")
 		}
 	}
 
-	// LogStorage footprint starts at (49,48).
+	// Foundation tiles should be gone; LogStorage should exist.
+	if g.State.HasStructureOfType(game.FoundationLogStorage) {
+		t.Error("phase 4: FoundationLogStorage tiles should be gone after build completes")
+	}
 	lsTile := g.State.World.TileAt(49, 48)
 	if lsTile == nil || lsTile.Structure != game.LogStorage {
 		t.Fatalf("phase 4: expected LogStorage at (49,48), got %v", lsTile)
 	}
 
-	// ── Phase 5: Deposit wood into the log storage ────────────────────────────
-	announcePhase(m, "Phase 5: Deposit wood into log storage")
-	// Player is at (49,47), directly adjacent to LogStorage at (49,48).
-	// Note: one deposit already fires in the same Tick() that completes the build
-	// (AdvanceBuild runs before TryDeposit). storedBefore captures whatever is
-	// already stored so we can verify at least one more deposit occurs here.
-	if g.State.Player.Wood == 0 {
-		t.Fatal("phase 5: player has no wood to deposit")
-	}
-	storedBefore := g.State.TotalStored(game.Wood)
-	// Advance clock past the deposit cooldown so the next TryDeposit call fires.
-	clock.Advance(game.DepositTickInterval + time.Millisecond)
-	const maxDepositTicks = 30
-	for i := range maxDepositTicks {
-		tick(&m, clock)
-		if g.State.TotalStored(game.Wood) > storedBefore {
-			break
-		}
-		if i == maxDepositTicks-1 {
-			t.Fatal("phase 5: wood was not deposited into log storage")
-		}
-	}
-
 	// ── Assertions ────────────────────────────────────────────────────────────
 
-	// 1. Player position after the full workflow.
-	if g.State.Player.X != 49 || g.State.Player.Y != 47 {
-		t.Errorf("player position: got (%d,%d), want (49,47)",
+	// 1. Player position: still at (48,48) — foundation blocked east all along.
+	if g.State.Player.X != 48 || g.State.Player.Y != 48 {
+		t.Errorf("player position: got (%d,%d), want (48,48)",
 			g.State.Player.X, g.State.Player.Y)
 	}
 
 	// 2. Status bar shows the correct player position and wood count.
 	bar := statusBar(m)
-	wantPos := "Player: (49, 47)"
+	wantPos := "Player: (48, 48)"
 	if !strings.Contains(bar, wantPos) {
 		t.Errorf("status bar %q does not contain player position %q", bar, wantPos)
 	}
-	// Snapshot wood count at assertion time — harvest and deposit both run each
-	// tick so the exact value varies; we verify the format is present and correct.
 	currentWood := g.State.Player.Wood
 	wantWood := fmt.Sprintf("Wood: %d/20", currentWood)
 	if !strings.Contains(bar, wantWood) {
@@ -200,29 +178,17 @@ func TestLogStorageWorkflow(t *testing.T) {
 	}
 
 	// 3. Log storage tile displays as 'L' at its screen position.
-	//    Player (49,47) with 80×24 terminal → vpX=9, vpY=36.
-	//    LogStorage corner (49,48) → screen col=40, row=12.
-	lsChar := charAtScreen(m, 40, 12)
+	//    Player (48,48) with 80×24 terminal → vpX=8, vpY=37.
+	//    LogStorage corner (49,48) → screen col=41, row=11.
+	lsChar := charAtScreen(m, 41, 11)
 	if lsChar != "L" {
-		t.Errorf("expected 'L' (LogStorage) at screen(col=40,row=12), got %q", lsChar)
+		t.Errorf("expected 'L' (LogStorage) at screen(col=41,row=11), got %q", lsChar)
 	}
 
-	// 4. Partially-harvested trees north of harvest position display as 't'.
-	//    Initial sizes: (47,44)=10, (48,44)=8, (49,44)=9. After 4 harvest ticks
-	//    (1 per tick, 3 tiles) sizes are 6, 4, 5 — all in the 't' range (4–6).
-	//    Player hit MaxWood before fully cutting them.
-	//    Viewport: vpX=9, vpY=36 → trees at screen row=8, cols=38,39,40.
-	for _, col := range []int{38, 39, 40} {
-		ch := charAtScreen(m, col, 8)
-		if ch != "t" {
-			t.Errorf("expected 't' (partially harvested tree) at screen(col=%d,row=8), got %q", col, ch)
-		}
+	// 4. Built storage was registered on completion.
+	if _, ok := g.State.StorageByOrigin[game.Point{X: 49, Y: 48}]; !ok {
+		t.Error("expected StorageByOrigin entry for LogStorage at (49,48)")
 	}
 
-	// 5. Log storage contains the deposited wood.
-	if g.State.TotalStored(game.Wood) == 0 {
-		t.Error("expected wood to be stored in log storage after deposit")
-	}
-
-	announcePhase(m, fmt.Sprintf("Done — LogStorage built, %d wood deposited", g.State.TotalStored(game.Wood)))
+	announcePhase(m, "Done — LogStorage built from foundation deposits")
 }

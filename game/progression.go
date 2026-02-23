@@ -5,24 +5,6 @@ func (s *State) HasStructureOfType(stype StructureType) bool {
 	return len(s.World.StructureTypeIndex[stype]) > 0
 }
 
-// foundationOriginFor returns the top-left corner of the current foundation footprint for the given type.
-// ok is false if no foundation of that type exists.
-// Selects the topmost-leftmost point (matching the original row-major scan order).
-func (s *State) foundationOriginFor(st StructureType) (x, y int, ok bool) {
-	pts := s.World.StructureTypeIndex[st]
-	if len(pts) == 0 {
-		return 0, 0, false
-	}
-	first := true
-	for p := range pts {
-		if first || p.Y < y || (p.Y == y && p.X < x) {
-			x, y = p.X, p.Y
-			first = false
-		}
-	}
-	return x, y, true
-}
-
 // maybeSpawnGhosts checks each registered structure definition and places a foundation
 // when its spawn condition is met and no foundation or built instance already exists.
 func (s *State) maybeSpawnGhosts() {
@@ -37,6 +19,7 @@ func (s *State) maybeSpawnGhosts() {
 		cx, cy := s.findValidLocation(w, h)
 		if cx >= 0 {
 			s.World.SetStructure(cx, cy, w, h, def.FoundationType())
+			s.World.IndexStructure(cx, cy, w, h, def)
 		}
 	}
 }

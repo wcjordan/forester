@@ -35,12 +35,11 @@ func NewWithClockAndRNG(clock Clock, rng *rand.Rand) *Game {
 	}
 }
 
-// Tick advances the game: harvests trees, advances any in-progress build,
-// handles adjacent-structure interactions, and fires probabilistic regrowth.
+// Tick advances the game: harvests trees, handles adjacent-structure interactions,
+// and fires probabilistic regrowth.
 func (g *Game) Tick() {
 	now := g.clock.Now()
 	g.State.Harvest()
-	g.State.AdvanceBuild()
 	g.State.TickAdjacentStructures(now)
 	if now.After(g.regrowCooldown) {
 		g.State.World.Regrow(g.rng)

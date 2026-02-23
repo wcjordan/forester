@@ -4,18 +4,17 @@ import "time"
 
 // State holds all mutable game state.
 type State struct {
-	Player          *Player
-	World           *World
-	TotalWoodCut    int
-	Building        *BuildOperation
-	Storage         map[ResourceType]*ResourceStorage
-	StorageByOrigin map[Point]*StorageInstance
+	Player              *Player
+	World               *World
+	TotalWoodCut        int
+	FoundationDeposited map[Point]int
+	Storage             map[ResourceType]*ResourceStorage
+	StorageByOrigin     map[Point]*StorageInstance
 }
 
-// Move moves the player and checks for foundation contact.
+// Move moves the player.
 func (s *State) Move(dx, dy int) {
 	s.Player.MovePlayer(dx, dy, s.World)
-	s.checkGhostContact()
 }
 
 // getStorage returns (creating if needed) the ResourceStorage for the given type.
@@ -70,9 +69,10 @@ func newState() *State {
 	player := NewPlayer(world.Width/2, world.Height/2)
 
 	return &State{
-		Player:          player,
-		World:           world,
-		Storage:         make(map[ResourceType]*ResourceStorage),
-		StorageByOrigin: make(map[Point]*StorageInstance),
+		Player:              player,
+		World:               world,
+		FoundationDeposited: make(map[Point]int),
+		Storage:             make(map[ResourceType]*ResourceStorage),
+		StorageByOrigin:     make(map[Point]*StorageInstance),
 	}
 }

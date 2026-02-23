@@ -131,73 +131,68 @@ func TestFoundationLocationBetweenPlayerAndSpawn(t *testing.T) {
 	}
 }
 
-func TestBuildMechanic(t *testing.T) {
-	// Set up a world with a foundation at (5, 5) and player adjacent.
-	makeFoundationState := func() *State {
+func TestFoundationBuildMechanic(t *testing.T) {
+	// Set up a world with an indexed foundation at (5,5) and player just west at (4,5).
+	makeFoundationState := func(wood int) *State {
 		w := NewWorld(20, 20)
 		w.SetStructure(5, 5, 4, 4, FoundationLogStorage)
-		p := NewPlayer(4, 5) // just outside the foundation footprint
-		return &State{Player: p, World: w}
+		w.IndexStructure(5, 5, 4, 4, logStorageDef{})
+		p := NewPlayer(4, 5)
+		p.Wood = wood
+		return &State{
+			Player:              p,
+			World:               w,
+			FoundationDeposited: make(map[Point]int),
+			Storage:             make(map[ResourceType]*ResourceStorage),
+			StorageByOrigin:     make(map[Point]*StorageInstance),
+		}
 	}
 
-	t.Run("walking onto foundation tile starts build", func(t *testing.T) {
-		s := makeFoundationState()
-		s.Move(1, 0) // step into (5,5) — foundation tile
-		if s.Building == nil {
-			t.Fatal("Building should be non-nil after stepping onto foundation")
-		}
-		if s.Building.TotalTicks != LogStorageBuildTicks {
-			t.Errorf("TotalTicks = %d, want %d", s.Building.TotalTicks, LogStorageBuildTicks)
+	t.Run("foundation blocks player movement", func(t *testing.T) {
+		s := makeFoundationState(0)
+		s.Move(1, 0) // try to step into (5,5) — foundation tile
+		if s.Player.X != 4 {
+			t.Errorf("player X = %d, want 4 (foundation should block movement)", s.Player.X)
 		}
 	})
 
-	t.Run("player nudged outside footprint after foundation contact", func(t *testing.T) {
-		s := makeFoundationState()
-		s.Move(1, 0) // step into (5,5)
-		px, py := s.Player.X, s.Player.Y
-		// Player must be outside the 4×4 footprint [5..8] x [5..8].
-		insideX := px >= 5 && px <= 8
-		insideY := py >= 5 && py <= 8
-		if insideX && insideY {
-			t.Errorf("player at (%d,%d) is still inside foundation footprint [5-8,5-8]", px, py)
+	t.Run("adjacent deposit reduces player wood", func(t *testing.T) {
+		s := makeFoundationState(5)
+		s.TickAdjacentStructures(time.Now())
+		if s.Player.Wood != 4 {
+			t.Errorf("Wood = %d, want 4 after one deposit", s.Player.Wood)
+		}
+		origin := Point{5, 5}
+		if s.FoundationDeposited[origin] != 1 {
+			t.Errorf("FoundationDeposited = %d, want 1", s.FoundationDeposited[origin])
 		}
 	})
 
-	t.Run("AdvanceBuild increments progress", func(t *testing.T) {
-		s := makeFoundationState()
-		s.Move(1, 0)
-		if s.Building == nil {
-			t.Fatal("Building is nil")
-		}
-		s.AdvanceBuild()
-		if s.Building.ProgressTicks != 1 {
-			t.Errorf("ProgressTicks = %d, want 1", s.Building.ProgressTicks)
+	t.Run("deposit respects cooldown", func(t *testing.T) {
+		s := makeFoundationState(5)
+		t0 := time.Now()
+		s.TickAdjacentStructures(t0)
+		s.TickAdjacentStructures(t0) // same timestamp — cooldown blocks
+		origin := Point{5, 5}
+		if s.FoundationDeposited[origin] != 1 {
+			t.Errorf("FoundationDeposited = %d, want 1 (second tick should be blocked by cooldown)", s.FoundationDeposited[origin])
 		}
 	})
 
-	t.Run("build completes and tiles become LogStorage", func(t *testing.T) {
-		s := makeFoundationState()
-		s.Move(1, 0)
-		if s.Building == nil {
-			t.Fatal("Building is nil")
+	t.Run("foundation completes after BuildCost deposits", func(t *testing.T) {
+		s := makeFoundationState(LogStorageBuildCost)
+		t0 := time.Now()
+		for i := range LogStorageBuildCost {
+			s.TickAdjacentStructures(t0.Add(time.Duration(i) * (DepositTickInterval + time.Millisecond)))
 		}
-		s.Building.ProgressTicks = s.Building.TotalTicks - 1
-		s.AdvanceBuild()
-		if s.Building != nil {
-			t.Error("Building should be nil after completion")
+		if s.HasStructureOfType(FoundationLogStorage) {
+			t.Error("FoundationLogStorage tiles should be gone after build completes")
 		}
 		if !s.HasStructureOfType(LogStorage) {
 			t.Error("LogStorage tiles should exist after build completes")
 		}
-	})
-
-	t.Run("foundation tiles replaced by LogStorage after build", func(t *testing.T) {
-		s := makeFoundationState()
-		s.Move(1, 0)
-		s.Building.ProgressTicks = s.Building.TotalTicks - 1
-		s.AdvanceBuild()
-		if s.HasStructureOfType(FoundationLogStorage) {
-			t.Error("FoundationLogStorage tiles should be gone after build completes")
+		if s.Player.Wood != 0 {
+			t.Errorf("player Wood = %d, want 0 (all wood deposited)", s.Player.Wood)
 		}
 	})
 }

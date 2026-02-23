@@ -177,8 +177,10 @@ func (m Model) View() string {
 	// Status bar.
 	status := fmt.Sprintf(" Player: (%d, %d)  Wood: %d/%d",
 		player.X, player.Y, player.Wood, game.MaxWood)
-	if b := m.game.State.Building; b != nil {
-		status += "  " + buildProgressBar(b.Progress())
+	for _, deposited := range m.game.State.FoundationDeposited {
+		progress := float64(deposited) / float64(game.LogStorageBuildCost)
+		status += "  " + buildProgressBar(progress)
+		break // show at most one foundation progress bar
 	}
 	sb.WriteByte('\n')
 	sb.WriteString(status)
