@@ -11,7 +11,7 @@ func (s *State) checkGhostContact() {
 	if tile == nil {
 		return
 	}
-	def := findDefForGhost(tile.Structure)
+	def := findDefForGhostStructureType(tile.Structure)
 	if def == nil {
 		return
 	}
@@ -73,34 +73,11 @@ func (s *State) AdvanceBuild() {
 	s.Building.ProgressTicks++
 	if s.Building.Done() {
 		s.World.SetStructure(s.Building.X, s.Building.Y, s.Building.Width, s.Building.Height, s.Building.Target)
-		if def := findDefForBuilt(s.Building.Target); def != nil {
+		if def := findDefForStructureType(s.Building.Target); def != nil {
 			origin := Point{s.Building.X, s.Building.Y}
 			s.World.IndexStructure(s.Building.X, s.Building.Y, s.Building.Width, s.Building.Height, def)
 			def.OnBuilt(s, origin)
 		}
 		s.Building = nil
 	}
-}
-
-// findDefForBuilt returns the StructureDef whose BuiltType matches st, or nil.
-func findDefForBuilt(st StructureType) StructureDef {
-	for _, def := range structures {
-		if def.BuiltType() == st {
-			return def
-		}
-	}
-	return nil
-}
-
-// findDefForGhost returns the StructureDef whose GhostType matches st, or nil.
-func findDefForGhost(st StructureType) StructureDef {
-	if st == NoStructure {
-		return nil
-	}
-	for _, def := range structures {
-		if def.GhostType() == st {
-			return def
-		}
-	}
-	return nil
 }

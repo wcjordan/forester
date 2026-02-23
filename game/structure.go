@@ -32,6 +32,29 @@ type StructureEntry struct {
 // Each definition registers itself via init() in its own file.
 var structures []StructureDef
 
+// findDefForStructureType returns the StructureDef whose BuiltType matches st, or nil.
+func findDefForStructureType(st StructureType) StructureDef {
+	for _, def := range structures {
+		if def.BuiltType() == st {
+			return def
+		}
+	}
+	return nil
+}
+
+// findDefForGhostStructureType returns the StructureDef whose GhostType matches st, or nil.
+func findDefForGhostStructureType(st StructureType) StructureDef {
+	if st == NoStructure {
+		return nil
+	}
+	for _, def := range structures {
+		if def.GhostType() == st {
+			return def
+		}
+	}
+	return nil
+}
+
 // BuildOperation tracks an in-progress structure build.
 type BuildOperation struct {
 	X, Y          int
