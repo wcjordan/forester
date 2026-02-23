@@ -5,9 +5,9 @@ func (s *State) HasStructureOfType(stype StructureType) bool {
 	return len(s.World.StructureTypeIndex[stype]) > 0
 }
 
-// maybeSpawnGhosts checks each registered structure definition and places a foundation
+// maybeSpawnFoundation checks each registered structure definition and places a foundation
 // when its spawn condition is met and no foundation or built instance already exists.
-func (s *State) maybeSpawnGhosts() {
+func (s *State) maybeSpawnFoundation() {
 	for _, def := range structures {
 		if !def.ShouldSpawn(s) {
 			continue

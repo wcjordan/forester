@@ -39,7 +39,7 @@ func (s *State) TotalStored(r ResourceType) int {
 // Spawns a foundation when the spawn condition is met.
 func (s *State) Harvest() {
 	s.Player.HarvestAdjacent(s.World)
-	s.maybeSpawnGhosts()
+	s.maybeSpawnFoundation()
 }
 
 // TickAdjacentStructures calls OnPlayerInteraction once per structure instance

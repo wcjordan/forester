@@ -37,7 +37,7 @@ func TestFoundationDoesNotSpawnTwice(t *testing.T) {
 	p.Wood = MaxWood
 	s := &State{Player: p, World: w}
 
-	s.maybeSpawnGhosts()
+	s.maybeSpawnFoundation()
 	// Count foundation tiles.
 	count := 0
 	for y := range w.Tiles {
@@ -50,7 +50,7 @@ func TestFoundationDoesNotSpawnTwice(t *testing.T) {
 	firstCount := count
 
 	// Call again — should not add more.
-	s.maybeSpawnGhosts()
+	s.maybeSpawnFoundation()
 	count = 0
 	for y := range w.Tiles {
 		for x := range w.Tiles[y] {
@@ -69,7 +69,7 @@ func TestFoundationLocationIsAllGrassland(t *testing.T) {
 	p := NewPlayer(5, 15)
 	p.Wood = MaxWood
 	s := &State{Player: p, World: w}
-	s.maybeSpawnGhosts()
+	s.maybeSpawnFoundation()
 
 	// Find the foundation and verify all 16 tiles are on grassland terrain (underlying).
 	for y := range w.Tiles {
@@ -91,7 +91,7 @@ func TestFoundationLocationBetweenPlayerAndSpawn(t *testing.T) {
 	p := NewPlayer(2, 15)
 	p.Wood = MaxWood
 	s := &State{Player: p, World: w}
-	s.maybeSpawnGhosts()
+	s.maybeSpawnFoundation()
 
 	spawnX := w.Width / 2
 	// Find foundation top-left.
