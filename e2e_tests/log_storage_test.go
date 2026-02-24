@@ -105,7 +105,7 @@ func TestLogStorageWorkflow(t *testing.T) {
 
 	// ── Phase 2: Harvest until foundation appears ────────────────────────────
 	// Forward arc faces north: (48,44) size=8, (47,44) size=10, (49,44) size=9.
-	// 3 wood/tick → player.Wood reaches MaxCarryingCapacity (20) after ~7 ticks; foundation spawns automatically.
+	// 3 wood/tick → player.Wood reaches InitialCarryingCapacity (20) after ~7 ticks; foundation spawns automatically.
 	// Foundation spawns at (48,46)–(51,49), all within clearing radius so guaranteed Grassland.
 	// With a fast deposit interval the foundation may complete before this loop ends; accept either.
 	announcePhase(m, "Phase 2: Harvest wood until foundation log storage appears")

@@ -36,7 +36,7 @@ func (logStorageDef) StorageCapacity() int { return LogStorageCapacity }
 
 // ShouldSpawn returns true when the player's inventory is full.
 func (logStorageDef) ShouldSpawn(env *Env) bool {
-	return env.State.Player.Wood >= MaxCarryingCapacity
+	return env.State.Player.Wood >= InitialCarryingCapacity
 }
 
 // OnBuilt registers a new storage instance when a Log Storage is completed.
