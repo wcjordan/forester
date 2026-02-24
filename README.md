@@ -32,19 +32,33 @@ make clean    # remove build artifacts
 
 ```
 main.go              # Entry point
-game/                # Core game logic
-  game.go            # Game orchestrator
+game/                # Core game logic (no I/O, no rendering)
+  game.go            # Game orchestrator (Tick loop)
   state.go           # Game state (player + world)
-  player.go          # Player entity
-  world.go           # World grid and tile access
-  tile.go            # Tile and terrain types
+  player.go          # Player entity, movement, harvesting
+  world.go           # World grid, tile access, regrowth
+  worldgen.go        # Procedural map generation
+  tile.go            # Tile, TerrainType, StructureType definitions
+  structure.go       # StructureDef interface + registry
+  log_storage.go     # Log Storage implementation
+  storage.go         # ResourceType, StorageInstance, StorageDef
+  storage_manager.go # StorageManager (runtime storage state)
+  progression.go     # Foundation spawning logic
+  env.go             # Env (runtime context for structure methods)
+  clock.go           # Clock interface + FakeClock for tests
+  input.go           # MoveMsg (key → game bridge)
+render/
+  model.go           # bubbletea Model (TUI presentation)
+e2e_tests/           # End-to-end tests with injected clock + RNG
 docs/
   PROJECT_PLAN.md    # Game design document
+  GETTING_AROUND.md  # Codebase navigation guide
 ```
 
 ## Tech Stack
 
-- **Go** — game logic and rendering
-- **bubbletea** — terminal UI (planned)
+- **Go** — game logic
+- **bubbletea** — terminal UI (Elm-architecture event loop)
+- **lipgloss** — terminal color/style
 - **golangci-lint** — linting
 - **air** — hot-reload during development
