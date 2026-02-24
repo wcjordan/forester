@@ -179,6 +179,12 @@ func (m Model) View() string {
 
 // renderCardScreen renders the milestone card selection overlay centered in the terminal.
 func (m Model) renderCardScreen() string {
+	// Defensive guard: avoid panicking if there are no pending offers
+	// or the first pending offer is empty.
+	if len(m.game.State.PendingOffers) == 0 || len(m.game.State.PendingOffers[0]) == 0 {
+		// Fallback: render nothing instead of crashing on malformed state.
+		return ""
+	}
 	offer := m.game.State.PendingOffers[0]
 	card := offer[0]
 

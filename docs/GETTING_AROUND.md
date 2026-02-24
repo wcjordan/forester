@@ -25,8 +25,8 @@ A navigation guide covering file layout, responsibilities, and the libraries use
 | File | Key types / funcs | Notes |
 |---|---|---|
 | `game.go` | `Game`, `New()`, `NewWithClock()`, `NewWithClockAndRNG()`, `Tick()` | Top-level orchestrator. `Tick()` runs one logical frame: harvest → adjacent-structure interactions → maybe regrow. |
-| `state.go` | `State` (owns `Player` + `World`), `Move()`, `Harvest()`, `AdvanceBuild()` | Coordinates all subsystems. Ghost spawning and build completion live here. |
-| `player.go` | `Player`, `MovePlayer()`, `HarvestAdjacent()`, `TryDeposit()` | Harvests the three-tile forward arc. Carries wood up to `MaxWood=20`. Move cooldowns are terrain-dependent. |
+| `state.go` | `State` (owns `Player` + `World`) | Coordinates all subsystems. Ghost spawning and build completion live here. |
+| `player.go` | `Player`, `HarvestAdjacent()` | Harvests the three-tile forward arc. Carry capacity is dynamic via `Player.MaxCarry`. Move cooldowns are terrain-dependent. |
 | `tile.go` | `Tile`, `TerrainType` (`Grassland`, `Forest`), `StructureType` (`NoStructure`, `GhostLogStorage`, `LogStorage`) | Pure data. `Tiles[y][x]` indexing convention (row-major). |
 | `world.go` | `World`, `NewWorld()`, `TileAt()`, `InBounds()`, `SetStructure()`, `IsAdjacentToStructure()`, `Regrow()` | 2D grid. `Regrow()` is probabilistic (1-in-40 per eligible Forest tile). |
 | `worldgen.go` | `GenerateWorld()`, `DefaultSeed` | Procedural terrain via cellular automata (5 iterations). Same seed → same map. Uses its own local `*rand.Rand`; does **not** share the game RNG. |

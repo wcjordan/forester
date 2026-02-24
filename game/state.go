@@ -13,6 +13,10 @@ type State struct {
 
 // AddOffer enqueues a card offer for the player to choose from.
 func (s *State) AddOffer(offer CardOffer) {
+	if len(offer) == 0 {
+		// Ignore empty offers so PendingOffers is always safe to render.
+		return
+	}
 	s.PendingOffers = append(s.PendingOffers, offer)
 }
 
@@ -29,8 +33,8 @@ func (s *State) SelectCard(idx int) {
 	offer := s.PendingOffers[0]
 	if idx >= 0 && idx < len(offer) {
 		offer[idx].Apply(s.Player)
+		s.PendingOffers = s.PendingOffers[1:]
 	}
-	s.PendingOffers = s.PendingOffers[1:]
 }
 
 // Harvest harvests adjacent trees without moving the player.
