@@ -120,8 +120,8 @@ const harvestPerStep = 1
 // HarvestTickInterval is how often the player automatically harvests without moving.
 const HarvestTickInterval = 100 * time.Millisecond
 
-// HarvestAdjacent harvests wood from the three Forest tiles in front of the player:
-// straight ahead and the two forward diagonals.
+// HarvestAdjacent harvests wood from the tile under the player and the three Forest tiles
+// in front of the player: straight ahead and the two forward diagonals.
 // Each tile loses harvestPerStep wood; when TreeSize reaches 0 it stays Forest (cut tree).
 // The harvested wood is added to the player's inventory.
 func (p *Player) HarvestAdjacent(w *World) {
@@ -129,8 +129,9 @@ func (p *Player) HarvestAdjacent(w *World) {
 		return
 	}
 	dx, dy := p.FacingDX, p.FacingDY
-	// Three tiles in the forward arc: straight, diagonal-left, diagonal-right.
-	targets := [3][2]int{
+	// Four tiles: under the player, straight ahead, diagonal-left, diagonal-right.
+	targets := [4][2]int{
+		{p.X, p.Y},
 		{p.X + dx, p.Y + dy},
 		{p.X + dx - dy, p.Y + dy + dx},
 		{p.X + dx + dy, p.Y + dy - dx},
