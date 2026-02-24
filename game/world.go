@@ -25,7 +25,8 @@ type World struct {
 	StructureIndex     map[Point]StructureEntry
 	StructureTypeIndex map[StructureType]map[Point]struct{}
 	// NoGrowTiles is the set of tiles suppressed from tree regrowth because
-	// they are within noGrowRadius of a structure. Updated by SetStructure.
+	// they are within noGrowRadius of the spawn point or any structure.
+	// Populated by NewWorld (spawn zone) and SetStructure (structure zones).
 	NoGrowTiles map[Point]struct{}
 }
 
@@ -39,7 +40,7 @@ func NewWorld(width, height int) *World {
 		}
 	}
 
-	return &World{
+	w := &World{
 		Width:              width,
 		Height:             height,
 		Tiles:              tiles,
@@ -47,6 +48,8 @@ func NewWorld(width, height int) *World {
 		StructureTypeIndex: make(map[StructureType]map[Point]struct{}),
 		NoGrowTiles:        make(map[Point]struct{}),
 	}
+	w.markNoGrowZone(width/2, height/2)
+	return w
 }
 
 // InBounds returns true if the given coordinates are within the world.
@@ -74,22 +77,14 @@ func (w *World) markNoGrowZone(cx, cy int) {
 
 // Regrow advances tree regrowth probabilistically.
 // Each eligible Forest tile (including TreeSize=0 cut trees) has a 1/RegrowthOdds chance to grow,
-// unless it is within Euclidean distance noGrowRadius of the spawn point or any structure tile.
-// Structure proximity is checked via the precomputed NoGrowTiles set.
+// unless it is in the precomputed NoGrowTiles set (within noGrowRadius of the spawn point or any structure tile).
 func (w *World) Regrow(rng *rand.Rand) {
-	cx, cy := w.Width/2, w.Height/2
 	for y := range w.Tiles {
 		for x := range w.Tiles[y] {
 			tile := &w.Tiles[y][x]
 			if tile.Terrain != Forest || tile.TreeSize >= maxTreeSize {
 				continue
 			}
-			// Suppress growth near the spawn point.
-			dx, dy := x-cx, y-cy
-			if dx*dx+dy*dy <= noGrowRadius*noGrowRadius {
-				continue
-			}
-			// Suppress growth near any structure tile (precomputed set).
 			if _, blocked := w.NoGrowTiles[Point{x, y}]; blocked {
 				continue
 			}

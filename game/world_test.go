@@ -190,9 +190,10 @@ func TestSetStructure(t *testing.T) {
 
 	t.Run("NoStructure stamp does not add to NoGrowTiles", func(t *testing.T) {
 		w := NewWorld(30, 30)
-		w.SetStructure(15, 15, 1, 1, NoStructure)
-		if len(w.NoGrowTiles) != 0 {
-			t.Errorf("NoGrowTiles should be empty after NoStructure stamp, got %d entries", len(w.NoGrowTiles))
+		before := len(w.NoGrowTiles)
+		w.SetStructure(1, 1, 1, 1, NoStructure) // outside spawn zone
+		if len(w.NoGrowTiles) != before {
+			t.Errorf("NoGrowTiles grew by %d entries after NoStructure stamp, want 0", len(w.NoGrowTiles)-before)
 		}
 	})
 }
