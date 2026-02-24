@@ -21,7 +21,7 @@ var frameDelay = func() time.Duration {
 			return d
 		}
 	}
-	return 120 * time.Millisecond
+	return 50 * time.Millisecond
 }()
 
 // renderFrame clears the terminal, prints an optional label, then renders the
