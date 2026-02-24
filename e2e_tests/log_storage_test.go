@@ -73,7 +73,8 @@ func moveDir(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) {
 //  2. Tick until enough wood is cut and player has full inventory (20 wood).
 //  3. Verify foundation blocks southward movement from (48,45).
 //  4. Tick until the foundation completes via resource deposits (20 wood × 500ms each).
-//  5. Verify player position, LogStorage tile renders as 'L', and built storage registered.
+//  5. Move north to (48,44) to restock wood from y=43 trees, return south, deposit.
+//  6. Verify player position, LogStorage tile renders as 'L', and built storage registered.
 //
 // World layout facts for seed 42 with circular clearing radius 5:
 //   - Harvest arc from (48,45) facing north: (48,44), (47,44), (49,44) — all Forest.
@@ -153,12 +154,28 @@ func TestLogStorageWorkflow(t *testing.T) {
 		t.Fatalf("phase 4: expected LogStorage at (49,48), got %v", lsTile)
 	}
 
-	// ── Phase 5: Deposit leftover wood into the built log storage ────────────
+	// ── Phase 5: Restock wood and deposit into the built log storage ─────────
 	// Phase 4 leaves player.Wood == 1 (a harvest tick re-stocked 1 wood mid-build).
-	// Player is at (48,45), already adjacent to LogStorage at (48,46).
-	// Wait for the Deposit cooldown from Phase 4 to expire (~500ms = 5 ticks),
-	// then the auto-deposit fires.
-	announcePhase(m, "Phase 5: Deposit remaining wood into built log storage")
+	// Move north to (48,44) to face north and harvest more from trees at y=43
+	// (sizes 9, 4, 4 — untouched by Phase 2). At least 2 ticks are required
+	// before the return move: (48,44) is a cut tree (150ms cooldown) so a single
+	// tick isn't enough to let the "w" move cooldown (300ms) expire.
+	// Return south to (48,45), adjacent to LogStorage, then wait for deposit.
+	announcePhase(m, "Phase 5: Restock wood and deposit into built log storage")
+	moveDir(&m, clock, g, "w") // Move to (48,44), face north
+	const maxRestockTicks = 20
+	for i := range maxRestockTicks {
+		tick(&m, clock)
+		// Require at least 2 ticks so the move cooldown from the "w" step
+		// (Forest 300ms) expires before moveDir("s") advances only 150ms.
+		if i >= 1 && g.State.Player.Wood > 0 {
+			break
+		}
+		if i == maxRestockTicks-1 {
+			t.Fatal("phase 5: could not harvest wood for storage deposit")
+		}
+	}
+	moveDir(&m, clock, g, "s") // Return to (48,45), adjacent to LogStorage
 	storedBefore := g.Stores.Total(game.Wood)
 	const maxDepositTicks = 30
 	for i := range maxDepositTicks {
