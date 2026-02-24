@@ -17,6 +17,7 @@ type Player struct {
 	X, Y               int
 	FacingDX, FacingDY int
 	Wood               int
+	MaxCarry           int
 	Cooldowns          map[CooldownType]time.Time
 	pendingCooldowns   map[CooldownType]time.Time
 }
@@ -25,6 +26,7 @@ type Player struct {
 func NewPlayer(x, y int) *Player {
 	return &Player{
 		X: x, Y: y, FacingDX: 0, FacingDY: -1,
+		MaxCarry:         InitialCarryingCapacity,
 		Cooldowns:        make(map[CooldownType]time.Time),
 		pendingCooldowns: make(map[CooldownType]time.Time),
 	}
@@ -111,8 +113,8 @@ func MoveCooldownFor(tile *Tile) time.Duration {
 	return DefaultMoveCooldown
 }
 
-// MaxWood is the maximum amount of wood the player can carry.
-const MaxWood = 20
+// InitialCarryingCapacity is the carrying capacity a new player starts with.
+const InitialCarryingCapacity = 20
 
 // harvestPerStep is how much wood is taken from each adjacent Forest tile per turn.
 const harvestPerStep = 1
@@ -125,7 +127,7 @@ const HarvestTickInterval = 100 * time.Millisecond
 // Each tile loses harvestPerStep wood; when TreeSize reaches 0 it stays Forest (cut tree).
 // The harvested wood is added to the player's inventory.
 func (p *Player) HarvestAdjacent(w *World) {
-	if p.Wood >= MaxWood {
+	if p.Wood >= p.MaxCarry {
 		return
 	}
 	dx, dy := p.FacingDX, p.FacingDY
@@ -141,7 +143,7 @@ func (p *Player) HarvestAdjacent(w *World) {
 		if tile == nil || tile.Terrain != Forest {
 			continue
 		}
-		canTake := min(harvestPerStep, MaxWood-p.Wood)
+		canTake := min(harvestPerStep, p.MaxCarry-p.Wood)
 		harvest := min(canTake, tile.TreeSize)
 		tile.TreeSize -= harvest
 		p.Wood += harvest

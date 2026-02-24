@@ -43,8 +43,11 @@ func (g *Game) env() *Env {
 }
 
 // Tick advances the game: harvests trees, handles adjacent-structure interactions,
-// and fires probabilistic regrowth.
+// and fires probabilistic regrowth. Returns early when a card offer is pending.
 func (g *Game) Tick() {
+	if g.State.HasPendingOffer() {
+		return
+	}
 	now := g.clock.Now()
 	env := g.env()
 	g.State.Harvest(env)

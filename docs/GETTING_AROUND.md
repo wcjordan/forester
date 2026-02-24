@@ -24,9 +24,9 @@ A navigation guide covering file layout, responsibilities, and the libraries use
 
 | File | Key types / funcs | Notes |
 |---|---|---|
-| `game.go` | `Game`, `New()`, `NewWithClock()`, `NewWithClockAndRNG()`, `Tick()` | Top-level orchestrator. `Tick()` runs one logical frame: harvest → advance build → deposit → maybe regrow. |
-| `state.go` | `State` (owns `Player` + `World`), `Move()`, `Harvest()`, `AdvanceBuild()` | Coordinates all subsystems. Ghost spawning and build completion live here. |
-| `player.go` | `Player`, `MovePlayer()`, `HarvestAdjacent()`, `TryDeposit()` | Harvests the three-tile forward arc. Carries wood up to `MaxWood=20`. Move cooldowns are terrain-dependent. |
+| `game.go` | `Game`, `New()`, `NewWithClock()`, `NewWithClockAndRNG()`, `Tick()` | Top-level orchestrator. `Tick()` runs one logical frame: harvest → adjacent-structure interactions → maybe regrow. |
+| `state.go` | `State` (owns `Player` + `World`) | Coordinates all subsystems. Ghost spawning and build completion live here. |
+| `player.go` | `Player`, `HarvestAdjacent()` | Harvests the three-tile forward arc. Carry capacity is dynamic via `Player.MaxCarry`. Move cooldowns are terrain-dependent. |
 | `tile.go` | `Tile`, `TerrainType` (`Grassland`, `Forest`), `StructureType` (`NoStructure`, `GhostLogStorage`, `LogStorage`) | Pure data. `Tiles[y][x]` indexing convention (row-major). |
 | `world.go` | `World`, `NewWorld()`, `TileAt()`, `InBounds()`, `SetStructure()`, `IsAdjacentToStructure()`, `Regrow()` | 2D grid. `Regrow()` is probabilistic (1-in-40 per eligible Forest tile). |
 | `worldgen.go` | `GenerateWorld()`, `DefaultSeed` | Procedural terrain via cellular automata (5 iterations). Same seed → same map. Uses its own local `*rand.Rand`; does **not** share the game RNG. |
@@ -35,14 +35,17 @@ A navigation guide covering file layout, responsibilities, and the libraries use
 
 | File | Key types / funcs | Notes |
 |---|---|---|
-| `structure.go` | `StructureDef` interface, `structures []StructureDef`, `BuildOperation` | `StructureDef` is the extension point for new structures. Each type registers itself via `init()`. |
-| `log_storage.go` | `logStorageDef{}` | Implements `StructureDef`. Spawns at 10 wood cut; 4×4 footprint; 30-tick build; deposits 1 wood/tick when player is adjacent. Registers itself with `init()`. |
+| `structure.go` | `StructureDef` interface, `StructureEntry`, `structures []StructureDef` | `StructureDef` is the extension point for new structures. Each type registers itself via `init()`. |
+| `log_storage.go` | `logStorageDef{}` | Implements `StructureDef`. Spawns when player is full (≥20 wood). 4×4 footprint. Costs 20 wood to build (deposited while adjacent). Deposits 1 wood/tick into storage when built and player is adjacent. Registers via `init()`. |
+| `progression.go` | `maybeSpawnFoundation()`, `findValidLocation()`, `isValidArea()` | Foundation spawn logic: checks each `StructureDef.ShouldSpawn()`, finds valid grassland area walking toward world center, places the foundation. |
+| `env.go` | `Env` | Runtime context (State + Stores) passed to all `StructureDef` methods. Separates serializable state from derived runtime state. |
 
 **Resources**
 
 | File | Key types / funcs | Notes |
 |---|---|---|
-| `storage.go` | `ResourceType`, `StorageInstance`, `ResourceStorage` | Aggregates multiple storage instances per resource. `Deposit()` fills the first non-full instance. |
+| `storage.go` | `ResourceType`, `StorageDef`, `StorageInstance`, `ResourceStorage` | `StorageDef` extends `StructureDef` for structures that hold resources. `StorageInstance` tracks one structure's fill level. `ResourceStorage` aggregates all instances for a resource type. |
+| `storage_manager.go` | `StorageManager`, `StorageState` | Runtime owner of all storage amounts. `Register()` called on `OnBuilt`; `DepositAt()` used by adjacent-interaction handlers. `SaveData()`/`LoadFrom()` support serialization. |
 
 **Testability infrastructure**
 
@@ -68,7 +71,7 @@ A navigation guide covering file layout, responsibilities, and the libraries use
 | `t` | Mid-size tree, TreeSize 4–6 (green) |
 | `,` | Sapling, TreeSize 1–3 (green) |
 | `%` | Cut tree / stump, TreeSize 0 (dark gray) |
-| `?` | Ghost structure footprint (yellow) |
+| `?` | Foundation footprint — deposit wood while adjacent to build (yellow) |
 | `L` | Built Log Storage (bold yellow) |
 | `.` | Grassland |
 

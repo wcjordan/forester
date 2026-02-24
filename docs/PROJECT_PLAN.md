@@ -116,50 +116,64 @@ T = Tree
 - `render/terminal.go` - Terminal UI rendering
 - `util/math.go` - Distance calculations, etc.
 
-### Phase 2: Structures & Progression
+### Phase 2: Structures & Progression ✅ PARTIALLY COMPLETE
 **Goal**: Add carry capacity, organic structure growth, and a basic village progression loop
 
 #### Design Decisions
 - **Village center**: Player spawn point. Houses and depot appear near here.
-- **Ghost structures**: When conditions are met, a ghost/indicator tile appears on the map. Walking into it builds the structure.
-- **Carry capacity**: Player carries max 20 wood. Cutting stops when full. Auto-deposit when touching log storage.
+- **Foundation structures**: When conditions are met, a foundation tile appears on the map. Player deposits wood while adjacent to construct it. (Original design was "walk into ghost to build"; implementation uses adjacent deposit instead.)
+- **Carry capacity**: Player carries max 20 wood. Cutting stops when full. Auto-deposit when adjacent to log storage.
 
 #### Structure Progression
-1. **Log Storage (4×4)** — Ghost appears when 10 wood has been cut in the same area. Auto-deposits wood on contact.
+1. **Log Storage (4×4)** ✅ — Foundation appears when player inventory is full (≥20 wood). Deposit 20 wood while adjacent to build it. Auto-deposits wood when player is adjacent to built storage.
 2. **House** — Available when 50 wood has been deposited into the log storage. Visual milestone; hooks into future villager spawning.
 3. **Resource Depot** — Available when 4 houses have been built. Details TBD.
 
 #### Features
-- [ ] Carry capacity (max 20 wood; cutting stops when full)
-- [ ] Status bar shows `Wood: 14/20`
-- [ ] Area activity tracking (track wood cut per zone for structure triggers)
-- [ ] Ghost structure indicator on map when conditions met
-- [ ] Structure placement: walk into ghost to build
-- [ ] Log Storage (4×4): triggered by 10 wood cut in area; auto-deposits on contact
+- [x] Carry capacity (max 20 wood; cutting stops when full)
+- [x] Status bar shows `Wood: 14/20`
+- [x] Foundation structure indicator on map when conditions met (trigger: player inventory full)
+- [x] Structure construction: deposit wood while adjacent to foundation to build
+- [x] Build progress bar shown in status bar while adjacent to foundation
+- [x] Log Storage (4×4): auto-deposits wood when adjacent; capacity 500 wood
+- [x] Structure registry pattern (`StructureDef` interface + `init()` registration)
+- [x] Resource storage system (`StorageManager`, `StorageInstance`, `ResourceStorage`)
+- [x] Tree no-grow zones (trees don't regrow under/near structures)
+- [x] Circular clearing around spawn point
 - [ ] House: triggered by 50 wood deposited in log storage; visual only for now
 - [ ] Resource Depot: triggered by 4 houses built; details TBD
 - [ ] Road formation (grassland → trodden → road) — deferred, post-structures
-- [ ] XP / card upgrade system — deferred, post-structures
+- [ ] XP / card upgrade system — deferred, see Phase 3
 
 #### ASCII Representation (Phase 2)
 ```
 @ = Player
 T = Tree
 . = Grassland
-? = Ghost structure (available, not yet built)
+? = Foundation (deposit wood while adjacent to build)
 L = Log Storage
 H = House
 D = Resource Depot
 ```
 
 #### Technical Components
-- `game/structure.go` - Structure types, placement, and conditions
-- `game/inventory.go` - Player carry capacity and deposit logic
+- `game/structure.go` — `StructureDef` interface + structure registry (`structures` slice)
+- `game/log_storage.go` — `logStorageDef` implementation, registered via `init()`
+- `game/storage.go` — `ResourceType`, `StorageInstance`, `ResourceStorage`, `StorageDef` sub-interface
+- `game/storage_manager.go` — `StorageManager` (runtime storage state), `StorageState` (serializable)
+- `game/env.go` — `Env` (runtime context passed to StructureDef methods)
+- `game/progression.go` — `maybeSpawnFoundation`, `findValidLocation`, `isValidArea`
+- Player carry capacity and harvest stop logic live in `game/player.go`
 
-### Phase 3: Villagers & Automation
-**Goal**: Add villagers, following, and foreman system
+### Phase 3: XP & Upgrades → Villagers & Automation
+**Goal**: Add XP tracking, card-based upgrade system, then villagers and foreman
 
 #### Features
+- [ ] XP tracking (earned from harvesting wood)
+- [ ] XP level-up thresholds and card selection screen
+- [ ] Upgrade cards: player abilities (move faster, cut faster, carry more)
+- [ ] Upgrade cards: village improvements (structures upgrade sooner)
+- [ ] Unlock cards: new mechanics (villagers cut trees, new resource types)
 - [ ] Villager entities
 - [ ] Population growth system (tied to village milestones)
 - [ ] Villager spawning
@@ -296,13 +310,13 @@ type Tile struct {
 - Map generates with varied forest patches
 
 ### Phase 2 Complete When:
-- Player has a carry capacity (20 wood) and status bar reflects it
-- Cutting stops when player is full
-- Log storage ghost appears after cutting 10 wood in an area
-- Walking into ghost builds the log storage
-- Wood auto-deposits when player contacts log storage
-- House ghost appears after 50 wood deposited; builds on contact
-- Resource depot ghost appears after 4 houses built
+- ✅ Player has a carry capacity (20 wood) and status bar reflects it
+- ✅ Cutting stops when player is full
+- ✅ Log storage foundation appears when player is full
+- ✅ Depositing wood while adjacent builds the log storage (20 wood cost)
+- ✅ Wood auto-deposits when player is adjacent to built log storage
+- [ ] House foundation appears after 50 wood deposited; builds on contact
+- [ ] Resource depot foundation appears after 4 houses built
 
 ### Phase 3 Complete When:
 - Villagers spawn and follow player
@@ -333,4 +347,4 @@ These will be determined through playtesting and iteration.
 
 ---
 
-**Next Steps**: Begin Phase 2 — carry capacity, ghost structures, and the log storage → house → resource depot progression chain.
+**Next Steps**: Begin Phase 3 — XP tracking and card-based upgrade system, then house/depot structures to complete Phase 2's progression chain.

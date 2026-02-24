@@ -205,14 +205,14 @@ func TestMovePlayerStructureBlocking(t *testing.T) {
 }
 
 func TestHarvestCapacity(t *testing.T) {
-	t.Run("harvest stops at MaxWood", func(t *testing.T) {
+	t.Run("harvest stops at InitialCarryingCapacity", func(t *testing.T) {
 		w := NewWorld(5, 5)
 		w.Tiles[1][2] = Tile{Terrain: Forest, TreeSize: 10}
 		p := NewPlayer(2, 2)
-		p.Wood = MaxWood
+		p.Wood = InitialCarryingCapacity
 		p.HarvestAdjacent(w)
-		if p.Wood != MaxWood {
-			t.Errorf("Wood = %d, want %d (should not exceed MaxWood)", p.Wood, MaxWood)
+		if p.Wood != InitialCarryingCapacity {
+			t.Errorf("Wood = %d, want %d (should not exceed InitialCarryingCapacity)", p.Wood, InitialCarryingCapacity)
 		}
 		if w.Tiles[1][2].TreeSize != 10 {
 			t.Errorf("TreeSize = %d, want 10 (should not harvest when full)", w.Tiles[1][2].TreeSize)
@@ -223,10 +223,10 @@ func TestHarvestCapacity(t *testing.T) {
 		w := NewWorld(5, 5)
 		w.Tiles[1][2] = Tile{Terrain: Forest, TreeSize: 10}
 		p := NewPlayer(2, 2)
-		p.Wood = MaxWood - 1
+		p.Wood = InitialCarryingCapacity - 1
 		p.HarvestAdjacent(w)
-		if p.Wood != MaxWood {
-			t.Errorf("Wood = %d, want %d (should fill to exactly MaxWood)", p.Wood, MaxWood)
+		if p.Wood != InitialCarryingCapacity {
+			t.Errorf("Wood = %d, want %d (should fill to exactly InitialCarryingCapacity)", p.Wood, InitialCarryingCapacity)
 		}
 	})
 }
