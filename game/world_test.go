@@ -59,14 +59,16 @@ func TestInBounds(t *testing.T) {
 }
 
 func TestRegrow(t *testing.T) {
+	// Use a 20×20 world and place Forest tiles at (0,0), which is ~14 tiles
+	// from the spawn center (10,10) — well outside the no-grow radius of 8.
 	t.Run("cut tree eventually grows", func(t *testing.T) {
 		rng := rand.New(rand.NewSource(0))
-		w := NewWorld(3, 3)
-		w.Tiles[1][1] = Tile{Terrain: Forest, TreeSize: 0}
+		w := NewWorld(20, 20)
+		w.Tiles[0][0] = Tile{Terrain: Forest, TreeSize: 0}
 		grew := false
 		for i := 0; i < 1000; i++ {
 			w.Regrow(rng)
-			if w.Tiles[1][1].TreeSize > 0 {
+			if w.Tiles[0][0].TreeSize > 0 {
 				grew = true
 				break
 			}
@@ -78,12 +80,12 @@ func TestRegrow(t *testing.T) {
 
 	t.Run("forest eventually grows toward maxTreeSize", func(t *testing.T) {
 		rng := rand.New(rand.NewSource(0))
-		w := NewWorld(3, 3)
-		w.Tiles[1][1] = Tile{Terrain: Forest, TreeSize: 5}
+		w := NewWorld(20, 20)
+		w.Tiles[0][0] = Tile{Terrain: Forest, TreeSize: 5}
 		grew := false
 		for i := 0; i < 1000; i++ {
 			w.Regrow(rng)
-			if w.Tiles[1][1].TreeSize > 5 {
+			if w.Tiles[0][0].TreeSize > 5 {
 				grew = true
 				break
 			}
@@ -95,26 +97,55 @@ func TestRegrow(t *testing.T) {
 
 	t.Run("forest at maxTreeSize does not grow further", func(t *testing.T) {
 		rng := rand.New(rand.NewSource(0))
-		w := NewWorld(3, 3)
-		w.Tiles[1][1] = Tile{Terrain: Forest, TreeSize: maxTreeSize}
+		w := NewWorld(20, 20)
+		w.Tiles[0][0] = Tile{Terrain: Forest, TreeSize: maxTreeSize}
 		for i := 0; i < 1000; i++ {
 			w.Regrow(rng)
 		}
-		if w.Tiles[1][1].TreeSize != maxTreeSize {
-			t.Errorf("TreeSize = %d, want %d", w.Tiles[1][1].TreeSize, maxTreeSize)
+		if w.Tiles[0][0].TreeSize != maxTreeSize {
+			t.Errorf("TreeSize = %d, want %d", w.Tiles[0][0].TreeSize, maxTreeSize)
 		}
 	})
 
 	t.Run("grassland is unaffected", func(t *testing.T) {
 		rng := rand.New(rand.NewSource(0))
-		w := NewWorld(3, 3)
-		w.Tiles[1][1] = Tile{Terrain: Grassland}
+		w := NewWorld(20, 20)
+		w.Tiles[0][0] = Tile{Terrain: Grassland}
 		for i := 0; i < 1000; i++ {
 			w.Regrow(rng)
 		}
-		tile := w.Tiles[1][1]
+		tile := w.Tiles[0][0]
 		if tile.Terrain != Grassland {
 			t.Errorf("Terrain = %v, want Grassland", tile.Terrain)
+		}
+	})
+
+	t.Run("forest within spawn no-grow zone does not grow", func(t *testing.T) {
+		rng := rand.New(rand.NewSource(0))
+		// 20×20 world: spawn = (10,10). Tile at (10,10) is distance 0 ≤ 8.
+		w := NewWorld(20, 20)
+		w.Tiles[10][10] = Tile{Terrain: Forest, TreeSize: 0}
+		for i := 0; i < 1000; i++ {
+			w.Regrow(rng)
+		}
+		if w.Tiles[10][10].TreeSize != 0 {
+			t.Errorf("TreeSize = %d, want 0 (inside spawn no-grow zone)", w.Tiles[10][10].TreeSize)
+		}
+	})
+
+	t.Run("forest within building no-grow zone does not grow", func(t *testing.T) {
+		rng := rand.New(rand.NewSource(0))
+		// 40×40 world: spawn = (20,20). Place a structure at (5,5) and a Forest
+		// tile at (5,10) — distance 5 ≤ 8 from the structure, and distance
+		// sqrt(225+100)=~18 from spawn (safely outside the spawn zone).
+		w := NewWorld(40, 40)
+		w.SetStructure(5, 5, 1, 1, LogStorage)
+		w.Tiles[10][5] = Tile{Terrain: Forest, TreeSize: 0}
+		for i := 0; i < 1000; i++ {
+			w.Regrow(rng)
+		}
+		if w.Tiles[10][5].TreeSize != 0 {
+			t.Errorf("TreeSize = %d, want 0 (inside building no-grow zone)", w.Tiles[10][5].TreeSize)
 		}
 	})
 }
@@ -141,6 +172,29 @@ func TestSetStructure(t *testing.T) {
 		w := NewWorld(5, 5)
 		// Should not panic even if rect extends outside world.
 		w.SetStructure(3, 3, 4, 4, FoundationLogStorage)
+	})
+
+	t.Run("populates NoGrowTiles within noGrowRadius", func(t *testing.T) {
+		// 30×30 world. Place a 1×1 structure at (15,15).
+		// Tile at (15,20) is distance 5 ≤ 8: must be in NoGrowTiles.
+		// Tile at (15,24) is distance 9 > 8: must NOT be in NoGrowTiles.
+		w := NewWorld(30, 30)
+		w.SetStructure(15, 15, 1, 1, LogStorage)
+		if _, ok := w.NoGrowTiles[Point{15, 20}]; !ok {
+			t.Error("tile at distance 5 from structure should be in NoGrowTiles")
+		}
+		if _, ok := w.NoGrowTiles[Point{15, 24}]; ok {
+			t.Error("tile at distance 9 from structure should not be in NoGrowTiles")
+		}
+	})
+
+	t.Run("NoStructure stamp does not add to NoGrowTiles", func(t *testing.T) {
+		w := NewWorld(30, 30)
+		before := len(w.NoGrowTiles)
+		w.SetStructure(1, 1, 1, 1, NoStructure) // outside spawn zone
+		if len(w.NoGrowTiles) != before {
+			t.Errorf("NoGrowTiles grew by %d entries after NoStructure stamp, want 0", len(w.NoGrowTiles)-before)
+		}
 	})
 }
 
