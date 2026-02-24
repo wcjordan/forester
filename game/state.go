@@ -8,33 +8,50 @@ type State struct {
 	Player              *Player
 	World               *World
 	FoundationDeposited map[Point]int
-	PendingOffers       []CardOffer
+	// PendingOfferIDs stores each queued offer as a slice of upgrade IDs (strings),
+	// keeping State serializable without embedding interface values.
+	PendingOfferIDs [][]string
 }
 
-// AddOffer enqueues a card offer for the player to choose from.
-func (s *State) AddOffer(offer CardOffer) {
-	if len(offer) == 0 {
-		// Ignore empty offers so PendingOffers is always safe to render.
+// AddOffer enqueues a card offer by its upgrade IDs.
+func (s *State) AddOffer(ids []string) {
+	if len(ids) == 0 {
 		return
 	}
-	s.PendingOffers = append(s.PendingOffers, offer)
+	s.PendingOfferIDs = append(s.PendingOfferIDs, ids)
 }
 
 // HasPendingOffer reports whether there is at least one offer waiting.
 func (s *State) HasPendingOffer() bool {
-	return len(s.PendingOffers) > 0
+	return len(s.PendingOfferIDs) > 0
+}
+
+// CurrentOffer resolves the front offer's IDs to UpgradeDef values.
+// Returns nil when there is no pending offer or no IDs resolve.
+func (s *State) CurrentOffer() []UpgradeDef {
+	if len(s.PendingOfferIDs) == 0 {
+		return nil
+	}
+	ids := s.PendingOfferIDs[0]
+	result := make([]UpgradeDef, 0, len(ids))
+	for _, id := range ids {
+		if u, ok := upgradeRegistry[id]; ok {
+			result = append(result, u)
+		}
+	}
+	return result
 }
 
 // SelectCard applies the card at idx from the front offer and pops it from the queue.
 func (s *State) SelectCard(idx int) {
-	if len(s.PendingOffers) == 0 {
+	offer := s.CurrentOffer()
+	if len(offer) == 0 {
 		return
 	}
-	offer := s.PendingOffers[0]
 	if idx >= 0 && idx < len(offer) {
 		offer[idx].Apply(s.Player)
-		s.PendingOffers = s.PendingOffers[1:]
 	}
+	s.PendingOfferIDs = s.PendingOfferIDs[1:]
 }
 
 // Harvest harvests adjacent trees without moving the player.

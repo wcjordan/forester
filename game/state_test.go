@@ -354,7 +354,7 @@ func TestAddOfferAndSelectCard(t *testing.T) {
 		t.Fatal("should have no pending offer initially")
 	}
 
-	s.AddOffer(CardOffer{carryCapacityUpgrade{}})
+	s.AddOffer([]string{"carry_capacity"})
 
 	if !s.HasPendingOffer() {
 		t.Fatal("should have pending offer after AddOffer")

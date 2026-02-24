@@ -1,5 +1,7 @@
 package game
 
+func init() { upgradeRegistry["carry_capacity"] = carryCapacityUpgrade{} }
+
 type carryCapacityUpgrade struct{}
 
 // ID returns the unique identifier for this upgrade.

@@ -8,5 +8,6 @@ type UpgradeDef interface {
 	Apply(p *Player)
 }
 
-// CardOffer is a set of upgrade choices presented at once; the player picks one.
-type CardOffer []UpgradeDef
+// upgradeRegistry maps stable upgrade IDs to their runtime definitions.
+// Each upgrade file self-registers via init().
+var upgradeRegistry = map[string]UpgradeDef{}
