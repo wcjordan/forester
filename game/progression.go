@@ -29,7 +29,7 @@ func (s *State) maybeSpawnFoundation(env *Env) {
 		if sa, ok := def.(SpawnAnchoredPlacer); ok && sa.UseSpawnAnchoredPlacement() {
 			cx, cy = s.findValidLocationNearSpawn(w, h)
 		} else {
-			cx, cy = s.findValidLocation(w, h)
+			cx, cy = s.findValidLocationNearPlayer(w, h)
 		}
 		if cx >= 0 {
 			s.World.SetStructure(cx, cy, w, h, def.FoundationType())
@@ -38,10 +38,10 @@ func (s *State) maybeSpawnFoundation(env *Env) {
 	}
 }
 
-// findValidLocation walks from the player position toward the world center,
+// findValidLocationNearPlayer walks from the player position toward the world center,
 // returning the top-left corner of the first valid area of the given dimensions.
 // Returns (-1, -1) if no valid location is found.
-func (s *State) findValidLocation(w, h int) (x, y int) {
+func (s *State) findValidLocationNearPlayer(w, h int) (x, y int) {
 	px, py := s.Player.X, s.Player.Y
 	spawnX := s.World.Width / 2
 	spawnY := s.World.Height / 2
