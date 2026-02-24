@@ -27,6 +27,7 @@ var (
 	stumpStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))            // dark gray
 	foundationStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))            // yellow (dim)
 	logStorageStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Bold(true) // bold yellow
+	houseStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true) // bold magenta
 )
 
 // Model is the bubbletea model for the game. It owns viewport dimensions
@@ -134,11 +135,14 @@ func (m Model) View() string {
 
 			// Structure overlays take priority over terrain.
 			switch tile.Structure {
-			case game.FoundationLogStorage:
+			case game.FoundationLogStorage, game.FoundationHouse:
 				sb.WriteString(foundationStyle.Render("?"))
 				continue
 			case game.LogStorage:
 				sb.WriteString(logStorageStyle.Render("L"))
+				continue
+			case game.House:
+				sb.WriteString(houseStyle.Render("H"))
 				continue
 			}
 
@@ -166,10 +170,8 @@ func (m Model) View() string {
 	// Status bar.
 	status := fmt.Sprintf(" Player: (%d, %d)  Wood: %d/%d",
 		player.X, player.Y, player.Wood, player.MaxCarry)
-	for _, deposited := range m.game.State.FoundationDeposited {
-		progress := float64(deposited) / float64(game.LogStorageBuildCost)
+	if progress, ok := m.game.State.FoundationProgress(); ok {
 		status += "  " + buildProgressBar(progress)
-		break // show at most one foundation progress bar
 	}
 	sb.WriteByte('\n')
 	sb.WriteString(status)
