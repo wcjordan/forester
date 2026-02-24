@@ -79,6 +79,23 @@ func (s *State) TickAdjacentStructures(env *Env, now time.Time) {
 	s.Player.commitCooldowns()
 }
 
+// FoundationProgress returns the build progress (0.0–1.0) of the first active foundation,
+// and whether any foundation is in progress. Uses StructureIndex to look up BuildCost.
+func (s *State) FoundationProgress() (float64, bool) {
+	for origin, deposited := range s.FoundationDeposited {
+		entry, ok := s.World.StructureIndex[origin]
+		if !ok {
+			continue
+		}
+		cost := entry.Def.BuildCost()
+		if cost == 0 {
+			continue
+		}
+		return float64(deposited) / float64(cost), true
+	}
+	return 0, false
+}
+
 // newState creates an initial game state with defaults.
 func newState() *State {
 	world := GenerateWorld(100, 100, DefaultSeed)

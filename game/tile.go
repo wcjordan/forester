@@ -17,6 +17,8 @@ const (
 	NoStructure          StructureType = iota
 	FoundationLogStorage               // Log Storage foundation (blocks movement, accepts resource deposits)
 	LogStorage                         // built Log Storage (blocks movement)
+	FoundationHouse                    // House foundation (blocks movement, accepts resource deposits)
+	House                              // built House (blocks movement)
 )
 
 // Tile represents a single cell in the world grid.

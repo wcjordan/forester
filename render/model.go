@@ -27,6 +27,7 @@ var (
 	stumpStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))            // dark gray
 	foundationStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))            // yellow (dim)
 	logStorageStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Bold(true) // bold yellow
+	houseStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true) // bold magenta
 )
 
 // Model is the bubbletea model for the game. It owns viewport dimensions
@@ -72,8 +73,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if m.game.State.HasPendingOffer() {
-			if msg.String() == "1" || msg.String() == "enter" {
+			switch msg.String() {
+			case "1", "enter":
 				m.game.State.SelectCard(0)
+			case "2":
+				m.game.State.SelectCard(1)
 			}
 			return m, nil
 		}
@@ -134,11 +138,14 @@ func (m Model) View() string {
 
 			// Structure overlays take priority over terrain.
 			switch tile.Structure {
-			case game.FoundationLogStorage:
+			case game.FoundationLogStorage, game.FoundationHouse:
 				sb.WriteString(foundationStyle.Render("?"))
 				continue
 			case game.LogStorage:
 				sb.WriteString(logStorageStyle.Render("L"))
+				continue
+			case game.House:
+				sb.WriteString(houseStyle.Render("H"))
 				continue
 			}
 
@@ -166,10 +173,8 @@ func (m Model) View() string {
 	// Status bar.
 	status := fmt.Sprintf(" Player: (%d, %d)  Wood: %d/%d",
 		player.X, player.Y, player.Wood, player.MaxCarry)
-	for _, deposited := range m.game.State.FoundationDeposited {
-		progress := float64(deposited) / float64(game.LogStorageBuildCost)
+	if progress, ok := m.game.State.FoundationProgress(); ok {
 		status += "  " + buildProgressBar(progress)
-		break // show at most one foundation progress bar
 	}
 	sb.WriteByte('\n')
 	sb.WriteString(status)
@@ -183,7 +188,6 @@ func (m Model) renderCardScreen() string {
 	if len(offer) == 0 {
 		return ""
 	}
-	card := offer[0]
 
 	const (
 		outerWidth  = 44
@@ -215,22 +219,38 @@ func (m Model) renderCardScreen() string {
 	cardFill := strings.Repeat("─", cardContent)
 	emptyCard := "║  │" + strings.Repeat(" ", cardContent) + "│  ║"
 
+	// appendCardBox appends the inner card box lines (no outer border) for one card.
+	// keyHint is the key label shown in the accept line (e.g. "1" or "2").
+	appendCardBox := func(lines []string, card game.UpgradeDef, keyHint string) []string {
+		lines = append(lines, "║  ┌"+cardFill+"┐  ║")
+		lines = append(lines, "║  │  "+padRight(strings.ToUpper(card.Name()), cardContent-2)+"│  ║")
+		lines = append(lines, emptyCard)
+		for _, descLine := range strings.Split(card.Description(), "\n") {
+			lines = append(lines, "║  │  "+padRight(descLine, cardContent-2)+"│  ║")
+		}
+		lines = append(lines, emptyCard)
+		lines = append(lines, "║  │"+centerIn("[ "+keyHint+" ] Accept", cardContent)+"│  ║")
+		lines = append(lines, "║  └"+cardFill+"┘  ║")
+		return lines
+	}
+
 	var lines []string
 	lines = append(lines, "╔"+outerFill+"╗")
 	lines = append(lines, "║"+centerIn("MILESTONE", innerWidth)+"║")
 	lines = append(lines, "╠"+outerFill+"╣")
 	lines = append(lines, "║"+strings.Repeat(" ", innerWidth)+"║")
-	lines = append(lines, "║  ┌"+cardFill+"┐  ║")
-	lines = append(lines, "║  │  "+padRight(strings.ToUpper(card.Name()), cardContent-2)+"│  ║")
-	lines = append(lines, emptyCard)
-	for _, descLine := range strings.Split(card.Description(), "\n") {
-		lines = append(lines, "║  │  "+padRight(descLine, cardContent-2)+"│  ║")
+
+	if len(offer) >= 2 {
+		lines = appendCardBox(lines, offer[0], "1")
+		lines = append(lines, "║"+strings.Repeat(" ", innerWidth)+"║")
+		lines = appendCardBox(lines, offer[1], "2")
+		lines = append(lines, "║"+strings.Repeat(" ", innerWidth)+"║")
+		lines = append(lines, "║"+centerIn("Press 1 or 2 to choose an upgrade", innerWidth)+"║")
+	} else {
+		lines = appendCardBox(lines, offer[0], "1")
+		lines = append(lines, "║"+strings.Repeat(" ", innerWidth)+"║")
+		lines = append(lines, "║"+centerIn("Press 1 or ENTER to accept", innerWidth)+"║")
 	}
-	lines = append(lines, emptyCard)
-	lines = append(lines, "║  │"+centerIn("[ 1 ] Accept", cardContent)+"│  ║")
-	lines = append(lines, "║  └"+cardFill+"┘  ║")
-	lines = append(lines, "║"+strings.Repeat(" ", innerWidth)+"║")
-	lines = append(lines, "║"+centerIn("Press 1 or ENTER to accept", innerWidth)+"║")
 	lines = append(lines, "╚"+outerFill+"╝")
 
 	boxHeight := len(lines)
