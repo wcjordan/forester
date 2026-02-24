@@ -26,6 +26,7 @@ check: lint test
 format:
 	gofmt -s -w .
 
+TESTNAME := TestLogStorageWorkflow
 e2e_viz:
 	go clean -testcache
-	E2E_VISUAL=1 E2E_VISUAL_DELAY=150ms go test ./e2e_tests/ -run TestLogStorageWorkflow -v
+	E2E_VISUAL=1 E2E_VISUAL_DELAY=150ms go test ./e2e_tests/ -run $(TESTNAME) -v
