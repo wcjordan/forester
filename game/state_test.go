@@ -9,14 +9,14 @@ func TestFoundationSpawnsWhenInventoryFull(t *testing.T) {
 	// Build a world big enough that there's a clear path from player to center.
 	w := NewWorld(30, 30)
 	// Player at (5, 5) facing north; forest tile at (5, 4) with enough wood.
-	w.Tiles[4][5] = Tile{Terrain: Forest, TreeSize: MaxWood}
+	w.Tiles[4][5] = Tile{Terrain: Forest, TreeSize: MaxCarryingCapacity}
 	p := NewPlayer(5, 5)
 	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int)}
 	stores := NewStorageManager()
 	env := &Env{State: s, Stores: stores}
 
-	// Harvest MaxWood-1 times — foundation should not appear yet.
-	for range MaxWood - 1 {
+	// Harvest MaxCarryingCapacity-1 times — foundation should not appear yet.
+	for range MaxCarryingCapacity - 1 {
 		s.Harvest(env)
 	}
 	if s.HasStructureOfType(FoundationLogStorage) {
@@ -36,7 +36,7 @@ func TestFoundationDoesNotSpawnTwice(t *testing.T) {
 		w.Tiles[4][5+i] = Tile{Terrain: Forest, TreeSize: 1}
 	}
 	p := NewPlayer(5, 5)
-	p.Wood = MaxWood
+	p.Wood = MaxCarryingCapacity
 	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int)}
 	stores := NewStorageManager()
 	env := &Env{State: s, Stores: stores}
@@ -71,7 +71,7 @@ func TestFoundationDoesNotSpawnTwice(t *testing.T) {
 func TestFoundationLocationIsAllGrassland(t *testing.T) {
 	w := NewWorld(30, 30)
 	p := NewPlayer(5, 15)
-	p.Wood = MaxWood
+	p.Wood = MaxCarryingCapacity
 	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int)}
 	stores := NewStorageManager()
 	env := &Env{State: s, Stores: stores}
@@ -95,7 +95,7 @@ func TestFoundationLocationBetweenPlayerAndSpawn(t *testing.T) {
 	w := NewWorld(30, 30)
 	// Player at (2, 15); spawn at (15, 15).
 	p := NewPlayer(2, 15)
-	p.Wood = MaxWood
+	p.Wood = MaxCarryingCapacity
 	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int)}
 	stores := NewStorageManager()
 	env := &Env{State: s, Stores: stores}

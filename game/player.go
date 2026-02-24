@@ -26,7 +26,7 @@ type Player struct {
 func NewPlayer(x, y int) *Player {
 	return &Player{
 		X: x, Y: y, FacingDX: 0, FacingDY: -1,
-		MaxCarry:         MaxWood,
+		MaxCarry:         MaxCarryingCapacity,
 		Cooldowns:        make(map[CooldownType]time.Time),
 		pendingCooldowns: make(map[CooldownType]time.Time),
 	}
@@ -113,8 +113,8 @@ func MoveCooldownFor(tile *Tile) time.Duration {
 	return DefaultMoveCooldown
 }
 
-// MaxWood is the maximum amount of wood the player can carry.
-const MaxWood = 20
+// MaxCarryingCapacity is the maximum amount of wood the player can carry.
+const MaxCarryingCapacity = 20
 
 // harvestPerStep is how much wood is taken from each adjacent Forest tile per turn.
 const harvestPerStep = 1
