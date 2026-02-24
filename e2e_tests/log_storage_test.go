@@ -103,19 +103,20 @@ func TestLogStorageWorkflow(t *testing.T) {
 			g.State.Player.X, g.State.Player.Y)
 	}
 
-	// ── Phase 2: Harvest until foundation appears and player has full wood ────
+	// ── Phase 2: Harvest until foundation appears ────────────────────────────
 	// Forward arc faces north: (48,44) size=8, (47,44) size=10, (49,44) size=9.
 	// 3 wood/tick → player.Wood reaches MaxWood (20) after ~7 ticks; foundation spawns automatically.
 	// Foundation spawns at (48,46)–(51,49), all within clearing radius so guaranteed Grassland.
+	// With a fast deposit interval the foundation may complete before this loop ends; accept either.
 	announcePhase(m, "Phase 2: Harvest wood until foundation log storage appears")
 	const maxHarvestTicks = 30
 	for i := range maxHarvestTicks {
 		tick(&m, clock)
-		if g.State.HasStructureOfType(game.FoundationLogStorage) && g.State.Player.Wood >= game.LogStorageBuildCost {
+		if g.State.HasStructureOfType(game.FoundationLogStorage) || g.State.HasStructureOfType(game.LogStorage) {
 			break
 		}
 		if i == maxHarvestTicks-1 {
-			t.Fatal("phase 2: foundation did not appear or player did not accumulate enough wood")
+			t.Fatal("phase 2: foundation did not appear within expected ticks")
 		}
 	}
 
@@ -131,8 +132,8 @@ func TestLogStorageWorkflow(t *testing.T) {
 
 	// ── Phase 4: Deposit wood to complete the foundation ─────────────────────
 	// Player at (48,45) is adjacent to foundation. Each tick fires TickAdjacentStructures.
-	// Deposit cooldown is 500ms; one deposit every 5 ticks (at 100ms each).
-	// Foundation completes after LogStorageBuildCost (20) deposits.
+	// Deposit cooldown matches HarvestTickInterval (100ms); one deposit per tick.
+	// Foundation completes after LogStorageBuildCost (20) deposits; may already be done from phase 2.
 	announcePhase(m, "Phase 4: Build foundation via resource deposit")
 	const maxBuildTicks = 120
 	for i := range maxBuildTicks {
