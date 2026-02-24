@@ -183,6 +183,7 @@ func (m Model) View() string {
 }
 
 // renderCardScreen renders the milestone card selection overlay centered in the terminal.
+// When two cards are offered they are displayed side by side horizontally.
 func (m Model) renderCardScreen() string {
 	offer := m.game.State.CurrentOffer()
 	if len(offer) == 0 {
@@ -190,10 +191,12 @@ func (m Model) renderCardScreen() string {
 	}
 
 	const (
-		outerWidth  = 44
-		innerWidth  = 42 // chars between the two ║ borders
-		cardContent = 36 // chars between the two │ borders
+		cardContent = 32 // chars between the two │ borders
+		cardPad     = 2  // spaces between ║ border and card box
+		gap         = 4  // spaces between two side-by-side cards
 	)
+
+	cardBoxWidth := cardContent + 2 // includes the │ borders
 
 	// padRight pads s to exactly width rune-columns using trailing spaces.
 	padRight := func(s string, width int) string {
@@ -215,24 +218,55 @@ func (m Model) renderCardScreen() string {
 		return strings.Repeat(" ", left) + s + strings.Repeat(" ", right)
 	}
 
-	outerFill := strings.Repeat("═", innerWidth)
 	cardFill := strings.Repeat("─", cardContent)
-	emptyCard := "║  │" + strings.Repeat(" ", cardContent) + "│  ║"
+	emptyCard := "│" + strings.Repeat(" ", cardContent) + "│"
 
-	// appendCardBox appends the inner card box lines (no outer border) for one card.
-	// keyHint is the key label shown in the accept line (e.g. "1" or "2").
-	appendCardBox := func(lines []string, card game.UpgradeDef, keyHint string) []string {
-		lines = append(lines, "║  ┌"+cardFill+"┐  ║")
-		lines = append(lines, "║  │  "+padRight(strings.ToUpper(card.Name()), cardContent-2)+"│  ║")
+	// buildCardLines returns the box lines for one card (no outer ║ border).
+	buildCardLines := func(card game.UpgradeDef, keyHint string) []string {
+		var lines []string
+		lines = append(lines, "┌"+cardFill+"┐")
+		lines = append(lines, "│  "+padRight(strings.ToUpper(card.Name()), cardContent-2)+"│")
 		lines = append(lines, emptyCard)
 		for _, descLine := range strings.Split(card.Description(), "\n") {
-			lines = append(lines, "║  │  "+padRight(descLine, cardContent-2)+"│  ║")
+			lines = append(lines, "│  "+padRight(descLine, cardContent-2)+"│")
 		}
 		lines = append(lines, emptyCard)
-		lines = append(lines, "║  │"+centerIn("[ "+keyHint+" ] Accept", cardContent)+"│  ║")
-		lines = append(lines, "║  └"+cardFill+"┘  ║")
+		lines = append(lines, "│"+centerIn("[ "+keyHint+" ] Accept", cardContent)+"│")
+		lines = append(lines, "└"+cardFill+"┘")
 		return lines
 	}
+
+	// insertEmptyCard inserts an empty card line at position pos.
+	insertEmptyCard := func(lines []string, pos int) []string {
+		result := make([]string, len(lines)+1)
+		copy(result, lines[:pos])
+		result[pos] = emptyCard
+		copy(result[pos+1:], lines[pos:])
+		return result
+	}
+
+	var cardLinesList [][]string
+	var innerWidth int
+
+	if len(offer) >= 2 {
+		c1 := buildCardLines(offer[0], "1")
+		c2 := buildCardLines(offer[1], "2")
+		// Normalize card heights: insert empty lines before the accept line.
+		for len(c1) < len(c2) {
+			c1 = insertEmptyCard(c1, len(c1)-2)
+		}
+		for len(c2) < len(c1) {
+			c2 = insertEmptyCard(c2, len(c2)-2)
+		}
+		cardLinesList = [][]string{c1, c2}
+		innerWidth = cardPad + cardBoxWidth + gap + cardBoxWidth + cardPad
+	} else {
+		cardLinesList = [][]string{buildCardLines(offer[0], "1")}
+		innerWidth = cardPad + cardBoxWidth + cardPad
+	}
+
+	outerWidth := innerWidth + 2
+	outerFill := strings.Repeat("═", innerWidth)
 
 	var lines []string
 	lines = append(lines, "╔"+outerFill+"╗")
@@ -240,15 +274,21 @@ func (m Model) renderCardScreen() string {
 	lines = append(lines, "╠"+outerFill+"╣")
 	lines = append(lines, "║"+strings.Repeat(" ", innerWidth)+"║")
 
+	numCardLines := len(cardLinesList[0])
+	for i := 0; i < numCardLines; i++ {
+		var row string
+		if len(cardLinesList) >= 2 {
+			row = strings.Repeat(" ", cardPad) + cardLinesList[0][i] + strings.Repeat(" ", gap) + cardLinesList[1][i] + strings.Repeat(" ", cardPad)
+		} else {
+			row = strings.Repeat(" ", cardPad) + cardLinesList[0][i] + strings.Repeat(" ", cardPad)
+		}
+		lines = append(lines, "║"+row+"║")
+	}
+
+	lines = append(lines, "║"+strings.Repeat(" ", innerWidth)+"║")
 	if len(offer) >= 2 {
-		lines = appendCardBox(lines, offer[0], "1")
-		lines = append(lines, "║"+strings.Repeat(" ", innerWidth)+"║")
-		lines = appendCardBox(lines, offer[1], "2")
-		lines = append(lines, "║"+strings.Repeat(" ", innerWidth)+"║")
 		lines = append(lines, "║"+centerIn("Press 1 or 2 to choose an upgrade", innerWidth)+"║")
 	} else {
-		lines = appendCardBox(lines, offer[0], "1")
-		lines = append(lines, "║"+strings.Repeat(" ", innerWidth)+"║")
 		lines = append(lines, "║"+centerIn("Press 1 or ENTER to accept", innerWidth)+"║")
 	}
 	lines = append(lines, "╚"+outerFill+"╝")
