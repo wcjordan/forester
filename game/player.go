@@ -6,10 +6,12 @@ import "time"
 type CooldownType int
 
 const (
-	// Deposit is the cooldown type for depositing resources into a storage structure.
+	// Deposit is the cooldown type for depositing resources into a built storage structure.
 	Deposit CooldownType = iota
 	// Move is the cooldown type for player movement.
 	Move
+	// Build is the cooldown type for depositing resources into a foundation (building it up).
+	Build
 )
 
 // Player represents the player character.
@@ -18,8 +20,12 @@ type Player struct {
 	FacingDX, FacingDY int
 	Wood               int
 	MaxCarry           int
-	Cooldowns          map[CooldownType]time.Time
-	pendingCooldowns   map[CooldownType]time.Time
+	// BuildInterval controls how often the player can deposit one wood into a foundation.
+	BuildInterval time.Duration
+	// DepositInterval controls how often the player can auto-deposit one wood into built storage.
+	DepositInterval  time.Duration
+	Cooldowns        map[CooldownType]time.Time
+	pendingCooldowns map[CooldownType]time.Time
 }
 
 // NewPlayer creates a player at the given position, facing north.
@@ -27,6 +33,8 @@ func NewPlayer(x, y int) *Player {
 	return &Player{
 		X: x, Y: y, FacingDX: 0, FacingDY: -1,
 		MaxCarry:         InitialCarryingCapacity,
+		BuildInterval:    DepositTickInterval,
+		DepositInterval:  DepositTickInterval,
 		Cooldowns:        make(map[CooldownType]time.Time),
 		pendingCooldowns: make(map[CooldownType]time.Time),
 	}

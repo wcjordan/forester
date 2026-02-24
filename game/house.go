@@ -44,15 +44,16 @@ func (d houseDef) OnPlayerInteraction(env *Env, origin Point, now time.Time) {
 	if tile == nil || tile.Structure != FoundationHouse {
 		return
 	}
-	if !env.State.Player.CooldownExpired(Deposit, now) {
+	p := env.State.Player
+	if !p.CooldownExpired(Build, now) {
 		return
 	}
-	if env.State.Player.Wood == 0 {
+	if p.Wood == 0 {
 		return
 	}
 	env.State.FoundationDeposited[origin]++
-	env.State.Player.Wood--
-	env.State.Player.QueueCooldown(Deposit, now.Add(DepositTickInterval))
+	p.Wood--
+	p.QueueCooldown(Build, now.Add(p.BuildInterval))
 	if env.State.FoundationDeposited[origin] >= d.BuildCost() {
 		w, h := d.Footprint()
 		env.State.World.SetStructure(origin.X, origin.Y, w, h, House)

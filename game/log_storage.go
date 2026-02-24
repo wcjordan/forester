@@ -49,18 +49,18 @@ func (logStorageDef) OnBuilt(env *Env, origin Point) {
 // When adjacent to a foundation, deposits one wood toward the build cost each cooldown tick.
 // When adjacent to a built storage, deposits one wood into the storage instance.
 func (d logStorageDef) OnPlayerInteraction(env *Env, origin Point, now time.Time) {
-	if !env.State.Player.CooldownExpired(Deposit, now) {
-		return
-	}
-	if env.State.Player.Wood == 0 {
-		return
-	}
-
+	p := env.State.Player
 	tile := env.State.World.TileAt(origin.X, origin.Y)
 	if tile != nil && tile.Structure == FoundationLogStorage {
+		if !p.CooldownExpired(Build, now) {
+			return
+		}
+		if p.Wood == 0 {
+			return
+		}
 		env.State.FoundationDeposited[origin]++
-		env.State.Player.Wood--
-		env.State.Player.QueueCooldown(Deposit, now.Add(DepositTickInterval))
+		p.Wood--
+		p.QueueCooldown(Build, now.Add(p.BuildInterval))
 		if env.State.FoundationDeposited[origin] >= d.BuildCost() {
 			w, h := d.Footprint()
 			env.State.World.SetStructure(origin.X, origin.Y, w, h, LogStorage)
@@ -71,9 +71,15 @@ func (d logStorageDef) OnPlayerInteraction(env *Env, origin Point, now time.Time
 		return
 	}
 
+	if !p.CooldownExpired(Deposit, now) {
+		return
+	}
+	if p.Wood == 0 {
+		return
+	}
 	deposited := env.Stores.DepositAt(origin, 1)
-	env.State.Player.Wood -= deposited
+	p.Wood -= deposited
 	if deposited > 0 {
-		env.State.Player.QueueCooldown(Deposit, now.Add(DepositTickInterval))
+		p.QueueCooldown(Deposit, now.Add(p.DepositInterval))
 	}
 }
