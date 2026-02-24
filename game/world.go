@@ -48,7 +48,7 @@ func NewWorld(width, height int) *World {
 		StructureTypeIndex: make(map[StructureType]map[Point]struct{}),
 		NoGrowTiles:        make(map[Point]struct{}),
 	}
-	w.markNoGrowZone(width/2, height/2)
+	w.markNoGrowZoneRect(width/2, height/2, 1, 1)
 	return w
 }
 
@@ -61,14 +61,20 @@ func (w *World) InBounds(x, y int) bool {
 // within which Forest tiles are suppressed from regrowing.
 const noGrowRadius = 8
 
-// markNoGrowZone adds all in-bounds tiles within noGrowRadius of (cx, cy) to
-// w.NoGrowTiles. Called by SetStructure whenever a structure tile is placed.
-func (w *World) markNoGrowZone(cx, cy int) {
-	for dy := -noGrowRadius; dy <= noGrowRadius; dy++ {
-		for dx := -noGrowRadius; dx <= noGrowRadius; dx++ {
+// markNoGrowZoneRect adds all in-bounds tiles within noGrowRadius of the
+// rectangle (fx, fy)–(fx+fw-1, fy+fh-1) to w.NoGrowTiles. Distance is
+// measured from each candidate tile to the nearest point inside the rectangle.
+// Called by NewWorld (spawn zone) and SetStructure (structure footprint).
+func (w *World) markNoGrowZoneRect(fx, fy, fw, fh int) {
+	for ty := fy - noGrowRadius; ty <= fy+fh-1+noGrowRadius; ty++ {
+		for tx := fx - noGrowRadius; tx <= fx+fw-1+noGrowRadius; tx++ {
+			// Nearest point in footprint rectangle to (tx, ty).
+			nx := min(max(tx, fx), fx+fw-1)
+			ny := min(max(ty, fy), fy+fh-1)
+			dx, dy := tx-nx, ty-ny
 			if dx*dx+dy*dy <= noGrowRadius*noGrowRadius {
-				if w.InBounds(cx+dx, cy+dy) {
-					w.NoGrowTiles[Point{cx + dx, cy + dy}] = struct{}{}
+				if w.InBounds(tx, ty) {
+					w.NoGrowTiles[Point{tx, ty}] = struct{}{}
 				}
 			}
 		}
@@ -106,7 +112,8 @@ func (w *World) TileAt(x, y int) *Tile {
 
 // SetStructure stamps a rectangle of tiles (x, y) to (x+width-1, y+height-1)
 // with the given structure type. Out-of-bounds tiles are skipped.
-// It also maintains StructureTypeIndex.
+// It also maintains StructureTypeIndex and expands the NoGrowTiles zone once
+// for the entire footprint.
 func (w *World) SetStructure(x, y, width, height int, stype StructureType) {
 	for dy := 0; dy < height; dy++ {
 		for dx := 0; dx < width; dx++ {
@@ -124,15 +131,18 @@ func (w *World) SetStructure(x, y, width, height int, stype StructureType) {
 				}
 			}
 			tile.Structure = stype
-			// Add new entry to type index and expand the no-grow zone.
+			// Add new entry to type index.
 			if stype != NoStructure {
 				if w.StructureTypeIndex[stype] == nil {
 					w.StructureTypeIndex[stype] = make(map[Point]struct{})
 				}
 				w.StructureTypeIndex[stype][pt] = struct{}{}
-				w.markNoGrowZone(pt.X, pt.Y)
 			}
 		}
+	}
+	// Expand the no-grow zone once for the entire footprint.
+	if stype != NoStructure {
+		w.markNoGrowZoneRect(x, y, width, height)
 	}
 }
 
