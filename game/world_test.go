@@ -120,20 +120,34 @@ func TestRegrow(t *testing.T) {
 		}
 	})
 
-	t.Run("forest within spawn no-grow zone does not grow", func(t *testing.T) {
+	t.Run("cut tree within spawn no-grow zone converts to Grassland", func(t *testing.T) {
 		rng := rand.New(rand.NewSource(0))
 		// 20×20 world: spawn = (10,10). Tile at (10,10) is distance 0 ≤ 8.
 		w := NewWorld(20, 20)
 		w.Tiles[10][10] = Tile{Terrain: Forest, TreeSize: 0}
-		for i := 0; i < 1000; i++ {
-			w.Regrow(rng)
-		}
-		if w.Tiles[10][10].TreeSize != 0 {
-			t.Errorf("TreeSize = %d, want 0 (inside spawn no-grow zone)", w.Tiles[10][10].TreeSize)
+		w.Regrow(rng)
+		if w.Tiles[10][10].Terrain != Grassland {
+			t.Errorf("Terrain = %v, want Grassland (cut tree in no-grow zone should convert)", w.Tiles[10][10].Terrain)
 		}
 	})
 
-	t.Run("forest within building no-grow zone does not grow", func(t *testing.T) {
+	t.Run("living forest within spawn no-grow zone does not grow or convert", func(t *testing.T) {
+		rng := rand.New(rand.NewSource(0))
+		w := NewWorld(20, 20)
+		w.Tiles[10][10] = Tile{Terrain: Forest, TreeSize: 5}
+		for i := 0; i < 1000; i++ {
+			w.Regrow(rng)
+		}
+		tile := w.Tiles[10][10]
+		if tile.Terrain != Forest {
+			t.Errorf("Terrain = %v, want Forest (living tree should not convert)", tile.Terrain)
+		}
+		if tile.TreeSize != 5 {
+			t.Errorf("TreeSize = %d, want 5 (living tree in no-grow zone should not grow)", tile.TreeSize)
+		}
+	})
+
+	t.Run("cut tree within building no-grow zone converts to Grassland", func(t *testing.T) {
 		rng := rand.New(rand.NewSource(0))
 		// 40×40 world: spawn = (20,20). Place a structure at (5,5) and a Forest
 		// tile at (5,10) — distance 5 ≤ 8 from the structure, and distance
@@ -141,11 +155,9 @@ func TestRegrow(t *testing.T) {
 		w := NewWorld(40, 40)
 		w.SetStructure(5, 5, 1, 1, LogStorage)
 		w.Tiles[10][5] = Tile{Terrain: Forest, TreeSize: 0}
-		for i := 0; i < 1000; i++ {
-			w.Regrow(rng)
-		}
-		if w.Tiles[10][5].TreeSize != 0 {
-			t.Errorf("TreeSize = %d, want 0 (inside building no-grow zone)", w.Tiles[10][5].TreeSize)
+		w.Regrow(rng)
+		if w.Tiles[10][5].Terrain != Grassland {
+			t.Errorf("Terrain = %v, want Grassland (cut tree in building no-grow zone should convert)", w.Tiles[10][5].Terrain)
 		}
 	})
 }

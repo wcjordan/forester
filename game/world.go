@@ -92,6 +92,11 @@ func (w *World) Regrow(rng *rand.Rand) {
 				continue
 			}
 			if _, blocked := w.NoGrowTiles[Point{x, y}]; blocked {
+				// Cut trees (TreeSize=0) in no-grow zones convert to Grassland
+				// so the cleared area stays open for village growth.
+				if tile.TreeSize == 0 {
+					tile.Terrain = Grassland
+				}
 				continue
 			}
 			if rng.Intn(RegrowthOdds) == 0 {
