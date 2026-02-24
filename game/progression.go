@@ -66,42 +66,59 @@ func (s *State) findValidLocationNearPlayer(w, h int) (x, y int) {
 	return -1, -1
 }
 
-// findValidLocationNearSpawn returns the top-left corner of the w×h area that
-// is closest (by Euclidean distance from footprint center to spawn) to the world
-// spawn point, satisfying all placement constraints. Returns (-1, -1) if none found.
+// findValidLocationNearSpawn searches outward from the world spawn point in
+// expanding Chebyshev rings, returning the top-left corner of the closest valid
+// w×h area by Euclidean distance from footprint center to spawn.
+// Stops as soon as the first valid location is found. Returns (-1, -1) if none found.
 func (s *State) findValidLocationNearSpawn(w, h int) (x, y int) {
 	spawnX := s.World.Width / 2
 	spawnY := s.World.Height / 2
+	// anchorX/anchorY is the top-left that would center the footprint on spawn.
+	anchorX := spawnX - w/2
+	anchorY := spawnY - h/2
 
-	type candidate struct {
-		x, y  int
-		dist2 float64
+	footprintDist2 := func(px, py int) float64 {
+		cx := float64(px) + float64(w)/2 - float64(spawnX)
+		cy := float64(py) + float64(h)/2 - float64(spawnY)
+		return cx*cx + cy*cy
 	}
 
-	var candidates []candidate
-	for cy := 0; cy+h <= s.World.Height; cy++ {
-		for cx := 0; cx+w <= s.World.Width; cx++ {
-			centerX := float64(cx) + float64(w)/2
-			centerY := float64(cy) + float64(h)/2
-			dx := centerX - float64(spawnX)
-			dy := centerY - float64(spawnY)
-			candidates = append(candidates, candidate{cx, cy, dx*dx + dy*dy})
-		}
-	}
+	type pos struct{ x, y int }
+	maxR := s.World.Width + s.World.Height
 
-	sort.Slice(candidates, func(i, j int) bool {
-		if candidates[i].dist2 != candidates[j].dist2 {
-			return candidates[i].dist2 < candidates[j].dist2
+	for r := 0; r <= maxR; r++ {
+		// Collect the perimeter of the Chebyshev ring at distance r from anchor.
+		var ring []pos
+		if r == 0 {
+			ring = []pos{{anchorX, anchorY}}
+		} else {
+			for dx := -r; dx <= r; dx++ {
+				ring = append(ring, pos{anchorX + dx, anchorY - r})
+				ring = append(ring, pos{anchorX + dx, anchorY + r})
+			}
+			for dy := -r + 1; dy <= r-1; dy++ {
+				ring = append(ring, pos{anchorX - r, anchorY + dy})
+				ring = append(ring, pos{anchorX + r, anchorY + dy})
+			}
 		}
-		if candidates[i].y != candidates[j].y {
-			return candidates[i].y < candidates[j].y
-		}
-		return candidates[i].x < candidates[j].x
-	})
 
-	for _, c := range candidates {
-		if s.isValidArea(c.x, c.y, w, h) {
-			return c.x, c.y
+		// Sort this ring by Euclidean distance so we check the closest positions first.
+		sort.Slice(ring, func(i, j int) bool {
+			di := footprintDist2(ring[i].x, ring[i].y)
+			dj := footprintDist2(ring[j].x, ring[j].y)
+			if di != dj {
+				return di < dj
+			}
+			if ring[i].y != ring[j].y {
+				return ring[i].y < ring[j].y
+			}
+			return ring[i].x < ring[j].x
+		})
+
+		for _, p := range ring {
+			if s.isValidArea(p.x, p.y, w, h) {
+				return p.x, p.y
+			}
 		}
 	}
 	return -1, -1
