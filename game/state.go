@@ -50,8 +50,8 @@ func (s *State) SelectCard(idx int) {
 	}
 	if idx >= 0 && idx < len(offer) {
 		offer[idx].Apply(s.Player)
+		s.PendingOfferIDs = s.PendingOfferIDs[1:]
 	}
-	s.PendingOfferIDs = s.PendingOfferIDs[1:]
 }
 
 // Harvest harvests adjacent trees without moving the player.
