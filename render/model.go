@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -68,7 +69,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
+		}
 
+		if m.game.State.HasPendingOffer() {
+			if msg.String() == "1" || msg.String() == "enter" {
+				m.game.State.SelectCard(0)
+			}
+			return m, nil
+		}
+
+		switch msg.String() {
 		case "up", "w":
 			m.game.State.Player.Move(0, -1, m.game.State.World, m.clock.Now())
 		case "down", "s":
@@ -87,6 +97,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) View() string {
 	if m.termWidth == 0 || m.termHeight == 0 {
 		return ""
+	}
+
+	if m.game.State.HasPendingOffer() {
+		return m.renderCardScreen()
 	}
 
 	// Status bar occupies the last line; map gets the rest.
@@ -151,7 +165,7 @@ func (m Model) View() string {
 
 	// Status bar.
 	status := fmt.Sprintf(" Player: (%d, %d)  Wood: %d/%d",
-		player.X, player.Y, player.Wood, game.MaxWood)
+		player.X, player.Y, player.Wood, player.MaxCarry)
 	for _, deposited := range m.game.State.FoundationDeposited {
 		progress := float64(deposited) / float64(game.LogStorageBuildCost)
 		status += "  " + buildProgressBar(progress)
@@ -159,6 +173,89 @@ func (m Model) View() string {
 	}
 	sb.WriteByte('\n')
 	sb.WriteString(status)
+
+	return sb.String()
+}
+
+// renderCardScreen renders the milestone card selection overlay centered in the terminal.
+func (m Model) renderCardScreen() string {
+	offer := m.game.State.PendingOffers[0]
+	card := offer[0]
+
+	const (
+		outerWidth  = 44
+		innerWidth  = 42 // chars between the two ║ borders
+		cardContent = 36 // chars between the two │ borders
+	)
+
+	// padRight pads s to exactly width rune-columns using trailing spaces.
+	padRight := func(s string, width int) string {
+		n := utf8.RuneCountInString(s)
+		if n >= width {
+			return s
+		}
+		return s + strings.Repeat(" ", width-n)
+	}
+
+	// centerIn centers s within a field of width rune-columns.
+	centerIn := func(s string, width int) string {
+		n := utf8.RuneCountInString(s)
+		if n >= width {
+			return s
+		}
+		left := (width - n) / 2
+		right := width - n - left
+		return strings.Repeat(" ", left) + s + strings.Repeat(" ", right)
+	}
+
+	outerFill := strings.Repeat("═", innerWidth)
+	cardFill := strings.Repeat("─", cardContent)
+	emptyCard := "║  │" + strings.Repeat(" ", cardContent) + "│  ║"
+
+	var lines []string
+	lines = append(lines, "╔"+outerFill+"╗")
+	lines = append(lines, "║"+centerIn("MILESTONE", innerWidth)+"║")
+	lines = append(lines, "╠"+outerFill+"╣")
+	lines = append(lines, "║"+strings.Repeat(" ", innerWidth)+"║")
+	lines = append(lines, "║  ┌"+cardFill+"┐  ║")
+	lines = append(lines, "║  │  "+padRight(strings.ToUpper(card.Name()), cardContent-2)+"│  ║")
+	lines = append(lines, emptyCard)
+	for _, descLine := range strings.Split(card.Description(), "\n") {
+		lines = append(lines, "║  │  "+padRight(descLine, cardContent-2)+"│  ║")
+	}
+	lines = append(lines, emptyCard)
+	lines = append(lines, "║  │"+centerIn("[ 1 ] Accept", cardContent)+"│  ║")
+	lines = append(lines, "║  └"+cardFill+"┘  ║")
+	lines = append(lines, "║"+strings.Repeat(" ", innerWidth)+"║")
+	lines = append(lines, "║"+centerIn("Press 1 or ENTER to accept", innerWidth)+"║")
+	lines = append(lines, "╚"+outerFill+"╝")
+
+	boxHeight := len(lines)
+
+	leftPad := (m.termWidth - outerWidth) / 2
+	if leftPad < 0 {
+		leftPad = 0
+	}
+	prefix := strings.Repeat(" ", leftPad)
+
+	topPad := (m.termHeight - boxHeight) / 2
+	if topPad < 0 {
+		topPad = 0
+	}
+
+	var sb strings.Builder
+	for i := 0; i < topPad; i++ {
+		sb.WriteByte('\n')
+	}
+	for i, line := range lines {
+		sb.WriteString(prefix + line)
+		if i < len(lines)-1 {
+			sb.WriteByte('\n')
+		}
+	}
+	for i := topPad + boxHeight; i < m.termHeight; i++ {
+		sb.WriteByte('\n')
+	}
 
 	return sb.String()
 }

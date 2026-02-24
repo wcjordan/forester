@@ -345,6 +345,31 @@ func TestDepositRespectsInstanceCapacity(t *testing.T) {
 	}
 }
 
+func TestAddOfferAndSelectCard(t *testing.T) {
+	w := NewWorld(10, 10)
+	p := NewPlayer(5, 5)
+	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int)}
+
+	if s.HasPendingOffer() {
+		t.Fatal("should have no pending offer initially")
+	}
+
+	s.AddOffer(CardOffer{carryCapacityUpgrade{}})
+
+	if !s.HasPendingOffer() {
+		t.Fatal("should have pending offer after AddOffer")
+	}
+
+	s.SelectCard(0)
+
+	if s.HasPendingOffer() {
+		t.Error("should have no pending offer after SelectCard")
+	}
+	if p.MaxCarry != 100 {
+		t.Errorf("MaxCarry = %d, want 100 after carry capacity upgrade", p.MaxCarry)
+	}
+}
+
 func TestHasStructureOfType(t *testing.T) {
 	w := NewWorld(10, 10)
 	s := &State{Player: NewPlayer(5, 5), World: w}

@@ -8,6 +8,29 @@ type State struct {
 	Player              *Player
 	World               *World
 	FoundationDeposited map[Point]int
+	PendingOffers       []CardOffer
+}
+
+// AddOffer enqueues a card offer for the player to choose from.
+func (s *State) AddOffer(offer CardOffer) {
+	s.PendingOffers = append(s.PendingOffers, offer)
+}
+
+// HasPendingOffer reports whether there is at least one offer waiting.
+func (s *State) HasPendingOffer() bool {
+	return len(s.PendingOffers) > 0
+}
+
+// SelectCard applies the card at idx from the front offer and pops it from the queue.
+func (s *State) SelectCard(idx int) {
+	if len(s.PendingOffers) == 0 {
+		return
+	}
+	offer := s.PendingOffers[0]
+	if idx >= 0 && idx < len(offer) {
+		offer[idx].Apply(s.Player)
+	}
+	s.PendingOffers = s.PendingOffers[1:]
 }
 
 // Harvest harvests adjacent trees without moving the player.

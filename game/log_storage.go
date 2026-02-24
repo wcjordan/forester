@@ -42,6 +42,7 @@ func (logStorageDef) ShouldSpawn(env *Env) bool {
 // OnBuilt registers a new storage instance when a Log Storage is completed.
 func (logStorageDef) OnBuilt(env *Env, origin Point) {
 	env.Stores.Register(origin, Wood, LogStorageCapacity)
+	env.State.AddOffer(CardOffer{carryCapacityUpgrade{}})
 }
 
 // OnPlayerInteraction handles adjacent-player interaction for both foundation and built states.

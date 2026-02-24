@@ -155,14 +155,35 @@ func TestLogStorageWorkflow(t *testing.T) {
 		t.Fatalf("phase 4: expected LogStorage at (49,48), got %v", lsTile)
 	}
 
-	// ── Phase 5: Restock wood and deposit into the built log storage ─────────
+	// ── Phase 5: Accept the upgrade card ─────────────────────────────────────
+	// When the Log Storage is completed, a card offer is queued. The game pauses
+	// until the player accepts. Extra ticks during this phase should not change
+	// player.Wood (harvest is blocked while paused).
+	announcePhase(m, "Phase 5: Accept upgrade card")
+	if !g.State.HasPendingOffer() {
+		t.Fatal("phase 5: expected a pending card offer after building log storage")
+	}
+	woodBeforePause := g.State.Player.Wood
+	tick(&m, clock) // game should be paused — wood should not change
+	if g.State.Player.Wood != woodBeforePause {
+		t.Errorf("phase 5: game should be paused during card selection; Wood changed from %d to %d",
+			woodBeforePause, g.State.Player.Wood)
+	}
+	g.State.SelectCard(0)
+	if g.State.Player.MaxCarry != 100 {
+		t.Errorf("phase 5: MaxCarry = %d, want 100 after accepting carry upgrade", g.State.Player.MaxCarry)
+	}
+	if g.State.HasPendingOffer() {
+		t.Error("phase 5: offer should be gone after SelectCard")
+	}
+
 	// Phase 4 leaves player.Wood == 1 (a harvest tick re-stocked 1 wood mid-build).
 	// Move north to (48,44) to face north and harvest more from trees at y=43
 	// (sizes 9, 4, 4 — untouched by Phase 2). At least 2 ticks are required
 	// before the return move: (48,44) is a cut tree (150ms cooldown) so a single
 	// tick isn't enough to let the "w" move cooldown (300ms) expire.
 	// Return south to (48,45), adjacent to LogStorage, then wait for deposit.
-	announcePhase(m, "Phase 5: Restock wood and deposit into built log storage")
+	announcePhase(m, "Phase 6: Restock wood and deposit into built log storage")
 	moveDir(&m, clock, g, "w") // Move to (48,44), face north
 	const maxRestockTicks = 20
 	for i := range maxRestockTicks {
@@ -204,7 +225,7 @@ func TestLogStorageWorkflow(t *testing.T) {
 		t.Errorf("status bar %q does not contain player position %q", bar, wantPos)
 	}
 	currentWood := g.State.Player.Wood
-	wantWood := fmt.Sprintf("Wood: %d/20", currentWood)
+	wantWood := fmt.Sprintf("Wood: %d/%d", currentWood, g.State.Player.MaxCarry)
 	if !strings.Contains(bar, wantWood) {
 		t.Errorf("status bar %q does not contain wood count %q", bar, wantWood)
 	}
