@@ -50,16 +50,40 @@ func (w *World) InBounds(x, y int) bool {
 	return x >= 0 && x < w.Width && y >= 0 && y < w.Height
 }
 
+// noGrowRadius is the Euclidean radius around the spawn point and any structure
+// within which Forest tiles are suppressed from regrowing.
+const noGrowRadius = 8
+
 // Regrow advances tree regrowth probabilistically.
-// Each eligible Forest tile (including TreeSize=0 cut trees) has a 1/RegrowthOdds chance to grow.
+// Each eligible Forest tile (including TreeSize=0 cut trees) has a 1/RegrowthOdds chance to grow,
+// unless it is within Euclidean distance noGrowRadius of the spawn point or any structure tile.
 func (w *World) Regrow(rng *rand.Rand) {
+	cx, cy := w.Width/2, w.Height/2
 	for y := range w.Tiles {
 		for x := range w.Tiles[y] {
 			tile := &w.Tiles[y][x]
-			if tile.Terrain == Forest && tile.TreeSize < maxTreeSize {
-				if rng.Intn(RegrowthOdds) == 0 {
-					tile.TreeSize++
+			if tile.Terrain != Forest || tile.TreeSize >= maxTreeSize {
+				continue
+			}
+			// Suppress growth near the spawn point.
+			dx, dy := x-cx, y-cy
+			if dx*dx+dy*dy <= noGrowRadius*noGrowRadius {
+				continue
+			}
+			// Suppress growth near any structure tile.
+			nearStructure := false
+			for pt := range w.StructureIndex {
+				sdx, sdy := x-pt.X, y-pt.Y
+				if sdx*sdx+sdy*sdy <= noGrowRadius*noGrowRadius {
+					nearStructure = true
+					break
 				}
+			}
+			if nearStructure {
+				continue
+			}
+			if rng.Intn(RegrowthOdds) == 0 {
+				tile.TreeSize++
 			}
 		}
 	}
