@@ -162,7 +162,7 @@ D = Resource Depot
 - `game/storage.go` — `ResourceType`, `StorageInstance`, `ResourceStorage`, `StorageDef` sub-interface
 - `game/storage_manager.go` — `StorageManager` (runtime storage state), `StorageState` (serializable)
 - `game/env.go` — `Env` (runtime context passed to StructureDef methods)
-- `game/progression.go` — `maybeSpawnFoundation`, `findValidLocation`, `isValidArea`
+- `game/progression.go` — `maybeSpawnFoundation`, `findValidLocationNearPlayer`, `isValidArea`
 - Player carry capacity and harvest stop logic live in `game/player.go`
 
 ### Phase 3: XP & Upgrades → Villagers & Automation

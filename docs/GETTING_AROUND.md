@@ -37,7 +37,7 @@ A navigation guide covering file layout, responsibilities, and the libraries use
 |---|---|---|
 | `structure.go` | `StructureDef` interface, `StructureEntry`, `structures []StructureDef` | `StructureDef` is the extension point for new structures. Each type registers itself via `init()`. |
 | `log_storage.go` | `logStorageDef{}` | Implements `StructureDef`. Spawns when player is full (≥20 wood). 4×4 footprint. Costs 20 wood to build (deposited while adjacent). Deposits 1 wood/tick into storage when built and player is adjacent. Registers via `init()`. |
-| `progression.go` | `maybeSpawnFoundation()`, `findValidLocation()`, `isValidArea()` | Foundation spawn logic: checks each `StructureDef.ShouldSpawn()`, finds valid grassland area walking toward world center, places the foundation. |
+| `progression.go` | `maybeSpawnFoundation()`, `findValidLocationNearPlayer()`, `isValidArea()` | Foundation spawn logic: checks each `StructureDef.ShouldSpawn()`, finds valid grassland area walking toward world center, places the foundation. |
 | `env.go` | `Env` | Runtime context (State + Stores) passed to all `StructureDef` methods. Separates serializable state from derived runtime state. |
 
 **Resources**

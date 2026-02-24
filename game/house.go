@@ -31,6 +31,10 @@ func (houseDef) ShouldSpawn(env *Env) bool {
 	return env.Stores.Total(Wood) >= HouseSpawnThreshold
 }
 
+// UseSpawnAnchoredPlacement signals that the house foundation should be placed
+// as close as possible to the world spawn point rather than near the player.
+func (houseDef) UseSpawnAnchoredPlacement() bool { return true }
+
 // OnBuilt queues a 2-card milestone offer when a House is completed.
 func (houseDef) OnBuilt(env *Env, _ Point) {
 	env.State.AddOffer([]string{"build_speed", "deposit_speed"})
