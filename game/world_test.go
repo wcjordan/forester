@@ -140,7 +140,6 @@ func TestRegrow(t *testing.T) {
 		// sqrt(225+100)=~18 from spawn (safely outside the spawn zone).
 		w := NewWorld(40, 40)
 		w.SetStructure(5, 5, 1, 1, LogStorage)
-		w.IndexStructure(5, 5, 1, 1, logStorageDef{})
 		w.Tiles[10][5] = Tile{Terrain: Forest, TreeSize: 0}
 		for i := 0; i < 1000; i++ {
 			w.Regrow(rng)
@@ -173,6 +172,28 @@ func TestSetStructure(t *testing.T) {
 		w := NewWorld(5, 5)
 		// Should not panic even if rect extends outside world.
 		w.SetStructure(3, 3, 4, 4, FoundationLogStorage)
+	})
+
+	t.Run("populates NoGrowTiles within noGrowRadius", func(t *testing.T) {
+		// 30×30 world. Place a 1×1 structure at (15,15).
+		// Tile at (15,20) is distance 5 ≤ 8: must be in NoGrowTiles.
+		// Tile at (15,24) is distance 9 > 8: must NOT be in NoGrowTiles.
+		w := NewWorld(30, 30)
+		w.SetStructure(15, 15, 1, 1, LogStorage)
+		if _, ok := w.NoGrowTiles[Point{15, 20}]; !ok {
+			t.Error("tile at distance 5 from structure should be in NoGrowTiles")
+		}
+		if _, ok := w.NoGrowTiles[Point{15, 24}]; ok {
+			t.Error("tile at distance 9 from structure should not be in NoGrowTiles")
+		}
+	})
+
+	t.Run("NoStructure stamp does not add to NoGrowTiles", func(t *testing.T) {
+		w := NewWorld(30, 30)
+		w.SetStructure(15, 15, 1, 1, NoStructure)
+		if len(w.NoGrowTiles) != 0 {
+			t.Errorf("NoGrowTiles should be empty after NoStructure stamp, got %d entries", len(w.NoGrowTiles))
+		}
 	})
 }
 

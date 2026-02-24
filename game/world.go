@@ -24,6 +24,9 @@ type World struct {
 	Tiles              [][]Tile
 	StructureIndex     map[Point]StructureEntry
 	StructureTypeIndex map[StructureType]map[Point]struct{}
+	// NoGrowTiles is the set of tiles suppressed from tree regrowth because
+	// they are within noGrowRadius of a structure. Updated by SetStructure.
+	NoGrowTiles map[Point]struct{}
 }
 
 // NewWorld creates a world with the given dimensions, filled with grassland.
@@ -42,6 +45,7 @@ func NewWorld(width, height int) *World {
 		Tiles:              tiles,
 		StructureIndex:     make(map[Point]StructureEntry),
 		StructureTypeIndex: make(map[StructureType]map[Point]struct{}),
+		NoGrowTiles:        make(map[Point]struct{}),
 	}
 }
 
@@ -54,9 +58,24 @@ func (w *World) InBounds(x, y int) bool {
 // within which Forest tiles are suppressed from regrowing.
 const noGrowRadius = 8
 
+// markNoGrowZone adds all in-bounds tiles within noGrowRadius of (cx, cy) to
+// w.NoGrowTiles. Called by SetStructure whenever a structure tile is placed.
+func (w *World) markNoGrowZone(cx, cy int) {
+	for dy := -noGrowRadius; dy <= noGrowRadius; dy++ {
+		for dx := -noGrowRadius; dx <= noGrowRadius; dx++ {
+			if dx*dx+dy*dy <= noGrowRadius*noGrowRadius {
+				if w.InBounds(cx+dx, cy+dy) {
+					w.NoGrowTiles[Point{cx + dx, cy + dy}] = struct{}{}
+				}
+			}
+		}
+	}
+}
+
 // Regrow advances tree regrowth probabilistically.
 // Each eligible Forest tile (including TreeSize=0 cut trees) has a 1/RegrowthOdds chance to grow,
 // unless it is within Euclidean distance noGrowRadius of the spawn point or any structure tile.
+// Structure proximity is checked via the precomputed NoGrowTiles set.
 func (w *World) Regrow(rng *rand.Rand) {
 	cx, cy := w.Width/2, w.Height/2
 	for y := range w.Tiles {
@@ -70,16 +89,8 @@ func (w *World) Regrow(rng *rand.Rand) {
 			if dx*dx+dy*dy <= noGrowRadius*noGrowRadius {
 				continue
 			}
-			// Suppress growth near any structure tile.
-			nearStructure := false
-			for pt := range w.StructureIndex {
-				sdx, sdy := x-pt.X, y-pt.Y
-				if sdx*sdx+sdy*sdy <= noGrowRadius*noGrowRadius {
-					nearStructure = true
-					break
-				}
-			}
-			if nearStructure {
+			// Suppress growth near any structure tile (precomputed set).
+			if _, blocked := w.NoGrowTiles[Point{x, y}]; blocked {
 				continue
 			}
 			if rng.Intn(RegrowthOdds) == 0 {
@@ -118,12 +129,13 @@ func (w *World) SetStructure(x, y, width, height int, stype StructureType) {
 				}
 			}
 			tile.Structure = stype
-			// Add new entry to type index.
+			// Add new entry to type index and expand the no-grow zone.
 			if stype != NoStructure {
 				if w.StructureTypeIndex[stype] == nil {
 					w.StructureTypeIndex[stype] = make(map[Point]struct{})
 				}
 				w.StructureTypeIndex[stype][pt] = struct{}{}
+				w.markNoGrowZone(pt.X, pt.Y)
 			}
 		}
 	}
