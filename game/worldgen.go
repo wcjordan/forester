@@ -52,13 +52,16 @@ func GenerateWorld(width, height int, seed int64) *World {
 		}
 	}
 
-	// Step 3: Clear a 5×5 area at the center to guarantee a grassland spawn.
+	// Step 3: Clear a circle of Euclidean radius 5 at the center to guarantee a grassland spawn.
 	cx, cy := width/2, height/2
-	for dy := -2; dy <= 2; dy++ {
-		for dx := -2; dx <= 2; dx++ {
-			if tile := world.TileAt(cx+dx, cy+dy); tile != nil {
-				tile.Terrain = Grassland
-				tile.TreeSize = 0
+	const spawnClearRadius = 5
+	for dy := -spawnClearRadius; dy <= spawnClearRadius; dy++ {
+		for dx := -spawnClearRadius; dx <= spawnClearRadius; dx++ {
+			if dx*dx+dy*dy <= spawnClearRadius*spawnClearRadius {
+				if tile := world.TileAt(cx+dx, cy+dy); tile != nil {
+					tile.Terrain = Grassland
+					tile.TreeSize = 0
+				}
 			}
 		}
 	}

@@ -71,17 +71,17 @@ func moveDir(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) {
 //
 //  1. Navigate to a harvest position (48, 45) adjacent to forest.
 //  2. Tick until enough wood is cut and player has full inventory (20 wood).
-//  3. Navigate adjacent to the foundation (south×3 → player blocked west of foundation).
+//  3. Verify foundation blocks southward movement from (48,45).
 //  4. Tick until the foundation completes via resource deposits (20 wood × 500ms each).
 //  5. Verify player position, LogStorage tile renders as 'L', and built storage registered.
 //
-// World layout facts for seed 42 used in assertions:
+// World layout facts for seed 42 with circular clearing radius 5:
 //   - Harvest arc from (48,45) facing north: (48,44), (47,44), (49,44) — all Forest.
-//   - Foundation spawns at 4×4 footprint (49,48)–(52,51).
-//   - Player moves south×3 from (48,45) → (48,48), adjacent to foundation west edge.
-//   - Foundation blocks eastward movement: player stays at (48,48).
-//   - With terminal 80×24 and player at (48,48): vpX=8, vpY=37.
-//     LogStorage corner (49,48) maps to screen (col=41, row=11).
+//   - Foundation spawns at 4×4 footprint (48,46)–(51,49), immediately south of harvest pos.
+//   - Player at (48,45) is already adjacent to foundation's north edge.
+//   - Foundation blocks southward movement: player stays at (48,45).
+//   - With terminal 80×24 and player at (48,45): vpX=8, vpY=34.
+//     LogStorage corner (48,46) maps to screen (col=40, row=12).
 func TestLogStorageWorkflow(t *testing.T) {
 	// ── Setup ────────────────────────────────────────────────────────────────
 	clock := game.NewFakeClock()
@@ -105,7 +105,7 @@ func TestLogStorageWorkflow(t *testing.T) {
 	// ── Phase 2: Harvest until foundation appears and player has full wood ────
 	// Forward arc faces north: (48,44) size=8, (47,44) size=10, (49,44) size=9.
 	// 3 wood/tick → player.Wood reaches MaxWood (20) after ~7 ticks; foundation spawns automatically.
-	// Continue until player.Wood == MaxWood (20) so there's enough to build the foundation.
+	// Foundation spawns at (48,46)–(51,49), all within clearing radius so guaranteed Grassland.
 	announcePhase(m, "Phase 2: Harvest wood until foundation log storage appears")
 	const maxHarvestTicks = 30
 	for i := range maxHarvestTicks {
@@ -118,22 +118,18 @@ func TestLogStorageWorkflow(t *testing.T) {
 		}
 	}
 
-	// ── Phase 3: Navigate adjacent to foundation ──────────────────────────────
-	// From (48,45): south×3 → (48,48). Foundation at (49,48) blocks east movement.
-	// Player ends up at (48,48), adjacent to the foundation's west edge.
-	announcePhase(m, "Phase 3: Navigate adjacent to foundation")
-	for _, dir := range []string{"s", "s", "s"} {
-		moveDir(&m, clock, g, dir)
-	}
-	// Attempting to move east into the foundation should be blocked.
-	moveDir(&m, clock, g, "d")
-	if g.State.Player.X != 48 || g.State.Player.Y != 48 {
-		t.Errorf("phase 3: expected player at (48,48) (foundation blocks east), got (%d,%d)",
+	// ── Phase 3: Verify foundation blocks south movement ─────────────────────
+	// Player at (48,45) is already adjacent to foundation's north edge at (48,46).
+	// Attempting to move south into the foundation should be blocked.
+	announcePhase(m, "Phase 3: Verify foundation blocks south movement")
+	moveDir(&m, clock, g, "s")
+	if g.State.Player.X != 48 || g.State.Player.Y != 45 {
+		t.Errorf("phase 3: expected player at (48,45) (foundation blocks south), got (%d,%d)",
 			g.State.Player.X, g.State.Player.Y)
 	}
 
 	// ── Phase 4: Deposit wood to complete the foundation ─────────────────────
-	// Player at (48,48) is adjacent to foundation. Each tick fires TickAdjacentStructures.
+	// Player at (48,45) is adjacent to foundation. Each tick fires TickAdjacentStructures.
 	// Deposit cooldown is 500ms; one deposit every 5 ticks (at 100ms each).
 	// Foundation completes after LogStorageBuildCost (20) deposits.
 	announcePhase(m, "Phase 4: Build foundation via resource deposit")
@@ -157,30 +153,12 @@ func TestLogStorageWorkflow(t *testing.T) {
 		t.Fatalf("phase 4: expected LogStorage at (49,48), got %v", lsTile)
 	}
 
-	// ── Phase 5: Deposit wood into the built log storage ─────────────────────
-	// All 20 wood was spent building the foundation, so player.Wood == 0.
-	// Move north to the original harvest position (48,45) to restock from the
-	// remaining tree wood (Phase 2 left ~6 wood across the three tiles at y=44).
-	// Then return south to (48,48), adjacent to the built LogStorage, and deposit.
-	announcePhase(m, "Phase 5: Restock wood and deposit into built log storage")
-	for _, dir := range []string{"w", "w", "w"} {
-		moveDir(&m, clock, g, dir)
-	}
-	// Tick until the player harvests some wood from the forest at y=44.
-	const maxRestockTicks = 20
-	for i := range maxRestockTicks {
-		tick(&m, clock)
-		if g.State.Player.Wood > 0 {
-			break
-		}
-		if i == maxRestockTicks-1 {
-			t.Fatal("phase 5: could not harvest wood for storage deposit")
-		}
-	}
-	// Return south to be adjacent to the LogStorage again.
-	for _, dir := range []string{"s", "s", "s"} {
-		moveDir(&m, clock, g, dir)
-	}
+	// ── Phase 5: Deposit leftover wood into the built log storage ────────────
+	// Phase 4 leaves player.Wood == 1 (a harvest tick re-stocked 1 wood mid-build).
+	// Player is at (48,45), already adjacent to LogStorage at (48,46).
+	// Wait for the Deposit cooldown from Phase 4 to expire (~500ms = 5 ticks),
+	// then the auto-deposit fires.
+	announcePhase(m, "Phase 5: Deposit remaining wood into built log storage")
 	storedBefore := g.Stores.Total(game.Wood)
 	const maxDepositTicks = 30
 	for i := range maxDepositTicks {
@@ -195,15 +173,15 @@ func TestLogStorageWorkflow(t *testing.T) {
 
 	// ── Assertions ────────────────────────────────────────────────────────────
 
-	// 1. Player position: still at (48,48) — foundation blocked east all along.
-	if g.State.Player.X != 48 || g.State.Player.Y != 48 {
-		t.Errorf("player position: got (%d,%d), want (48,48)",
+	// 1. Player position: at (48,45) — foundation blocked south throughout.
+	if g.State.Player.X != 48 || g.State.Player.Y != 45 {
+		t.Errorf("player position: got (%d,%d), want (48,45)",
 			g.State.Player.X, g.State.Player.Y)
 	}
 
 	// 2. Status bar shows the correct player position and wood count.
 	bar := statusBar(m)
-	wantPos := "Player: (48, 48)"
+	wantPos := "Player: (48, 45)"
 	if !strings.Contains(bar, wantPos) {
 		t.Errorf("status bar %q does not contain player position %q", bar, wantPos)
 	}
@@ -214,11 +192,11 @@ func TestLogStorageWorkflow(t *testing.T) {
 	}
 
 	// 3. Log storage tile displays as 'L' at its screen position.
-	//    Player (48,48) with 80×24 terminal → vpX=8, vpY=37.
-	//    LogStorage corner (49,48) → screen col=41, row=11.
-	lsChar := charAtScreen(m, 41, 11)
+	//    Player (48,45) with 80×24 terminal → vpX=8, vpY=34.
+	//    LogStorage corner (48,46) → screen col=40, row=12.
+	lsChar := charAtScreen(m, 40, 12)
 	if lsChar != "L" {
-		t.Errorf("expected 'L' (LogStorage) at screen(col=41,row=11), got %q", lsChar)
+		t.Errorf("expected 'L' (LogStorage) at screen(col=40,row=12), got %q", lsChar)
 	}
 
 	// 4. Log storage contains deposited wood.

@@ -93,9 +93,13 @@ func TestGenerateWorld_TreeSizes(t *testing.T) {
 func TestGenerateWorld_SpawnClear(t *testing.T) {
 	w := GenerateWorld(100, 100, 42)
 	cx, cy := w.Width/2, w.Height/2
+	const r = 5
 
-	for dy := -2; dy <= 2; dy++ {
-		for dx := -2; dx <= 2; dx++ {
+	for dy := -r; dy <= r; dy++ {
+		for dx := -r; dx <= r; dx++ {
+			if dx*dx+dy*dy > r*r {
+				continue
+			}
 			tile := w.TileAt(cx+dx, cy+dy)
 			if tile == nil {
 				t.Errorf("tile (%d,%d) is out of bounds", cx+dx, cy+dy)
