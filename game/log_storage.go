@@ -34,9 +34,9 @@ func (logStorageDef) StorageResource() ResourceType { return Wood }
 // StorageCapacity returns the capacity of a single Log Storage instance.
 func (logStorageDef) StorageCapacity() int { return LogStorageCapacity }
 
-// ShouldSpawn returns true when the player's inventory is full.
+// ShouldSpawn returns true when the player's inventory has enough wood.
 func (logStorageDef) ShouldSpawn(env *Env) bool {
-	return env.State.Player.Wood >= InitialCarryingCapacity
+	return env.State.Player.Wood >= LogStorageBuildCost
 }
 
 // OnBuilt registers a new storage instance when a Log Storage is completed.
