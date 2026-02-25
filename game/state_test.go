@@ -16,15 +16,16 @@ func TestFoundationSpawnsWhenInventoryFull(t *testing.T) {
 	env := &Env{State: s, Stores: stores}
 
 	// Harvest InitialCarryingCapacity-1 times — foundation should not appear yet.
-	for range InitialCarryingCapacity - 1 {
-		s.Harvest(env)
+	t0 := time.Now()
+	for i := range InitialCarryingCapacity - 1 {
+		s.Harvest(env, t0.Add(time.Duration(i+1)*HarvestTickInterval*2))
 	}
 	if s.HasStructureOfType(FoundationLogStorage) {
 		t.Fatal("foundation appeared before inventory full")
 	}
 
 	// Final harvest fills inventory — foundation should now appear.
-	s.Harvest(env)
+	s.Harvest(env, t0.Add(time.Duration(InitialCarryingCapacity)*HarvestTickInterval*2))
 	if !s.HasStructureOfType(FoundationLogStorage) {
 		t.Error("foundation did not appear when inventory became full")
 	}

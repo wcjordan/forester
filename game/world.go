@@ -27,7 +27,8 @@ type World struct {
 	// NoGrowTiles is the set of tiles suppressed from tree regrowth because
 	// they are within noGrowRadius of the spawn point or any structure.
 	// Populated by NewWorld (spawn zone) and SetStructure (structure zones).
-	NoGrowTiles map[Point]struct{}
+	NoGrowTiles    map[Point]struct{}
+	regrowCooldown time.Time
 }
 
 // NewWorld creates a world with the given dimensions, filled with grassland.
@@ -81,10 +82,14 @@ func (w *World) markNoGrowZoneRect(fx, fy, fw, fh int) {
 	}
 }
 
-// Regrow advances tree regrowth probabilistically.
+// Regrow advances tree regrowth probabilistically if the regrowth cooldown has elapsed.
 // Each eligible Forest tile (including TreeSize=0 cut trees) has a 1/RegrowthOdds chance to grow,
 // unless it is in the precomputed NoGrowTiles set (within noGrowRadius of the spawn point or any structure tile).
-func (w *World) Regrow(rng *rand.Rand) {
+func (w *World) Regrow(rng *rand.Rand, now time.Time) {
+	if !now.After(w.regrowCooldown) {
+		return
+	}
+	w.regrowCooldown = now.Add(RegrowthCooldown)
 	for y := range w.Tiles {
 		for x := range w.Tiles[y] {
 			tile := &w.Tiles[y][x]

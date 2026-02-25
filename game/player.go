@@ -12,6 +12,8 @@ const (
 	Move
 	// Build is the cooldown type for depositing resources into a foundation (building it up).
 	Build
+	// Harvest is the cooldown type for auto-harvesting adjacent trees.
+	Harvest
 )
 
 // Player represents the player character.
@@ -23,7 +25,9 @@ type Player struct {
 	// BuildInterval controls how often the player can deposit one wood into a foundation.
 	BuildInterval time.Duration
 	// DepositInterval controls how often the player can auto-deposit one wood into built storage.
-	DepositInterval  time.Duration
+	DepositInterval time.Duration
+	// HarvestInterval controls how often the player auto-harvests adjacent trees.
+	HarvestInterval  time.Duration
 	Cooldowns        map[CooldownType]time.Time
 	pendingCooldowns map[CooldownType]time.Time
 }
@@ -35,6 +39,7 @@ func NewPlayer(x, y int) *Player {
 		MaxCarry:         InitialCarryingCapacity,
 		BuildInterval:    DepositTickInterval,
 		DepositInterval:  DepositTickInterval,
+		HarvestInterval:  HarvestTickInterval,
 		Cooldowns:        make(map[CooldownType]time.Time),
 		pendingCooldowns: make(map[CooldownType]time.Time),
 	}
@@ -124,17 +129,25 @@ func MoveCooldownFor(tile *Tile) time.Duration {
 // InitialCarryingCapacity is the carrying capacity a new player starts with.
 const InitialCarryingCapacity = 20
 
+// GameTickInterval is the base cadence of the game loop (how often game.Tick is called).
+const GameTickInterval = 100 * time.Millisecond
+
 // harvestPerStep is how much wood is taken from each adjacent Forest tile per turn.
 const harvestPerStep = 1
 
-// HarvestTickInterval is how often the player automatically harvests without moving.
+// HarvestTickInterval is how often the player auto-harvests adjacent trees.
 const HarvestTickInterval = 100 * time.Millisecond
 
 // HarvestAdjacent harvests wood from the tile under the player and the three Forest tiles
 // in front of the player: straight ahead and the two forward diagonals.
 // Each tile loses harvestPerStep wood; when TreeSize reaches 0 it stays Forest (cut tree).
 // The harvested wood is added to the player's inventory.
-func (p *Player) HarvestAdjacent(w *World) {
+// The harvest is skipped if the Harvest cooldown has not elapsed.
+func (p *Player) HarvestAdjacent(w *World, now time.Time) {
+	if !p.CooldownExpired(Harvest, now) {
+		return
+	}
+	p.SetCooldown(Harvest, now.Add(p.HarvestInterval))
 	if p.Wood >= p.MaxCarry {
 		return
 	}

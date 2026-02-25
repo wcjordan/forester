@@ -16,7 +16,7 @@ import (
 type TickMsg time.Time
 
 func doTick() tea.Cmd {
-	return tea.Tick(game.HarvestTickInterval, func(t time.Time) tea.Msg {
+	return tea.Tick(game.GameTickInterval, func(t time.Time) tea.Msg {
 		return TickMsg(t)
 	})
 }

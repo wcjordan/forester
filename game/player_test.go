@@ -69,7 +69,7 @@ func TestHarvestAdjacent(t *testing.T) {
 	t.Run("harvests adjacent forest tile", func(t *testing.T) {
 		w, tile := makeWorld(Forest, 5)
 		p := NewPlayer(2, 2)
-		p.HarvestAdjacent(w)
+		p.HarvestAdjacent(w, time.Now())
 		if p.Wood != 1 {
 			t.Errorf("Wood = %d, want 1", p.Wood)
 		}
@@ -84,7 +84,7 @@ func TestHarvestAdjacent(t *testing.T) {
 	t.Run("stays Forest when tree depleted", func(t *testing.T) {
 		w, tile := makeWorld(Forest, 1)
 		p := NewPlayer(2, 2)
-		p.HarvestAdjacent(w)
+		p.HarvestAdjacent(w, time.Now())
 		if p.Wood != 1 {
 			t.Errorf("Wood = %d, want 1", p.Wood)
 		}
@@ -99,7 +99,7 @@ func TestHarvestAdjacent(t *testing.T) {
 	t.Run("does not harvest from cut tree", func(t *testing.T) {
 		w, tile := makeWorld(Forest, 0)
 		p := NewPlayer(2, 2)
-		p.HarvestAdjacent(w)
+		p.HarvestAdjacent(w, time.Now())
 		if p.Wood != 0 {
 			t.Errorf("Wood = %d, want 0 (cut tree should not yield wood)", p.Wood)
 		}
@@ -114,7 +114,7 @@ func TestHarvestAdjacent(t *testing.T) {
 	t.Run("does not harvest from grassland", func(t *testing.T) {
 		w, _ := makeWorld(Grassland, 0)
 		p := NewPlayer(2, 2)
-		p.HarvestAdjacent(w)
+		p.HarvestAdjacent(w, time.Now())
 		if p.Wood != 0 {
 			t.Errorf("Wood = %d, want 0 (grassland should not yield wood)", p.Wood)
 		}
@@ -123,8 +123,8 @@ func TestHarvestAdjacent(t *testing.T) {
 	t.Run("safe at world edge — no panic on nil tile", func(t *testing.T) {
 		w := NewWorld(3, 3)
 		w.Tiles[0][0] = Tile{Terrain: Forest, TreeSize: 5}
-		p := NewPlayer(0, 0) // at corner; two neighbors are out of bounds
-		p.HarvestAdjacent(w) // must not panic
+		p := NewPlayer(0, 0)             // at corner; two neighbors are out of bounds
+		p.HarvestAdjacent(w, time.Now()) // must not panic
 	})
 
 	t.Run("harvests the forward arc (straight and both diagonals)", func(t *testing.T) {
@@ -139,7 +139,7 @@ func TestHarvestAdjacent(t *testing.T) {
 		for _, coord := range [][2]int{{2, 3}, {3, 2}, {1, 2}} {
 			w.Tiles[coord[1]][coord[0]] = Tile{Terrain: Forest, TreeSize: 3}
 		}
-		p.HarvestAdjacent(w)
+		p.HarvestAdjacent(w, time.Now())
 		if p.Wood != 3 {
 			t.Errorf("Wood = %d, want 3 (forward arc harvested)", p.Wood)
 		}
@@ -210,7 +210,7 @@ func TestHarvestCapacity(t *testing.T) {
 		w.Tiles[1][2] = Tile{Terrain: Forest, TreeSize: 10}
 		p := NewPlayer(2, 2)
 		p.Wood = InitialCarryingCapacity
-		p.HarvestAdjacent(w)
+		p.HarvestAdjacent(w, time.Now())
 		if p.Wood != InitialCarryingCapacity {
 			t.Errorf("Wood = %d, want %d (should not exceed InitialCarryingCapacity)", p.Wood, InitialCarryingCapacity)
 		}
@@ -224,7 +224,7 @@ func TestHarvestCapacity(t *testing.T) {
 		w.Tiles[1][2] = Tile{Terrain: Forest, TreeSize: 10}
 		p := NewPlayer(2, 2)
 		p.Wood = InitialCarryingCapacity - 1
-		p.HarvestAdjacent(w)
+		p.HarvestAdjacent(w, time.Now())
 		if p.Wood != InitialCarryingCapacity {
 			t.Errorf("Wood = %d, want %d (should fill to exactly InitialCarryingCapacity)", p.Wood, InitialCarryingCapacity)
 		}
