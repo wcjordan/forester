@@ -120,7 +120,6 @@ Always use `World.TileAt(x, y)` to access tiles safely (returns `nil` for out-of
 
 ### Bubbletea tick loop
 `render.TickMsg` fires every `GameTickInterval` (100 ms). Each tick calls `game.Tick()`.
-Player harvesting fires every `HarvestTickInterval` (100 ms, independently tunable from the game loop rate).
 Player input goes through `tea.KeyMsg` → `state.Move()`.
 
 ---

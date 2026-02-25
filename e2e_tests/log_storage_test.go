@@ -132,7 +132,6 @@ func TestLogStorageWorkflow(t *testing.T) {
 
 	// ── Phase 4: Deposit wood to complete the foundation ─────────────────────
 	// Player at (48,45) is adjacent to foundation. Each tick fires TickAdjacentStructures.
-	// Deposit cooldown matches GameTickInterval (100ms); one deposit per tick.
 	// Foundation completes after LogStorageBuildCost (20) deposits; may already be done from phase 2.
 	announcePhase(m, "Phase 4: Build foundation via resource deposit")
 	const maxBuildTicks = 120
