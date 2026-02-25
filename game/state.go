@@ -56,8 +56,8 @@ func (s *State) SelectCard(idx int) {
 
 // Harvest harvests adjacent trees without moving the player.
 // Spawns a foundation when the spawn condition is met.
-func (s *State) Harvest(env *Env) {
-	s.Player.HarvestAdjacent(s.World)
+func (s *State) Harvest(env *Env, now time.Time) {
+	s.Player.HarvestAdjacent(s.World, now)
 	s.maybeSpawnFoundation(env)
 }
 

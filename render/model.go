@@ -12,11 +12,11 @@ import (
 	"forester/game"
 )
 
-// TickMsg is sent each harvest tick interval to drive the game loop.
+// TickMsg is sent each tick interval to drive the game loop.
 type TickMsg time.Time
 
 func doTick() tea.Cmd {
-	return tea.Tick(game.HarvestTickInterval, func(t time.Time) tea.Msg {
+	return tea.Tick(game.GameTickInterval, func(t time.Time) tea.Msg {
 		return TickMsg(t)
 	})
 }

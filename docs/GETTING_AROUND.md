@@ -119,7 +119,7 @@ Each structure file calls `structures = append(structures, myDef{})` in `init()`
 Always use `World.TileAt(x, y)` to access tiles safely (returns `nil` for out-of-bounds).
 
 ### Bubbletea tick loop
-`render.TickMsg` fires every `HarvestTickInterval` (100 ms). Each tick calls `game.Tick()`.
+`render.TickMsg` fires every `GameTickInterval` (100 ms). Each tick calls `game.Tick()`.
 Player input goes through `tea.KeyMsg` → `state.Move()`.
 
 ---

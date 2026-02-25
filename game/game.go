@@ -7,11 +7,10 @@ import (
 
 // Game is the top-level orchestrator that owns the game state and loop.
 type Game struct {
-	State          *State
-	Stores         *StorageManager
-	rng            *rand.Rand
-	regrowCooldown time.Time
-	clock          Clock
+	State  *State
+	Stores *StorageManager
+	rng    *rand.Rand
+	clock  Clock
 }
 
 // New creates a new Game with default state using the system clock.
@@ -29,11 +28,10 @@ func NewWithClock(clock Clock) *Game {
 // tests to get fully deterministic behavior (e.g. rand.New(rand.NewSource(0))).
 func NewWithClockAndRNG(clock Clock, rng *rand.Rand) *Game {
 	return &Game{
-		State:          newState(),
-		Stores:         NewStorageManager(),
-		rng:            rng,
-		regrowCooldown: clock.Now().Add(RegrowthCooldown),
-		clock:          clock,
+		State:  newState(),
+		Stores: NewStorageManager(),
+		rng:    rng,
+		clock:  clock,
 	}
 }
 
@@ -50,10 +48,7 @@ func (g *Game) Tick() {
 	}
 	now := g.clock.Now()
 	env := g.env()
-	g.State.Harvest(env)
+	g.State.Harvest(env, now)
 	g.State.TickAdjacentStructures(env, now)
-	if now.After(g.regrowCooldown) {
-		g.State.World.Regrow(g.rng)
-		g.regrowCooldown = now.Add(RegrowthCooldown)
-	}
+	g.State.World.Regrow(g.rng, now)
 }

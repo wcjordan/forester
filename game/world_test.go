@@ -3,6 +3,7 @@ package game
 import (
 	"math/rand"
 	"testing"
+	"time"
 )
 
 func TestNewWorld(t *testing.T) {
@@ -58,6 +59,13 @@ func TestInBounds(t *testing.T) {
 	}
 }
 
+// regrowTick advances the regrowth cooldown by 2x RegrowthCooldown per iteration,
+// guaranteeing each call fires the regrowth logic regardless of current cooldown state.
+func regrowTick(w *World, rng *rand.Rand, i int) {
+	t0 := time.Time{}
+	w.Regrow(rng, t0.Add(time.Duration(i+1)*RegrowthCooldown*2))
+}
+
 func TestRegrow(t *testing.T) {
 	// Use a 20×20 world and place Forest tiles at (0,0), which is ~14 tiles
 	// from the spawn center (10,10) — well outside the no-grow radius of 8.
@@ -67,7 +75,7 @@ func TestRegrow(t *testing.T) {
 		w.Tiles[0][0] = Tile{Terrain: Forest, TreeSize: 0}
 		grew := false
 		for i := 0; i < 1000; i++ {
-			w.Regrow(rng)
+			regrowTick(w, rng, i)
 			if w.Tiles[0][0].TreeSize > 0 {
 				grew = true
 				break
@@ -84,7 +92,7 @@ func TestRegrow(t *testing.T) {
 		w.Tiles[0][0] = Tile{Terrain: Forest, TreeSize: 5}
 		grew := false
 		for i := 0; i < 1000; i++ {
-			w.Regrow(rng)
+			regrowTick(w, rng, i)
 			if w.Tiles[0][0].TreeSize > 5 {
 				grew = true
 				break
@@ -100,7 +108,7 @@ func TestRegrow(t *testing.T) {
 		w := NewWorld(20, 20)
 		w.Tiles[0][0] = Tile{Terrain: Forest, TreeSize: maxTreeSize}
 		for i := 0; i < 1000; i++ {
-			w.Regrow(rng)
+			regrowTick(w, rng, i)
 		}
 		if w.Tiles[0][0].TreeSize != maxTreeSize {
 			t.Errorf("TreeSize = %d, want %d", w.Tiles[0][0].TreeSize, maxTreeSize)
@@ -112,7 +120,7 @@ func TestRegrow(t *testing.T) {
 		w := NewWorld(20, 20)
 		w.Tiles[0][0] = Tile{Terrain: Grassland}
 		for i := 0; i < 1000; i++ {
-			w.Regrow(rng)
+			regrowTick(w, rng, i)
 		}
 		tile := w.Tiles[0][0]
 		if tile.Terrain != Grassland {
@@ -125,7 +133,7 @@ func TestRegrow(t *testing.T) {
 		// 20×20 world: spawn = (10,10). Tile at (10,10) is distance 0 ≤ 8.
 		w := NewWorld(20, 20)
 		w.Tiles[10][10] = Tile{Terrain: Forest, TreeSize: 0}
-		w.Regrow(rng)
+		regrowTick(w, rng, 0)
 		if w.Tiles[10][10].Terrain != Grassland {
 			t.Errorf("Terrain = %v, want Grassland (cut tree in no-grow zone should convert)", w.Tiles[10][10].Terrain)
 		}
@@ -136,7 +144,7 @@ func TestRegrow(t *testing.T) {
 		w := NewWorld(20, 20)
 		w.Tiles[10][10] = Tile{Terrain: Forest, TreeSize: 5}
 		for i := 0; i < 1000; i++ {
-			w.Regrow(rng)
+			regrowTick(w, rng, i)
 		}
 		tile := w.Tiles[10][10]
 		if tile.Terrain != Forest {
@@ -155,7 +163,7 @@ func TestRegrow(t *testing.T) {
 		w := NewWorld(40, 40)
 		w.SetStructure(5, 5, 1, 1, LogStorage)
 		w.Tiles[10][5] = Tile{Terrain: Forest, TreeSize: 0}
-		w.Regrow(rng)
+		regrowTick(w, rng, 0)
 		if w.Tiles[10][5].Terrain != Grassland {
 			t.Errorf("Terrain = %v, want Grassland (cut tree in building no-grow zone should convert)", w.Tiles[10][5].Terrain)
 		}
