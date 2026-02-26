@@ -79,6 +79,11 @@ A city builder/simulation game where you play as a character who develops a vill
 - **Contribution**: Wood flow — not XP
 - **Following behavior**: Not yet implemented (villagers work independently)
 - **Foreman system**: Not yet implemented
+  - Can promote a villager to "foreman"
+  - Foreman continues task autonomously
+  - Encourages other villagers to do the same task
+  - Allows player to move on to new activities
+- **No direct control**: Lead by example only
 
 ---
 
