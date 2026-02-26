@@ -31,3 +31,7 @@ type StructureEntry struct {
 // structures is the registry of all known structure definitions.
 // Each definition registers itself via init() in its own file.
 var structures []StructureDef
+
+// RegisterStructure adds a StructureDef to the global registry.
+// Call this from an init() function in an external package (e.g. game/structures).
+func RegisterStructure(d StructureDef) { structures = append(structures, d) }

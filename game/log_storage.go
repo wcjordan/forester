@@ -8,9 +8,6 @@ const LogStorageBuildCost = 20
 // LogStorageCapacity is the maximum number of wood a single Log Storage can hold.
 const LogStorageCapacity = 500
 
-// DepositTickInterval is how often the player auto-deposits one wood when adjacent to a storage structure.
-const DepositTickInterval = 100 * time.Millisecond
-
 func init() { structures = append(structures, logStorageDef{}) }
 
 // logStorageDef implements StructureDef for the Log Storage structure.

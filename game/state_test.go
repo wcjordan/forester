@@ -346,7 +346,19 @@ func TestDepositRespectsInstanceCapacity(t *testing.T) {
 	}
 }
 
+// testCarryUpgrade is a minimal UpgradeDef used only in TestAddOfferAndSelectCard
+// so the test stays decoupled from the game/upgrades package.
+type testCarryUpgrade struct{}
+
+func (testCarryUpgrade) ID() string          { return "test_carry" }
+func (testCarryUpgrade) Name() string        { return "Test Carry" }
+func (testCarryUpgrade) Description() string { return "test" }
+func (testCarryUpgrade) Apply(p *Player)     { p.MaxCarry = 100 }
+
 func TestAddOfferAndSelectCard(t *testing.T) {
+	upgradeRegistry["test_carry"] = testCarryUpgrade{}
+	t.Cleanup(func() { delete(upgradeRegistry, "test_carry") })
+
 	w := NewWorld(10, 10)
 	p := NewPlayer(5, 5)
 	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int)}
@@ -355,7 +367,7 @@ func TestAddOfferAndSelectCard(t *testing.T) {
 		t.Fatal("should have no pending offer initially")
 	}
 
-	s.AddOffer([]string{"carry_capacity"})
+	s.AddOffer([]string{"test_carry"})
 
 	if !s.HasPendingOffer() {
 		t.Fatal("should have pending offer after AddOffer")

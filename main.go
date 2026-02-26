@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"forester/game"
+	_ "forester/game/upgrades"
 	"forester/render"
 )
 
