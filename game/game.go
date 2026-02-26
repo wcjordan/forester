@@ -41,7 +41,7 @@ func (g *Game) env() *Env {
 }
 
 // Tick advances the game: harvests trees, handles adjacent-structure interactions,
-// and fires probabilistic regrowth. Returns early when a card offer is pending.
+// ticks villagers, and fires probabilistic regrowth. Returns early when a card offer is pending.
 func (g *Game) Tick() {
 	if g.State.HasPendingOffer() {
 		return
@@ -50,5 +50,6 @@ func (g *Game) Tick() {
 	env := g.env()
 	g.State.Harvest(env, now)
 	g.State.TickAdjacentStructures(env, now)
+	g.State.TickVillagers(env, g.rng, now)
 	g.State.World.Regrow(g.rng, now)
 }

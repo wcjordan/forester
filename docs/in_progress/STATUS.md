@@ -5,10 +5,10 @@
 
 ## Stages
 - [x] Stage 1: Villager entity, spawning, rendering — make check passes
-- [ ] Stage 2: Task system, movement, storage withdrawal
+- [x] Stage 2: Task system, movement, storage withdrawal — make check passes
 
-## Next
-- Begin Stage 2: WithdrawFrom, TotalCapacity, task enum, pickTask, Tick, TickVillagers
+## Done
+All stages complete. Ready to clean up in_progress files.
 
 ## Key decisions
 - Task selection: probabilistic (P(chop) = 1 - fill_ratio, P(deliver) = fill_ratio)
