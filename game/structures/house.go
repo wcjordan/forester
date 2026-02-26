@@ -38,10 +38,9 @@ func (houseDef) ShouldSpawn(env *game.Env) bool {
 // as close as possible to the world spawn point rather than near the player.
 func (houseDef) UseSpawnAnchoredPlacement() bool { return true }
 
-// OnBuilt queues a 2-card milestone offer when a House is completed.
-func (houseDef) OnBuilt(env *game.Env, _ game.Point) {
-	env.State.AddOffer([]string{"build_speed", "deposit_speed"})
-}
+// OnBuilt is called when a House is completed.
+// The build/deposit speed upgrade offer is queued by the first_house_built story beat.
+func (houseDef) OnBuilt(_ *game.Env, _ game.Point) {}
 
 // OnPlayerInteraction handles adjacent-player interaction.
 // When adjacent to a foundation, deposits one wood toward the build cost each cooldown tick.

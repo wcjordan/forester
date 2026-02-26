@@ -27,8 +27,9 @@ func findStructureDefByFoundationType(ft StructureType) StructureDef {
 
 // spawnFoundationAt finds a valid location for def and places its foundation tile.
 // Placement is near the world spawn point if def implements SpawnAnchoredPlacer,
-// otherwise near the player. Does nothing if no valid location is found.
-func (s *State) spawnFoundationAt(def StructureDef) {
+// otherwise near the player. Returns true if a foundation was placed, false if no
+// valid location was found (caller may retry on the next tick).
+func (s *State) spawnFoundationAt(def StructureDef) bool {
 	w, h := def.Footprint()
 	var cx, cy int
 	if sa, ok := def.(SpawnAnchoredPlacer); ok && sa.UseSpawnAnchoredPlacement() {
@@ -39,7 +40,9 @@ func (s *State) spawnFoundationAt(def StructureDef) {
 	if cx >= 0 {
 		s.World.SetStructure(cx, cy, w, h, def.FoundationType())
 		s.World.IndexStructure(cx, cy, w, h, def)
+		return true
 	}
+	return false
 }
 
 // maybeSpawnFoundation checks each registered structure definition and places a foundation
