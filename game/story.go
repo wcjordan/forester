@@ -10,7 +10,7 @@ type StoryBeat struct {
 }
 
 // storyBeats is the ordered list of early-game story triggers.
-// Replace in tests via withTestStoryBeats.
+// It is a package-level variable so tests can swap it out if needed.
 var storyBeats = []StoryBeat{
 	{
 		// Spawn the first log storage foundation when the player's inventory is full.
@@ -27,7 +27,8 @@ var storyBeats = []StoryBeat{
 		},
 	},
 	{
-		// Spawn the first house foundation once enough wood is in storage.
+		// Spawn the first house foundation once enough wood has been deposited in storage.
+		// 50 matches the house build cost so the player has enough on hand after depositing.
 		ID: "initial_house",
 		Condition: func(env *Env) bool {
 			return env.Stores.Total(Wood) >= 50
