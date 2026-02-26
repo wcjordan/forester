@@ -31,3 +31,18 @@ type StructureEntry struct {
 // structures is the registry of all known structure definitions.
 // Each definition registers itself via init() in its own file.
 var structures []StructureDef
+
+// RegisterStructure adds a StructureDef to the global registry.
+// Call this from an init() function in an external package (e.g. game/structures).
+// Panics on nil or duplicate registration (same FoundationType+BuiltType pair).
+func RegisterStructure(d StructureDef) {
+	if d == nil {
+		panic("RegisterStructure: def is nil")
+	}
+	for _, existing := range structures {
+		if existing.FoundationType() == d.FoundationType() && existing.BuiltType() == d.BuiltType() {
+			panic("RegisterStructure: duplicate registration")
+		}
+	}
+	structures = append(structures, d)
+}

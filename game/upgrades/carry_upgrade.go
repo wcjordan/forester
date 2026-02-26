@@ -1,6 +1,8 @@
-package game
+package upgrades
 
-func init() { upgradeRegistry["carry_capacity"] = carryCapacityUpgrade{} }
+import "forester/game"
+
+func init() { game.RegisterUpgrade(carryCapacityUpgrade{}) }
 
 type carryCapacityUpgrade struct{}
 
@@ -16,4 +18,4 @@ func (carryCapacityUpgrade) Description() string {
 }
 
 // Apply sets the player's carry capacity to 100.
-func (carryCapacityUpgrade) Apply(p *Player) { p.MaxCarry = 100 }
+func (carryCapacityUpgrade) Apply(p *game.Player) { p.MaxCarry = 100 }

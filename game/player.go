@@ -129,6 +129,9 @@ func MoveCooldownFor(tile *Tile) time.Duration {
 // InitialCarryingCapacity is the carrying capacity a new player starts with.
 const InitialCarryingCapacity = 20
 
+// DepositTickInterval is how often the player auto-deposits one wood when adjacent to a storage structure.
+const DepositTickInterval = 100 * time.Millisecond
+
 // GameTickInterval is the base cadence of the game loop (how often game.Tick is called).
 const GameTickInterval = 100 * time.Millisecond
 

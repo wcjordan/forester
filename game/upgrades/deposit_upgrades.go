@@ -1,10 +1,14 @@
-package game
+package upgrades
 
-import "time"
+import (
+	"time"
+
+	"forester/game"
+)
 
 func init() {
-	upgradeRegistry["build_speed"] = buildSpeedUpgrade{}
-	upgradeRegistry["deposit_speed"] = depositSpeedUpgrade{}
+	game.RegisterUpgrade(buildSpeedUpgrade{})
+	game.RegisterUpgrade(depositSpeedUpgrade{})
 }
 
 // buildSpeedUpgrade reduces the time between foundation deposits by 10%.
@@ -22,7 +26,7 @@ func (buildSpeedUpgrade) Description() string {
 }
 
 // Apply reduces the player's foundation deposit interval by 10%.
-func (buildSpeedUpgrade) Apply(p *Player) {
+func (buildSpeedUpgrade) Apply(p *game.Player) {
 	p.BuildInterval = time.Duration(float64(p.BuildInterval) * 0.9)
 }
 
@@ -41,6 +45,6 @@ func (depositSpeedUpgrade) Description() string {
 }
 
 // Apply reduces the player's storage deposit interval by 10%.
-func (depositSpeedUpgrade) Apply(p *Player) {
+func (depositSpeedUpgrade) Apply(p *game.Player) {
 	p.DepositInterval = time.Duration(float64(p.DepositInterval) * 0.9)
 }

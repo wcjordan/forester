@@ -270,7 +270,7 @@ func TestSetStructureTypeIndex(t *testing.T) {
 func TestIndexStructure(t *testing.T) {
 	t.Run("single tile entry has correct origin", func(t *testing.T) {
 		w := NewWorld(10, 10)
-		w.IndexStructure(3, 4, 1, 1, logStorageDef{})
+		w.IndexStructure(3, 4, 1, 1, testLogStorageDef{})
 		entry, ok := w.StructureIndex[Point{3, 4}]
 		if !ok {
 			t.Fatal("expected entry at (3,4)")
@@ -282,7 +282,7 @@ func TestIndexStructure(t *testing.T) {
 
 	t.Run("4x4 footprint: all 16 tiles indexed with same origin", func(t *testing.T) {
 		w := NewWorld(20, 20)
-		w.IndexStructure(2, 3, 4, 4, logStorageDef{})
+		w.IndexStructure(2, 3, 4, 4, testLogStorageDef{})
 		origin := Point{2, 3}
 		for dy := 0; dy < 4; dy++ {
 			for dx := 0; dx < 4; dx++ {
@@ -301,8 +301,8 @@ func TestIndexStructure(t *testing.T) {
 
 	t.Run("second call with same origin is idempotent", func(t *testing.T) {
 		w := NewWorld(10, 10)
-		w.IndexStructure(1, 1, 1, 1, logStorageDef{})
-		w.IndexStructure(1, 1, 1, 1, logStorageDef{})
+		w.IndexStructure(1, 1, 1, 1, testLogStorageDef{})
+		w.IndexStructure(1, 1, 1, 1, testLogStorageDef{})
 		if len(w.StructureIndex) != 1 {
 			t.Errorf("index len = %d, want 1", len(w.StructureIndex))
 		}
