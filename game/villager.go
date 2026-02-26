@@ -47,7 +47,7 @@ func (s *State) TickVillagers(env *Env, rng *rand.Rand, now time.Time) {
 
 // Tick advances this villager by one game step, gated on moveCooldown.
 func (v *Villager) Tick(env *Env, rng *rand.Rand, now time.Time) {
-	if !now.After(v.moveCooldown) {
+	if now.Before(v.moveCooldown) {
 		return
 	}
 	v.moveCooldown = now.Add(VillagerMoveCooldown)
