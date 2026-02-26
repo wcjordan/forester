@@ -39,7 +39,6 @@ func (houseDef) ShouldSpawn(env *game.Env) bool {
 func (houseDef) UseSpawnAnchoredPlacement() bool { return true }
 
 // OnBuilt is called when a House is completed.
-// The build/deposit speed upgrade offer is queued by the first_house_built story beat.
 func (houseDef) OnBuilt(_ *game.Env, _ game.Point) {}
 
 // OnPlayerInteraction handles adjacent-player interaction.

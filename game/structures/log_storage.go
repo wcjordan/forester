@@ -36,7 +36,6 @@ func (logStorageDef) StorageCapacity() int { return logStorageCapacity }
 func (logStorageDef) ShouldSpawn(_ *game.Env) bool { return false }
 
 // OnBuilt registers a new storage instance when a Log Storage is completed.
-// The carry upgrade offer is queued by the first_log_storage_built story beat.
 func (logStorageDef) OnBuilt(env *game.Env, origin game.Point) {
 	env.Stores.Register(origin, game.Wood, logStorageCapacity)
 }
