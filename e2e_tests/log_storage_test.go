@@ -166,6 +166,12 @@ func TestLogStorageWorkflow(t *testing.T) {
 	if !g.State.HasPendingOffer() {
 		t.Fatal("phase 5: expected a pending card offer after building log storage")
 	}
+	woodBeforePause := g.State.Player.Wood
+	tick(&m, clock) // game should be paused — wood should not change
+	if g.State.Player.Wood != woodBeforePause {
+		t.Errorf("phase 5: game should be paused during card selection; Wood changed from %d to %d",
+			woodBeforePause, g.State.Player.Wood)
+	}
 	g.State.SelectCard(0)
 	if g.State.Player.MaxCarry != 100 {
 		t.Errorf("phase 5: MaxCarry = %d, want 100 after accepting carry upgrade", g.State.Player.MaxCarry)
