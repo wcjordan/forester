@@ -10,6 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"forester/game"
+	_ "forester/game/structures"
 	_ "forester/game/upgrades"
 	"forester/render"
 )
@@ -114,9 +115,9 @@ func TestHouseWorkflow(t *testing.T) {
 			}
 		}
 	}
-	if g.State.Player.Wood < game.HouseBuildCost {
-		t.Fatalf("phase 3: Wood = %d after north harvest, need at least %d for house build",
-			g.State.Player.Wood, game.HouseBuildCost)
+	if g.State.Player.Wood < 50 {
+		t.Fatalf("phase 3: Wood = %d after north harvest, need at least 50 for house build",
+			g.State.Player.Wood)
 	}
 	// Player should be at (48,40) after 5 north steps from (48,44 start).
 	if g.State.Player.X != 48 || g.State.Player.Y != 40 {
@@ -145,7 +146,7 @@ func TestHouseWorkflow(t *testing.T) {
 	const maxDepositTicks = 200
 	for i := range maxDepositTicks {
 		tick(&m, clock)
-		if g.Stores.Total(game.Wood) >= game.HouseSpawnThreshold {
+		if g.Stores.Total(game.Wood) >= 50 {
 			break
 		}
 		if i == maxDepositTicks-1 {
@@ -154,9 +155,9 @@ func TestHouseWorkflow(t *testing.T) {
 		}
 	}
 	woodForHouse := g.State.Player.Wood
-	if woodForHouse < game.HouseBuildCost {
-		t.Fatalf("phase 5: need %d wood to build house, only have %d (stores=%d)",
-			game.HouseBuildCost, woodForHouse, g.Stores.Total(game.Wood))
+	if woodForHouse < 50 {
+		t.Fatalf("phase 5: need 50 wood to build house, only have %d (stores=%d)",
+			woodForHouse, g.Stores.Total(game.Wood))
 	}
 	// House foundation should NOT have spawned yet (spawns on Phase 7 tick 1).
 	if g.State.HasStructureOfType(game.FoundationHouse) {
