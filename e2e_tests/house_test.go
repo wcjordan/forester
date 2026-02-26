@@ -55,6 +55,15 @@ func moveSafe(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) 
 //   - The 2-card offer after house completion: card 0 = "Faster Construction"
 //     (build_speed, reduces BuildInterval by 10%), card 1 = "Faster Depositing"
 //     (deposit_speed, reduces DepositInterval by 10%).
+//
+// houseBuildCost and houseSpawnThreshold mirror the values in game/structures/house.go.
+// They are duplicated here (rather than exported) because game/structures' constants
+// are intentionally package-private. Update both if the gameplay values change.
+const (
+	houseBuildCost      = 50
+	houseSpawnThreshold = 50
+)
+
 func TestHouseWorkflow(t *testing.T) {
 	// ── Setup ────────────────────────────────────────────────────────────────
 	clock := game.NewFakeClock()
@@ -115,9 +124,9 @@ func TestHouseWorkflow(t *testing.T) {
 			}
 		}
 	}
-	if g.State.Player.Wood < 50 {
-		t.Fatalf("phase 3: Wood = %d after north harvest, need at least 50 for house build",
-			g.State.Player.Wood)
+	if g.State.Player.Wood < houseBuildCost {
+		t.Fatalf("phase 3: Wood = %d after north harvest, need at least %d for house build",
+			g.State.Player.Wood, houseBuildCost)
 	}
 	// Player should be at (48,40) after 5 north steps from (48,44 start).
 	if g.State.Player.X != 48 || g.State.Player.Y != 40 {
@@ -146,7 +155,7 @@ func TestHouseWorkflow(t *testing.T) {
 	const maxDepositTicks = 200
 	for i := range maxDepositTicks {
 		tick(&m, clock)
-		if g.Stores.Total(game.Wood) >= 50 {
+		if g.Stores.Total(game.Wood) >= houseSpawnThreshold {
 			break
 		}
 		if i == maxDepositTicks-1 {
@@ -155,9 +164,9 @@ func TestHouseWorkflow(t *testing.T) {
 		}
 	}
 	woodForHouse := g.State.Player.Wood
-	if woodForHouse < 50 {
-		t.Fatalf("phase 5: need 50 wood to build house, only have %d (stores=%d)",
-			woodForHouse, g.Stores.Total(game.Wood))
+	if woodForHouse < houseBuildCost {
+		t.Fatalf("phase 5: need %d wood to build house, only have %d (stores=%d)",
+			houseBuildCost, woodForHouse, g.Stores.Total(game.Wood))
 	}
 	// House foundation should NOT have spawned yet (spawns on Phase 7 tick 1).
 	if g.State.HasStructureOfType(game.FoundationHouse) {
