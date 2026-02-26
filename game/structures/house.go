@@ -7,7 +7,6 @@ import (
 )
 
 const houseBuildCost = 50
-const houseSpawnThreshold = 50
 
 func init() { game.RegisterStructure(houseDef{}) }
 
@@ -26,9 +25,13 @@ func (houseDef) Footprint() (w, h int) { return 2, 2 }
 // BuildCost returns the number of wood required to complete a House foundation.
 func (houseDef) BuildCost() int { return houseBuildCost }
 
-// ShouldSpawn returns true when enough wood is currently stored in Log Storage.
+// ShouldSpawn is the world condition for spawning additional houses.
+// Returns true when at least one house has been built and no house foundation is pending.
+// The first house is handled by the story beat system; this drives all subsequent spawns.
 func (houseDef) ShouldSpawn(env *game.Env) bool {
-	return env.Stores.Total(game.Wood) >= houseSpawnThreshold
+	built := len(env.State.World.StructureTypeIndex[game.House])
+	pending := len(env.State.World.StructureTypeIndex[game.FoundationHouse])
+	return built >= 1 && pending == 0
 }
 
 // UseSpawnAnchoredPlacement signals that the house foundation should be placed

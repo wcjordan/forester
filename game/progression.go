@@ -43,14 +43,11 @@ func (s *State) spawnFoundationAt(def StructureDef) {
 }
 
 // maybeSpawnFoundation checks each registered structure definition and places a foundation
-// when its ShouldSpawn world condition is met and no foundation or built instance already
-// exists for that type.
+// when its ShouldSpawn world condition is met. Each ShouldSpawn implementation is responsible
+// for its own idempotency (e.g. checking that no foundation is already pending).
 func (s *State) maybeSpawnFoundation(env *Env) {
 	for _, def := range structures {
 		if !def.ShouldSpawn(env) {
-			continue
-		}
-		if s.HasStructureOfType(def.FoundationType()) || s.HasStructureOfType(def.BuiltType()) {
 			continue
 		}
 		s.spawnFoundationAt(def)

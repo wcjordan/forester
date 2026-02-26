@@ -197,9 +197,9 @@ func TestHouseWorkflow(t *testing.T) {
 	}
 
 	// ── Phase 7: Build house ──────────────────────────────────────────────────
-	// First tick fires Harvest → maybeSpawnFoundation sees stores≥50 → spawns
-	// house foundation at (49,51) (closest valid 2×2 to spawn with 1-tile gap from
-	// log storage). Within the same tick, TickAdjacentStructures sees (50,51)
+	// First tick fires Harvest → maybeAdvanceStory fires initial_house story beat
+	// (stores≥50) → spawns house foundation at (49,51) (closest valid 2×2 to spawn
+	// with 1-tile gap from log storage). Within the same tick, TickAdjacentStructures sees (50,51)
 	// adjacent to player at (51,51), fires OnPlayerInteraction, deposits 1 wood.
 	// After 50 total ticks: HouseBuildCost deposits complete → house built → 2-card offer.
 	announcePhase(m, "Phase 7: Build house (50 wood deposits)")

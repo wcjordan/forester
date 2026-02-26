@@ -7,16 +7,34 @@ import (
 
 // testLogStorageDef is a minimal StructureDef for spawning tests in package game.
 // It mimics just enough of logStorageDef (now in game/structures) to exercise
-// maybeSpawnFoundation without importing the structures subpackage.
+// spawnFoundationAt and placement helpers without importing the structures subpackage.
+// ShouldSpawn returns false: initial log storage spawning is owned by story beats.
 type testLogStorageDef struct{}
 
 func (testLogStorageDef) FoundationType() StructureType                    { return FoundationLogStorage }
 func (testLogStorageDef) BuiltType() StructureType                         { return LogStorage }
 func (testLogStorageDef) Footprint() (w, h int)                            { return 4, 4 }
 func (testLogStorageDef) BuildCost() int                                   { return 20 }
-func (testLogStorageDef) ShouldSpawn(env *Env) bool                        { return env.State.Player.Wood >= 20 }
+func (testLogStorageDef) ShouldSpawn(_ *Env) bool                          { return false }
 func (testLogStorageDef) OnPlayerInteraction(_ *Env, _ Point, _ time.Time) {}
 func (testLogStorageDef) OnBuilt(_ *Env, _ Point)                          {}
+
+// testHouseDef is a minimal StructureDef for house world-condition tests.
+// ShouldSpawn implements the same gate as houseDef: at least one built house,
+// no pending house foundation.
+type testHouseDef struct{}
+
+func (testHouseDef) FoundationType() StructureType { return FoundationHouse }
+func (testHouseDef) BuiltType() StructureType      { return House }
+func (testHouseDef) Footprint() (w, h int)         { return 2, 2 }
+func (testHouseDef) BuildCost() int                { return 50 }
+func (testHouseDef) ShouldSpawn(env *Env) bool {
+	built := len(env.State.World.StructureTypeIndex[House])
+	pending := len(env.State.World.StructureTypeIndex[FoundationHouse])
+	return built >= 1 && pending == 0
+}
+func (testHouseDef) OnPlayerInteraction(_ *Env, _ Point, _ time.Time) {}
+func (testHouseDef) OnBuilt(_ *Env, _ Point)                          {}
 
 // withTestStructures registers testLogStorageDef for the duration of t and
 // restores the original registry on cleanup.
@@ -27,6 +45,19 @@ func withTestStructures(t *testing.T) {
 	t.Cleanup(func() { structures = orig })
 }
 
+// countStructureTiles returns the number of tiles in w that have the given structure type.
+func countStructureTiles(w *World, st StructureType) int {
+	n := 0
+	for y := range w.Tiles {
+		for x := range w.Tiles[y] {
+			if w.Tiles[y][x].Structure == st {
+				n++
+			}
+		}
+	}
+	return n
+}
+
 func TestFoundationSpawnsWhenInventoryFull(t *testing.T) {
 	withTestStructures(t)
 	// Build a world big enough that there's a clear path from player to center.
@@ -34,7 +65,7 @@ func TestFoundationSpawnsWhenInventoryFull(t *testing.T) {
 	// Player at (5, 5) facing north; forest tile at (5, 4) with enough wood.
 	w.Tiles[4][5] = Tile{Terrain: Forest, TreeSize: InitialCarryingCapacity}
 	p := NewPlayer(5, 5)
-	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int)}
+	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int), CompletedBeats: make(map[string]bool)}
 	stores := NewStorageManager()
 	env := &Env{State: s, Stores: stores}
 
@@ -47,14 +78,14 @@ func TestFoundationSpawnsWhenInventoryFull(t *testing.T) {
 		t.Fatal("foundation appeared before inventory full")
 	}
 
-	// Final harvest fills inventory — foundation should now appear.
+	// Final harvest fills inventory — story beat fires and foundation should now appear.
 	s.Harvest(env, t0.Add(time.Duration(InitialCarryingCapacity)*HarvestTickInterval*2))
 	if !s.HasStructureOfType(FoundationLogStorage) {
 		t.Error("foundation did not appear when inventory became full")
 	}
 }
 
-func TestFoundationDoesNotSpawnTwice(t *testing.T) {
+func TestStoryBeatFiresOnce(t *testing.T) {
 	withTestStructures(t)
 	w := NewWorld(30, 30)
 	for i := 0; i < 15; i++ {
@@ -62,53 +93,35 @@ func TestFoundationDoesNotSpawnTwice(t *testing.T) {
 	}
 	p := NewPlayer(5, 5)
 	p.Wood = InitialCarryingCapacity
-	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int)}
+	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int), CompletedBeats: make(map[string]bool)}
 	stores := NewStorageManager()
 	env := &Env{State: s, Stores: stores}
 
-	s.maybeSpawnFoundation(env)
-	// Count foundation tiles.
-	count := 0
-	for y := range w.Tiles {
-		for x := range w.Tiles[y] {
-			if w.Tiles[y][x].Structure == FoundationLogStorage {
-				count++
-			}
-		}
-	}
-	firstCount := count
+	s.maybeAdvanceStory(env)
+	count1 := countStructureTiles(w, FoundationLogStorage)
 
-	// Call again — should not add more.
-	s.maybeSpawnFoundation(env)
-	count = 0
-	for y := range w.Tiles {
-		for x := range w.Tiles[y] {
-			if w.Tiles[y][x].Structure == FoundationLogStorage {
-				count++
-			}
-		}
+	// Second call — beat is now marked complete; should not spawn another foundation.
+	s.maybeAdvanceStory(env)
+	count2 := countStructureTiles(w, FoundationLogStorage)
+
+	if count1 == 0 {
+		t.Error("story beat did not fire on first call")
 	}
-	if count != firstCount {
-		t.Errorf("foundation tile count changed from %d to %d on second spawn attempt", firstCount, count)
+	if count2 != count1 {
+		t.Errorf("story beat fired twice; foundation count changed from %d to %d", count1, count2)
 	}
 }
 
 func TestFoundationLocationIsAllGrassland(t *testing.T) {
-	withTestStructures(t)
 	w := NewWorld(30, 30)
 	p := NewPlayer(5, 15)
-	p.Wood = InitialCarryingCapacity
-	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int)}
-	stores := NewStorageManager()
-	env := &Env{State: s, Stores: stores}
-	s.maybeSpawnFoundation(env)
+	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int), CompletedBeats: make(map[string]bool)}
+	s.spawnFoundationAt(testLogStorageDef{})
 
 	// Find the foundation and verify all 16 tiles are on grassland terrain (underlying).
 	for y := range w.Tiles {
 		for x := range w.Tiles[y] {
 			if w.Tiles[y][x].Structure == FoundationLogStorage {
-				// This tile is part of the foundation footprint — check original terrain.
-				// Since we built on grassland, terrain should still be Grassland.
 				if w.Tiles[y][x].Terrain != Grassland {
 					t.Errorf("foundation tile (%d,%d) is on non-grassland terrain", x, y)
 				}
@@ -118,15 +131,11 @@ func TestFoundationLocationIsAllGrassland(t *testing.T) {
 }
 
 func TestFoundationLocationBetweenPlayerAndSpawn(t *testing.T) {
-	withTestStructures(t)
 	w := NewWorld(30, 30)
 	// Player at (2, 15); spawn at (15, 15).
 	p := NewPlayer(2, 15)
-	p.Wood = InitialCarryingCapacity
-	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int)}
-	stores := NewStorageManager()
-	env := &Env{State: s, Stores: stores}
-	s.maybeSpawnFoundation(env)
+	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int), CompletedBeats: make(map[string]bool)}
+	s.spawnFoundationAt(testLogStorageDef{})
 
 	spawnX := w.Width / 2
 	// Find foundation top-left.
@@ -148,6 +157,40 @@ func TestFoundationLocationBetweenPlayerAndSpawn(t *testing.T) {
 	}
 }
 
+func TestHouseWorldConditionSpawnsAfterBuild(t *testing.T) {
+	orig := structures
+	structures = []StructureDef{testHouseDef{}}
+	t.Cleanup(func() { structures = orig })
+
+	w := NewWorld(30, 30)
+	p := NewPlayer(5, 15)
+	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int), CompletedBeats: make(map[string]bool)}
+	stores := NewStorageManager()
+	env := &Env{State: s, Stores: stores}
+
+	// No house built yet — world condition should not fire.
+	s.maybeSpawnFoundation(env)
+	if s.HasStructureOfType(FoundationHouse) {
+		t.Error("house foundation spawned before any house was built")
+	}
+
+	// Place a built house to satisfy the world condition.
+	w.SetStructure(10, 10, 2, 2, House)
+	w.IndexStructure(10, 10, 2, 2, testHouseDef{})
+
+	// World condition now satisfied: built house exists, no pending foundation.
+	s.maybeSpawnFoundation(env)
+	if !s.HasStructureOfType(FoundationHouse) {
+		t.Error("house foundation did not spawn after a house was built")
+	}
+
+	// Second call must not spawn another foundation while one is already pending.
+	s.maybeSpawnFoundation(env)
+	if countStructureTiles(w, FoundationHouse) > 4 { // one 2×2 foundation = 4 tiles
+		t.Error("world condition spawned a second house foundation while one was already pending")
+	}
+}
+
 // testCarryUpgrade is a minimal UpgradeDef used only in TestAddOfferAndSelectCard
 // so the test stays decoupled from the game/upgrades package.
 type testCarryUpgrade struct{}
@@ -163,7 +206,7 @@ func TestAddOfferAndSelectCard(t *testing.T) {
 
 	w := NewWorld(10, 10)
 	p := NewPlayer(5, 5)
-	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int)}
+	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int), CompletedBeats: make(map[string]bool)}
 
 	if s.HasPendingOffer() {
 		t.Fatal("should have no pending offer initially")
