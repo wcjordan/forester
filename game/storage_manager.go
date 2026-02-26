@@ -54,6 +54,19 @@ func (m *StorageManager) FindByOrigin(origin Point) *StorageInstance {
 	return m.byOrigin[origin]
 }
 
+// TotalCapacity returns the sum of capacities across all instances for the given resource.
+func (m *StorageManager) TotalCapacity(r ResourceType) int {
+	rs := m.byResource[r]
+	if rs == nil {
+		return 0
+	}
+	total := 0
+	for _, inst := range rs.Instances {
+		total += inst.Capacity
+	}
+	return total
+}
+
 // Total returns the total amount stored across all instances for the given resource.
 func (m *StorageManager) Total(r ResourceType) int {
 	rs := m.byResource[r]

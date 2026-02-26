@@ -156,6 +156,22 @@ func (w *World) SetStructure(x, y, width, height int, stype StructureType) {
 	}
 }
 
+// CountStructureInstances returns the number of distinct built instances of stype
+// by counting unique origins in StructureIndex whose origin tile has that type.
+func (w *World) CountStructureInstances(stype StructureType) int {
+	seen := make(map[Point]struct{})
+	for _, entry := range w.StructureIndex {
+		if _, ok := seen[entry.Origin]; ok {
+			continue
+		}
+		tile := w.TileAt(entry.Origin.X, entry.Origin.Y)
+		if tile != nil && tile.Structure == stype {
+			seen[entry.Origin] = struct{}{}
+		}
+	}
+	return len(seen)
+}
+
 // IndexStructure records every tile in the w×h footprint at (x, y) in the
 // StructureIndex, all sharing the same Origin so multi-tile instances can be
 // deduplicated by callers.

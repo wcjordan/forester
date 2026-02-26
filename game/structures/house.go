@@ -38,8 +38,34 @@ func (houseDef) ShouldSpawn(env *game.Env) bool {
 // as close as possible to the world spawn point rather than near the player.
 func (houseDef) UseSpawnAnchoredPlacement() bool { return true }
 
-// OnBuilt is called when a House is completed.
-func (houseDef) OnBuilt(_ *game.Env, _ game.Point) {}
+// OnBuilt is called when a House is completed. It spawns a villager at the
+// first clear tile adjacent to the house footprint.
+func (d houseDef) OnBuilt(env *game.Env, origin game.Point) {
+	fw, fh := d.Footprint()
+	px, py := env.State.Player.X, env.State.Player.Y
+	// Candidates: tiles just outside each edge of the footprint.
+	candidates := []game.Point{
+		{X: origin.X - 1, Y: origin.Y},
+		{X: origin.X - 1, Y: origin.Y + fh - 1},
+		{X: origin.X + fw, Y: origin.Y},
+		{X: origin.X + fw, Y: origin.Y + fh - 1},
+		{X: origin.X, Y: origin.Y - 1},
+		{X: origin.X + fw - 1, Y: origin.Y - 1},
+		{X: origin.X, Y: origin.Y + fh},
+		{X: origin.X + fw - 1, Y: origin.Y + fh},
+	}
+	for _, c := range candidates {
+		if c.X == px && c.Y == py {
+			continue
+		}
+		tile := env.State.World.TileAt(c.X, c.Y)
+		if tile == nil || tile.Structure != game.NoStructure {
+			continue
+		}
+		env.State.SpawnVillager(c.X, c.Y)
+		return
+	}
+}
 
 // OnPlayerInteraction handles adjacent-player interaction.
 // When adjacent to a foundation, deposits one wood toward the build cost each cooldown tick.

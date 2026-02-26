@@ -4,11 +4,11 @@
 - Planning complete; ready to implement Stage 1
 
 ## Stages
-- [ ] Stage 1: Villager entity, spawning, rendering
+- [x] Stage 1: Villager entity, spawning, rendering — make check passes
 - [ ] Stage 2: Task system, movement, storage withdrawal
 
 ## Next
-- Begin Stage 1: create `game/villager.go`, update `state.go`, `house.go`, `render/model.go`
+- Begin Stage 2: WithdrawFrom, TotalCapacity, task enum, pickTask, Tick, TickVillagers
 
 ## Key decisions
 - Task selection: probabilistic (P(chop) = 1 - fill_ratio, P(deliver) = fill_ratio)

@@ -7,6 +7,7 @@ import "time"
 type State struct {
 	Player              *Player
 	World               *World
+	Villagers           []*Villager
 	FoundationDeposited map[Point]int
 	// PendingOfferIDs stores each queued offer as a slice of upgrade IDs (strings),
 	// keeping State serializable without embedding interface values.

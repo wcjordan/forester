@@ -28,6 +28,7 @@ var (
 	foundationStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))            // yellow (dim)
 	logStorageStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Bold(true) // bold yellow
 	houseStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true) // bold magenta
+	villagerStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("14"))           // cyan
 )
 
 // Model is the bubbletea model for the game. It owns viewport dimensions
@@ -130,6 +131,18 @@ func (m Model) View() string {
 				continue
 			}
 
+			isVillager := false
+			for _, v := range m.game.State.Villagers {
+				if worldX == v.X && worldY == v.Y {
+					isVillager = true
+					break
+				}
+			}
+			if isVillager {
+				sb.WriteString(villagerStyle.Render("v"))
+				continue
+			}
+
 			tile := world.TileAt(worldX, worldY)
 			if tile == nil {
 				sb.WriteByte(' ')
@@ -173,6 +186,19 @@ func (m Model) View() string {
 	// Status bar.
 	status := fmt.Sprintf(" Player: (%d, %d)  Wood: %d/%d",
 		player.X, player.Y, player.Wood, player.MaxCarry)
+
+	logStored := m.game.Stores.Total(game.Wood)
+	logCap := m.game.Stores.TotalCapacity(game.Wood)
+	if logCap > 0 {
+		status += fmt.Sprintf("  Log: %d/%d", logStored, logCap)
+	}
+
+	villagerCount := len(m.game.State.Villagers)
+	houseCount := world.CountStructureInstances(game.House)
+	if villagerCount > 0 || houseCount > 0 {
+		status += fmt.Sprintf("  Villagers: %d/%d", villagerCount, houseCount)
+	}
+
 	if progress, ok := m.game.State.FoundationProgress(); ok {
 		status += "  " + buildProgressBar(progress)
 	}
