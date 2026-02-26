@@ -157,10 +157,12 @@ func TestLogStorageWorkflow(t *testing.T) {
 	}
 
 	// ── Phase 5: Accept the upgrade card ─────────────────────────────────────
-	// When the Log Storage is completed, a card offer is queued. The game pauses
-	// until the player accepts. Extra ticks during this phase should not change
-	// player.Wood (harvest is blocked while paused).
+	// The first_log_storage_built story beat fires on the first tick after the log
+	// storage is built, queueing the carry upgrade offer. The game then pauses on
+	// subsequent ticks until the player accepts.
 	announcePhase(m, "Phase 5: Accept upgrade card")
+	// One extra tick to let the story beat fire and queue the offer.
+	tick(&m, clock)
 	if !g.State.HasPendingOffer() {
 		t.Fatal("phase 5: expected a pending card offer after building log storage")
 	}
@@ -178,12 +180,11 @@ func TestLogStorageWorkflow(t *testing.T) {
 		t.Error("phase 5: offer should be gone after SelectCard")
 	}
 
-	// Phase 4 leaves player.Wood == 1 (a harvest tick re-stocked 1 wood mid-build).
-	// Move north to (48,44) to face north and harvest more from trees at y=43
-	// (sizes 9, 4, 4 — untouched by Phase 2). At least 2 ticks are required
-	// before the return move: (48,44) is a cut tree (150ms cooldown) so a single
-	// tick isn't enough to let the "w" move cooldown (300ms) expire.
-	// Return south to (48,45), adjacent to LogStorage, then wait for deposit.
+	// Move north to (48,44) to face north and harvest more from trees at y=43.
+	// At least 2 ticks are required before the return move: (48,44) is a cut tree
+	// (150ms cooldown) so a single tick isn't enough to let the "w" move cooldown
+	// (300ms) expire. Return south to (48,45), adjacent to LogStorage, then wait
+	// for deposit.
 	announcePhase(m, "Phase 6: Restock wood and deposit into built log storage")
 	moveDir(&m, clock, g, "w") // Move to (48,44), face north
 	const maxRestockTicks = 20

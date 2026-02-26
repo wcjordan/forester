@@ -14,27 +14,46 @@ func (s *State) HasStructureOfType(stype StructureType) bool {
 	return len(s.World.StructureTypeIndex[stype]) > 0
 }
 
+// findStructureDefByFoundationType returns the first registered StructureDef whose
+// FoundationType matches the given type, or nil if none is found.
+func findStructureDefByFoundationType(ft StructureType) StructureDef {
+	for _, def := range structures {
+		if def.FoundationType() == ft {
+			return def
+		}
+	}
+	return nil
+}
+
+// spawnFoundationAt finds a valid location for def and places its foundation tile.
+// Placement is near the world spawn point if def implements SpawnAnchoredPlacer,
+// otherwise near the player. Returns true if a foundation was placed, false if no
+// valid location was found (caller may retry on the next tick).
+func (s *State) spawnFoundationAt(def StructureDef) bool {
+	w, h := def.Footprint()
+	var cx, cy int
+	if sa, ok := def.(SpawnAnchoredPlacer); ok && sa.UseSpawnAnchoredPlacement() {
+		cx, cy = s.findValidLocationNearSpawn(w, h)
+	} else {
+		cx, cy = s.findValidLocationNearPlayer(w, h)
+	}
+	if cx >= 0 {
+		s.World.SetStructure(cx, cy, w, h, def.FoundationType())
+		s.World.IndexStructure(cx, cy, w, h, def)
+		return true
+	}
+	return false
+}
+
 // maybeSpawnFoundation checks each registered structure definition and places a foundation
-// when its spawn condition is met and no foundation or built instance already exists.
+// when its ShouldSpawn world condition is met. Each ShouldSpawn implementation is responsible
+// for its own idempotency (e.g. checking that no foundation is already pending).
 func (s *State) maybeSpawnFoundation(env *Env) {
 	for _, def := range structures {
 		if !def.ShouldSpawn(env) {
 			continue
 		}
-		if s.HasStructureOfType(def.FoundationType()) || s.HasStructureOfType(def.BuiltType()) {
-			continue
-		}
-		w, h := def.Footprint()
-		var cx, cy int
-		if sa, ok := def.(SpawnAnchoredPlacer); ok && sa.UseSpawnAnchoredPlacement() {
-			cx, cy = s.findValidLocationNearSpawn(w, h)
-		} else {
-			cx, cy = s.findValidLocationNearPlayer(w, h)
-		}
-		if cx >= 0 {
-			s.World.SetStructure(cx, cy, w, h, def.FoundationType())
-			s.World.IndexStructure(cx, cy, w, h, def)
-		}
+		s.spawnFoundationAt(def)
 	}
 }
 

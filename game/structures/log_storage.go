@@ -32,15 +32,12 @@ func (logStorageDef) StorageResource() game.ResourceType { return game.Wood }
 // StorageCapacity returns the capacity of a single Log Storage instance.
 func (logStorageDef) StorageCapacity() int { return logStorageCapacity }
 
-// ShouldSpawn returns true when the player's inventory has enough wood.
-func (logStorageDef) ShouldSpawn(env *game.Env) bool {
-	return env.State.Player.Wood >= logStorageBuildCost
-}
+// ShouldSpawn returns false: the initial log storage is triggered by the story beat system.
+func (logStorageDef) ShouldSpawn(_ *game.Env) bool { return false }
 
 // OnBuilt registers a new storage instance when a Log Storage is completed.
 func (logStorageDef) OnBuilt(env *game.Env, origin game.Point) {
 	env.Stores.Register(origin, game.Wood, logStorageCapacity)
-	env.State.AddOffer([]string{"carry_capacity"})
 }
 
 // OnPlayerInteraction handles adjacent-player interaction for both foundation and built states.

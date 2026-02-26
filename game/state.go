@@ -11,6 +11,8 @@ type State struct {
 	// PendingOfferIDs stores each queued offer as a slice of upgrade IDs (strings),
 	// keeping State serializable without embedding interface values.
 	PendingOfferIDs [][]string
+	// CompletedBeats records which story beats have already fired (keyed by beat ID).
+	CompletedBeats map[string]bool
 }
 
 // AddOffer enqueues a card offer by its upgrade IDs.
@@ -55,9 +57,10 @@ func (s *State) SelectCard(idx int) {
 }
 
 // Harvest harvests adjacent trees without moving the player.
-// Spawns a foundation when the spawn condition is met.
+// Advances story beats and world condition spawning each tick.
 func (s *State) Harvest(env *Env, now time.Time) {
 	s.Player.HarvestAdjacent(s.World, now)
+	s.maybeAdvanceStory(env)
 	s.maybeSpawnFoundation(env)
 }
 
@@ -105,5 +108,6 @@ func newState() *State {
 		Player:              player,
 		World:               world,
 		FoundationDeposited: make(map[Point]int),
+		CompletedBeats:      make(map[string]bool),
 	}
 }

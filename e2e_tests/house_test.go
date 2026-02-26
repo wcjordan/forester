@@ -86,7 +86,8 @@ func TestHouseWorkflow(t *testing.T) {
 
 	// ── Phase 2: Build log storage + accept MaxCarry upgrade ─────────────────
 	// Player harvests from the 4-tile arc facing north and auto-deposits into
-	// the foundation. Log storage completes after 20 deposits; offer queued.
+	// the foundation. Log storage completes after 20 deposits. One extra tick is
+	// then needed for the first_log_storage_built story beat to queue the offer.
 	announcePhase(m, "Phase 2: Build log storage")
 	const maxLogStorageTicks = 200
 	for i := range maxLogStorageTicks {
@@ -98,6 +99,8 @@ func TestHouseWorkflow(t *testing.T) {
 			t.Fatal("phase 2: log storage not built within expected ticks")
 		}
 	}
+	// Extra tick: first_log_storage_built story beat fires → carry upgrade offer queued.
+	tick(&m, clock)
 	if !g.State.HasPendingOffer() {
 		t.Fatal("phase 2: expected carry upgrade offer after log storage built")
 	}
@@ -197,16 +200,18 @@ func TestHouseWorkflow(t *testing.T) {
 	}
 
 	// ── Phase 7: Build house ──────────────────────────────────────────────────
-	// First tick fires Harvest → maybeSpawnFoundation sees stores≥50 → spawns
-	// house foundation at (49,51) (closest valid 2×2 to spawn with 1-tile gap from
-	// log storage). Within the same tick, TickAdjacentStructures sees (50,51)
+	// First tick fires Harvest → maybeAdvanceStory fires initial_house story beat
+	// (stores≥50) → spawns house foundation at (49,51) (closest valid 2×2 to spawn
+	// with 1-tile gap from log storage). Within the same tick, TickAdjacentStructures sees (50,51)
 	// adjacent to player at (51,51), fires OnPlayerInteraction, deposits 1 wood.
-	// After 50 total ticks: HouseBuildCost deposits complete → house built → 2-card offer.
+	// After 50 total build ticks the house is complete. One extra tick then fires the
+	// first_house_built story beat → 2-card offer; world condition also spawns the
+	// next house foundation since built≥1 and no foundation is pending yet.
 	announcePhase(m, "Phase 7: Build house (50 wood deposits)")
 	const maxHouseBuildTicks = 150
 	for i := range maxHouseBuildTicks {
 		tick(&m, clock)
-		if g.State.HasStructureOfType(game.House) || g.State.HasPendingOffer() {
+		if g.State.HasStructureOfType(game.House) {
 			break
 		}
 		if i == maxHouseBuildTicks-1 {
@@ -215,6 +220,10 @@ func TestHouseWorkflow(t *testing.T) {
 				g.State.FoundationDeposited, g.State.HasStructureOfType(game.FoundationHouse))
 		}
 	}
+	// Extra tick: first_house_built story beat fires → 2-card offer queued.
+	// The world condition (houseDef.ShouldSpawn) also spawns a new house foundation
+	// on this tick since built≥1 and no pending foundation exists yet.
+	tick(&m, clock)
 
 	// ── Phase 8: Verify house + accept upgrade card ───────────────────────────
 	announcePhase(m, "Phase 8: Accept house upgrade card")
@@ -222,9 +231,6 @@ func TestHouseWorkflow(t *testing.T) {
 	// House must be built.
 	if !g.State.HasStructureOfType(game.House) {
 		t.Fatal("phase 8: House structure not found after build loop")
-	}
-	if g.State.HasStructureOfType(game.FoundationHouse) {
-		t.Error("phase 8: FoundationHouse tiles should be gone after house is built")
 	}
 
 	// House tile at (49,51) (origin of the foundation) must show House structure.
