@@ -21,7 +21,7 @@ func makeHouseEnv() (*game.State, *game.StorageManager, *game.VillagerManager) {
 
 func TestVillagerSpawnsOnHouseBuilt(t *testing.T) {
 	s, stores, vm := makeHouseEnv()
-	env := &game.Env{State: s, Stores: stores, Villagers: vm}
+	g := &game.Game{State: s, Stores: stores, Villagers: vm}
 
 	// Place a house foundation adjacent to the player and build it.
 	origin := game.Point{X: 10, Y: 10}
@@ -35,7 +35,7 @@ func TestVillagerSpawnsOnHouseBuilt(t *testing.T) {
 
 	t0 := time.Now()
 	for i := range houseBuildCost {
-		s.TickAdjacentStructures(env, t0.Add(time.Duration(i)*(game.DepositTickInterval+time.Millisecond)))
+		g.TickAdjacentStructures(t0.Add(time.Duration(i) * (game.DepositTickInterval + time.Millisecond)))
 	}
 
 	if !s.World.HasStructureOfType(game.House) {
@@ -48,7 +48,7 @@ func TestVillagerSpawnsOnHouseBuilt(t *testing.T) {
 
 func TestVillagerSpawnsAdjacentToHouse(t *testing.T) {
 	s, stores, vm := makeHouseEnv()
-	env := &game.Env{State: s, Stores: stores, Villagers: vm}
+	g := &game.Game{State: s, Stores: stores, Villagers: vm}
 
 	origin := game.Point{X: 10, Y: 10}
 	s.World.SetStructure(origin.X, origin.Y, 2, 2, game.FoundationHouse)
@@ -60,7 +60,7 @@ func TestVillagerSpawnsAdjacentToHouse(t *testing.T) {
 
 	t0 := time.Now()
 	for i := range houseBuildCost {
-		s.TickAdjacentStructures(env, t0.Add(time.Duration(i)*(game.DepositTickInterval+time.Millisecond)))
+		g.TickAdjacentStructures(t0.Add(time.Duration(i) * (game.DepositTickInterval + time.Millisecond)))
 	}
 
 	if vm.Count() == 0 {
@@ -86,7 +86,7 @@ func TestVillagerSpawnsAdjacentToHouse(t *testing.T) {
 
 func TestEachHouseSpawnsOneVillager(t *testing.T) {
 	s, stores, vm := makeHouseEnv()
-	env := &game.Env{State: s, Stores: stores, Villagers: vm}
+	g := &game.Game{State: s, Stores: stores, Villagers: vm}
 
 	buildHouse := func(ox, oy, playerX, playerY int) {
 		t.Helper()
@@ -99,7 +99,7 @@ func TestEachHouseSpawnsOneVillager(t *testing.T) {
 		s.Player.SetCooldown(game.Build, time.Time{})
 		t0 := time.Now()
 		for i := range houseBuildCost {
-			s.TickAdjacentStructures(env, t0.Add(time.Duration(i)*(game.DepositTickInterval+time.Millisecond)))
+			g.TickAdjacentStructures(t0.Add(time.Duration(i) * (game.DepositTickInterval + time.Millisecond)))
 		}
 	}
 

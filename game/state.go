@@ -1,7 +1,5 @@
 package game
 
-import "time"
-
 // State holds serializable game state (truth data).
 // Derived runtime structures (e.g. StorageManager, VillagerManager) live on Game.
 type State struct {
@@ -21,24 +19,6 @@ func (s *State) AddOffer(ids []string) {
 		return
 	}
 	s.PendingOfferIDs = append(s.PendingOfferIDs, ids)
-}
-
-// TickAdjacentStructures calls OnPlayerInteraction once per structure instance
-// that the player is cardinally adjacent to, then commits any pending cooldowns.
-// Cooldowns are committed after all interactions so that multiple adjacent
-// structures of the same type all fire within the same tick.
-func (s *State) TickAdjacentStructures(env *Env, now time.Time) {
-	seen := make(map[Point]bool)
-	for _, d := range [4][2]int{{0, -1}, {0, 1}, {-1, 0}, {1, 0}} {
-		p := Point{s.Player.X + d[0], s.Player.Y + d[1]}
-		entry, ok := s.World.StructureIndex[p]
-		if !ok || seen[entry.Origin] {
-			continue
-		}
-		seen[entry.Origin] = true
-		entry.Def.OnPlayerInteraction(env, entry.Origin, now)
-	}
-	s.Player.commitCooldowns()
 }
 
 // FoundationProgress returns the build progress (0.0–1.0) of the first active foundation,

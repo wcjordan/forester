@@ -51,9 +51,9 @@ func (g *Game) Tick() {
 	now := g.clock.Now()
 	env := g.env()
 	IterateResources(func(d ResourceDef) { d.Harvest(env, now) })
-	g.State.maybeAdvanceStory(env)
+	maybeAdvanceStory(env)
 	maybeSpawnFoundation(env)
-	g.State.TickAdjacentStructures(env, now)
+	g.TickAdjacentStructures(now)
 	g.Villagers.Tick(env, g.rng, now)
 	IterateResources(func(d ResourceDef) { d.Regrow(env, g.rng, now) })
 }
@@ -80,6 +80,26 @@ func (g *Game) CurrentOffer() []UpgradeDef {
 		return nil
 	}
 	return result
+}
+
+// TickAdjacentStructures calls OnPlayerInteraction once per structure instance
+// that the player is cardinally adjacent to, then commits any pending cooldowns.
+// Cooldowns are committed after all interactions so that multiple adjacent
+// structures of the same type all fire within the same tick.
+func (g *Game) TickAdjacentStructures(now time.Time) {
+	env := g.env()
+	s := g.State
+	seen := make(map[Point]bool)
+	for _, d := range [4][2]int{{0, -1}, {0, 1}, {-1, 0}, {1, 0}} {
+		p := Point{s.Player.X + d[0], s.Player.Y + d[1]}
+		entry, ok := s.World.StructureIndex[p]
+		if !ok || seen[entry.Origin] {
+			continue
+		}
+		seen[entry.Origin] = true
+		entry.Def.OnPlayerInteraction(env, entry.Origin, now)
+	}
+	s.Player.commitCooldowns()
 }
 
 // SelectCard applies the card at idx from the front offer and pops it from the queue.
