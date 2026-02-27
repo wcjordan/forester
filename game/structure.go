@@ -1,9 +1,12 @@
 package game
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // StructureDef describes the behavior of one structure type.
-// Each structure is registered in the structures slice (see log_storage.go etc.).
+// Each structure is registered in the structures map via RegisterStructure.
 type StructureDef interface {
 	FoundationType() StructureType
 	BuiltType() StructureType
@@ -52,10 +55,10 @@ func RegisterStructure(d StructureDef) {
 		panic("RegisterStructure: def is nil")
 	}
 	if _, exists := structures[d.FoundationType()]; exists {
-		panic("RegisterStructure: FoundationType already registered")
+		panic(fmt.Sprintf("RegisterStructure: FoundationType %d already registered", d.FoundationType()))
 	}
 	if _, exists := structures[d.BuiltType()]; exists {
-		panic("RegisterStructure: BuiltType already registered")
+		panic(fmt.Sprintf("RegisterStructure: BuiltType %d already registered", d.BuiltType()))
 	}
 	structures[d.FoundationType()] = d
 	structures[d.BuiltType()] = d
@@ -64,6 +67,7 @@ func RegisterStructure(d StructureDef) {
 // IterateStructures calls fn once for each registered StructureDef.
 // Because each def is stored under both its FoundationType and BuiltType keys,
 // only the FoundationType entry is visited to avoid double-calling.
+// Iteration order is undefined.
 func IterateStructures(fn func(StructureDef)) {
 	for stype, def := range structures {
 		if stype == def.FoundationType() {

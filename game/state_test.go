@@ -41,11 +41,8 @@ func (testHouseDef) OnBuilt(_ *Env, _ Point)                          {}
 func withTestStructures(t *testing.T) {
 	t.Helper()
 	orig := structures
-	d := testLogStorageDef{}
-	structures = map[StructureType]StructureDef{
-		d.FoundationType(): d,
-		d.BuiltType():      d,
-	}
+	structures = map[StructureType]StructureDef{}
+	RegisterStructure(testLogStorageDef{})
 	t.Cleanup(func() { structures = orig })
 }
 
@@ -163,11 +160,8 @@ func TestFoundationLocationBetweenPlayerAndSpawn(t *testing.T) {
 
 func TestHouseWorldConditionSpawnsAfterBuild(t *testing.T) {
 	orig := structures
-	d := testHouseDef{}
-	structures = map[StructureType]StructureDef{
-		d.FoundationType(): d,
-		d.BuiltType():      d,
-	}
+	structures = map[StructureType]StructureDef{}
+	RegisterStructure(testHouseDef{})
 	t.Cleanup(func() { structures = orig })
 
 	w := NewWorld(30, 30)

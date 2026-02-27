@@ -16,8 +16,14 @@ func (s *State) HasStructureOfType(stype StructureType) bool {
 
 // findStructureDefByFoundationType returns the StructureDef registered for the
 // given FoundationType, or nil if none is found.
+// The explicit FoundationType check guards against accidentally passing a BuiltType,
+// which would also resolve in the dual-keyed map but is not a valid lookup.
 func findStructureDefByFoundationType(ft StructureType) StructureDef {
-	return structures[ft]
+	def := structures[ft]
+	if def == nil || def.FoundationType() != ft {
+		return nil
+	}
+	return def
 }
 
 // spawnFoundationAt finds a valid location for def and places its foundation tile.
