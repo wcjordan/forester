@@ -20,7 +20,7 @@ const (
 type Player struct {
 	X, Y               int
 	FacingDX, FacingDY int
-	Wood               int
+	Inventory          map[ResourceType]int
 	MaxCarry           int
 	// BuildInterval controls how often the player can deposit one wood into a foundation.
 	BuildInterval time.Duration
@@ -36,6 +36,7 @@ type Player struct {
 func NewPlayer(x, y int) *Player {
 	return &Player{
 		X: x, Y: y, FacingDX: 0, FacingDY: -1,
+		Inventory:        make(map[ResourceType]int),
 		MaxCarry:         InitialCarryingCapacity,
 		BuildInterval:    DepositTickInterval,
 		DepositInterval:  DepositTickInterval,
@@ -135,41 +136,5 @@ const DepositTickInterval = 100 * time.Millisecond
 // GameTickInterval is the base cadence of the game loop (how often game.Tick is called).
 const GameTickInterval = 100 * time.Millisecond
 
-// harvestPerStep is how much wood is taken from each adjacent Forest tile per turn.
-const harvestPerStep = 1
-
 // HarvestTickInterval is how often the player auto-harvests adjacent trees.
 const HarvestTickInterval = 100 * time.Millisecond
-
-// HarvestAdjacent harvests wood from the tile under the player and the three Forest tiles
-// in front of the player: straight ahead and the two forward diagonals.
-// Each tile loses harvestPerStep wood; when TreeSize reaches 0 it stays Forest (cut tree).
-// The harvested wood is added to the player's inventory.
-// The harvest is skipped if the Harvest cooldown has not elapsed.
-func (p *Player) HarvestAdjacent(w *World, now time.Time) {
-	if !p.CooldownExpired(Harvest, now) {
-		return
-	}
-	p.SetCooldown(Harvest, now.Add(p.HarvestInterval))
-	if p.Wood >= p.MaxCarry {
-		return
-	}
-	dx, dy := p.FacingDX, p.FacingDY
-	// Four tiles: under the player, straight ahead, diagonal-left, diagonal-right.
-	targets := [4][2]int{
-		{p.X, p.Y},
-		{p.X + dx, p.Y + dy},
-		{p.X + dx - dy, p.Y + dy + dx},
-		{p.X + dx + dy, p.Y + dy - dx},
-	}
-	for _, coord := range targets {
-		tile := w.TileAt(coord[0], coord[1])
-		if tile == nil || tile.Terrain != Forest {
-			continue
-		}
-		canTake := min(harvestPerStep, p.MaxCarry-p.Wood)
-		harvest := min(canTake, tile.TreeSize)
-		tile.TreeSize -= harvest
-		p.Wood += harvest
-	}
-}

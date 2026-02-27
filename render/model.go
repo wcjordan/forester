@@ -200,7 +200,7 @@ func (m Model) View() string {
 
 	// Status bar.
 	status := fmt.Sprintf(" Player: (%d, %d)  Wood: %d/%d",
-		player.X, player.Y, player.Wood, player.MaxCarry)
+		player.X, player.Y, player.Inventory[game.Wood], player.MaxCarry)
 
 	logStored := m.game.Stores.Total(game.Wood)
 	logCap := m.game.Stores.TotalCapacity(game.Wood)

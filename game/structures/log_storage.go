@@ -50,11 +50,11 @@ func (d logStorageDef) OnPlayerInteraction(env *game.Env, origin game.Point, now
 		if !p.CooldownExpired(game.Build, now) {
 			return
 		}
-		if p.Wood == 0 {
+		if p.Inventory[game.Wood] == 0 {
 			return
 		}
 		env.State.FoundationDeposited[origin]++
-		p.Wood--
+		p.Inventory[game.Wood]--
 		p.QueueCooldown(game.Build, now.Add(p.BuildInterval))
 		if env.State.FoundationDeposited[origin] >= d.BuildCost() {
 			game.FinalizeFoundation(env, d, origin)
@@ -65,11 +65,11 @@ func (d logStorageDef) OnPlayerInteraction(env *game.Env, origin game.Point, now
 	if !p.CooldownExpired(game.Deposit, now) {
 		return
 	}
-	if p.Wood == 0 {
+	if p.Inventory[game.Wood] == 0 {
 		return
 	}
 	deposited := env.Stores.DepositAt(origin, 1)
-	p.Wood -= deposited
+	p.Inventory[game.Wood] -= deposited
 	if deposited > 0 {
 		p.QueueCooldown(game.Deposit, now.Add(p.DepositInterval))
 	}

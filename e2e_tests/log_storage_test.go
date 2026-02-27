@@ -12,6 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"forester/game"
+	_ "forester/game/resources"
 	_ "forester/game/structures"
 	_ "forester/game/upgrades"
 	"forester/render"
@@ -166,11 +167,11 @@ func TestLogStorageWorkflow(t *testing.T) {
 	if !g.State.HasPendingOffer() {
 		t.Fatal("phase 5: expected a pending card offer after building log storage")
 	}
-	woodBeforePause := g.State.Player.Wood
+	woodBeforePause := g.State.Player.Inventory[game.Wood]
 	tick(&m, clock) // game should be paused — wood should not change
-	if g.State.Player.Wood != woodBeforePause {
+	if g.State.Player.Inventory[game.Wood] != woodBeforePause {
 		t.Errorf("phase 5: game should be paused during card selection; Wood changed from %d to %d",
-			woodBeforePause, g.State.Player.Wood)
+			woodBeforePause, g.State.Player.Inventory[game.Wood])
 	}
 	g.State.SelectCard(0)
 	if g.State.Player.MaxCarry != 100 {
@@ -192,7 +193,7 @@ func TestLogStorageWorkflow(t *testing.T) {
 		tick(&m, clock)
 		// Require at least 2 ticks so the move cooldown from the "w" step
 		// (Forest 300ms) expires before moveDir("s") advances only 150ms.
-		if i >= 1 && g.State.Player.Wood > 0 {
+		if i >= 1 && g.State.Player.Inventory[game.Wood] > 0 {
 			break
 		}
 		if i == maxRestockTicks-1 {
@@ -226,7 +227,7 @@ func TestLogStorageWorkflow(t *testing.T) {
 	if !strings.Contains(bar, wantPos) {
 		t.Errorf("status bar %q does not contain player position %q", bar, wantPos)
 	}
-	currentWood := g.State.Player.Wood
+	currentWood := g.State.Player.Inventory[game.Wood]
 	wantWood := fmt.Sprintf("Wood: %d/%d", currentWood, g.State.Player.MaxCarry)
 	if !strings.Contains(bar, wantWood) {
 		t.Errorf("status bar %q does not contain wood count %q", bar, wantWood)

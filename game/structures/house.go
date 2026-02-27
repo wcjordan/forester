@@ -75,11 +75,11 @@ func (d houseDef) OnPlayerInteraction(env *game.Env, origin game.Point, now time
 	if !p.CooldownExpired(game.Build, now) {
 		return
 	}
-	if p.Wood == 0 {
+	if p.Inventory[game.Wood] == 0 {
 		return
 	}
 	env.State.FoundationDeposited[origin]++
-	p.Wood--
+	p.Inventory[game.Wood]--
 	p.QueueCooldown(game.Build, now.Add(p.BuildInterval))
 	if env.State.FoundationDeposited[origin] >= d.BuildCost() {
 		game.FinalizeFoundation(env, d, origin)

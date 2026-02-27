@@ -14,7 +14,7 @@ func TestFoundationBuildMechanic(t *testing.T) {
 		w.SetStructure(5, 5, 4, 4, game.FoundationLogStorage)
 		w.IndexStructure(5, 5, 4, 4, logStorageDef{})
 		p := game.NewPlayer(4, 5)
-		p.Wood = wood
+		p.Inventory[game.Wood] = wood
 		s := &game.State{
 			Player:              p,
 			World:               w,
@@ -35,8 +35,8 @@ func TestFoundationBuildMechanic(t *testing.T) {
 		s, stores := makeFoundationState(5)
 		env := &game.Env{State: s, Stores: stores}
 		s.TickAdjacentStructures(env, time.Now())
-		if s.Player.Wood != 4 {
-			t.Errorf("Wood = %d, want 4 after one deposit", s.Player.Wood)
+		if s.Player.Inventory[game.Wood] != 4 {
+			t.Errorf("Inventory[Wood] = %d, want 4 after one deposit", s.Player.Inventory[game.Wood])
 		}
 		origin := game.Point{X: 5, Y: 5}
 		if s.FoundationDeposited[origin] != 1 {
@@ -69,8 +69,8 @@ func TestFoundationBuildMechanic(t *testing.T) {
 		if !s.HasStructureOfType(game.LogStorage) {
 			t.Error("LogStorage tiles should exist after build completes")
 		}
-		if s.Player.Wood != 0 {
-			t.Errorf("player Wood = %d, want 0 (all wood deposited)", s.Player.Wood)
+		if s.Player.Inventory[game.Wood] != 0 {
+			t.Errorf("player Inventory[Wood] = %d, want 0 (all wood deposited)", s.Player.Inventory[game.Wood])
 		}
 	})
 }
@@ -83,7 +83,7 @@ func TestTickAdjacentStructures(t *testing.T) {
 		w.SetStructure(origin.X, origin.Y, 4, 4, game.LogStorage)
 		w.IndexStructure(origin.X, origin.Y, 4, 4, logStorageDef{})
 		p := game.NewPlayer(5, 5)
-		p.Wood = wood
+		p.Inventory[game.Wood] = wood
 		s := &game.State{Player: p, World: w, FoundationDeposited: make(map[game.Point]int)}
 		stores := game.NewStorageManager()
 		stores.Register(origin, game.Wood, logStorageCapacity)
@@ -102,7 +102,7 @@ func TestTickAdjacentStructures(t *testing.T) {
 	t.Run("no deposit when not adjacent to LogStorage", func(t *testing.T) {
 		w := game.NewWorld(10, 10)
 		p := game.NewPlayer(5, 5)
-		p.Wood = 5
+		p.Inventory[game.Wood] = 5
 		s := &game.State{Player: p, World: w, FoundationDeposited: make(map[game.Point]int)}
 		stores := game.NewStorageManager()
 		env := &game.Env{State: s, Stores: stores}
@@ -116,8 +116,8 @@ func TestTickAdjacentStructures(t *testing.T) {
 		s, stores := makeDepositState(5)
 		env := &game.Env{State: s, Stores: stores}
 		s.TickAdjacentStructures(env, time.Now())
-		if s.Player.Wood != 4 {
-			t.Errorf("Wood = %d, want 4 after deposit", s.Player.Wood)
+		if s.Player.Inventory[game.Wood] != 4 {
+			t.Errorf("Inventory[Wood] = %d, want 4 after deposit", s.Player.Inventory[game.Wood])
 		}
 		if stores.Total(game.Wood) != 1 {
 			t.Errorf("Total(Wood) = %d, want 1", stores.Total(game.Wood))
@@ -130,8 +130,8 @@ func TestTickAdjacentStructures(t *testing.T) {
 		t0 := time.Now()
 		s.TickAdjacentStructures(env, t0)
 		s.TickAdjacentStructures(env, t0.Add(game.DepositTickInterval+time.Millisecond))
-		if s.Player.Wood != 1 {
-			t.Errorf("Wood = %d, want 1 after 2 deposits", s.Player.Wood)
+		if s.Player.Inventory[game.Wood] != 1 {
+			t.Errorf("Inventory[Wood] = %d, want 1 after 2 deposits", s.Player.Inventory[game.Wood])
 		}
 		if stores.Total(game.Wood) != 2 {
 			t.Errorf("Total(Wood) = %d, want 2", stores.Total(game.Wood))
@@ -151,7 +151,7 @@ func TestTickAdjacentStructures(t *testing.T) {
 		w.SetStructure(originB.X, originB.Y, 1, 1, game.LogStorage)
 		w.IndexStructure(originB.X, originB.Y, 1, 1, logStorageDef{})
 		p := game.NewPlayer(5, 5)
-		p.Wood = 5
+		p.Inventory[game.Wood] = 5
 		s := &game.State{Player: p, World: w, FoundationDeposited: make(map[game.Point]int)}
 		stores := game.NewStorageManager()
 		stores.Register(originA, game.Wood, logStorageCapacity)
@@ -161,8 +161,8 @@ func TestTickAdjacentStructures(t *testing.T) {
 		env := &game.Env{State: s, Stores: stores}
 		s.TickAdjacentStructures(env, time.Now())
 		// Two instances adjacent → two deposits, one per instance.
-		if s.Player.Wood != 3 {
-			t.Errorf("Wood = %d, want 3 after two-instance deposit", s.Player.Wood)
+		if s.Player.Inventory[game.Wood] != 3 {
+			t.Errorf("Inventory[Wood] = %d, want 3 after two-instance deposit", s.Player.Inventory[game.Wood])
 		}
 		if stores.Total(game.Wood) != 2 {
 			t.Errorf("Total(Wood) = %d, want 2", stores.Total(game.Wood))
@@ -187,7 +187,7 @@ func TestDepositRoutesToSpecificInstance(t *testing.T) {
 	w.SetStructure(originB.X, originB.Y, 1, 1, game.LogStorage)
 	w.IndexStructure(originB.X, originB.Y, 1, 1, logStorageDef{})
 	p := game.NewPlayer(2, 5)
-	p.Wood = 3
+	p.Inventory[game.Wood] = 3
 	s := &game.State{Player: p, World: w, FoundationDeposited: make(map[game.Point]int)}
 	stores := game.NewStorageManager()
 	stores.Register(originA, game.Wood, logStorageCapacity)
@@ -213,7 +213,7 @@ func TestDepositRespectsInstanceCapacity(t *testing.T) {
 	w.SetStructure(origin.X, origin.Y, 1, 1, game.LogStorage)
 	w.IndexStructure(origin.X, origin.Y, 1, 1, logStorageDef{})
 	p := game.NewPlayer(5, 5)
-	p.Wood = 5
+	p.Inventory[game.Wood] = 5
 	s := &game.State{Player: p, World: w, FoundationDeposited: make(map[game.Point]int)}
 	stores := game.NewStorageManager()
 	stores.Register(origin, game.Wood, 2)
@@ -226,8 +226,8 @@ func TestDepositRespectsInstanceCapacity(t *testing.T) {
 	if inst.Stored != 2 {
 		t.Errorf("inst.Stored = %d, want 2 (full — no deposit)", inst.Stored)
 	}
-	if p.Wood != 5 {
-		t.Errorf("player Wood = %d, want 5 (no deposit taken)", p.Wood)
+	if p.Inventory[game.Wood] != 5 {
+		t.Errorf("player Inventory[Wood] = %d, want 5 (no deposit taken)", p.Inventory[game.Wood])
 	}
 }
 
@@ -290,7 +290,7 @@ func TestDepositCooldown(t *testing.T) {
 		w.SetStructure(origin.X, origin.Y, 4, 4, game.LogStorage) // storage above player
 		w.IndexStructure(origin.X, origin.Y, 4, 4, logStorageDef{})
 		p := game.NewPlayer(5, 5)
-		p.Wood = wood
+		p.Inventory[game.Wood] = wood
 		s := &game.State{Player: p, World: w, FoundationDeposited: make(map[game.Point]int)}
 		stores := game.NewStorageManager()
 		stores.Register(origin, game.Wood, logStorageCapacity)
