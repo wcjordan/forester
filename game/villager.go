@@ -98,11 +98,7 @@ func (v *Villager) Tick(env *Env, rng *rand.Rand, now time.Time) {
 		if v.X == v.TargetX && v.Y == v.TargetY {
 			origin, ok := storageOriginAdjacent(env.State.World, v.X, v.Y)
 			if ok {
-				deposited := env.Stores.DepositAt(origin, v.Wood)
-				v.Wood -= deposited
-			} else {
-				// Storage gone; drop wood and go idle.
-				v.Wood = 0
+				v.Wood -= env.Stores.DepositAt(origin, v.Wood)
 			}
 			if v.Wood > 0 {
 				// Partial deposit (storage full); retry at another storage.
@@ -124,8 +120,7 @@ func (v *Villager) Tick(env *Env, rng *rand.Rand, now time.Time) {
 					v.Wood += fetched
 					if !v.headToHouse(env) {
 						// No house foundation; return the wood and go idle.
-						env.Stores.DepositAt(origin, v.Wood)
-						v.Wood = 0
+						v.Wood -= env.Stores.DepositAt(origin, v.Wood)
 						v.Task = VillagerIdle
 					}
 					return
@@ -226,7 +221,6 @@ func (v *Villager) tryAssignDeliverTask(env *Env) bool {
 func (v *Villager) headToStorage(env *Env) {
 	tx, ty, ok := nearestClearTileAdjacent(env.State.World, LogStorage, v.X, v.Y)
 	if !ok {
-		v.Wood = 0
 		v.Task = VillagerIdle
 		return
 	}
