@@ -22,7 +22,7 @@ func (s *State) AddOffer(ids []string) {
 }
 
 // FoundationProgress returns the build progress (0.0–1.0) of the first active foundation,
-// and whether any foundation is in progress. Uses StructureIndex to look up BuildCost.
+// and whether any foundation is in progress. Uses structureIndex to look up BuildCost.
 func (s *State) FoundationProgress() (float64, bool) {
 	for origin, deposited := range s.FoundationDeposited {
 		entry, ok := s.World.structureIndex[origin]
