@@ -102,7 +102,7 @@ func (m *StorageManager) SaveData() storageState {
 }
 
 // LoadFrom rebuilds derived structures from saved storage state and the world.
-// It uses the world's StructureIndex to find storage structure origins and
+// It uses the world's structureIndex to find storage structure origins and
 // queries each def's storageDef implementation for resource type and capacity.
 // Origins in the world that are not in saved state are initialized with 0.
 func (m *StorageManager) LoadFrom(s storageState, world *World) {
