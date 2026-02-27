@@ -25,7 +25,7 @@ type StructureDef interface {
 }
 
 // structureEntry pairs a StructureDef with the origin (top-left corner) of the
-// specific instance it belongs to.  Used as values in World.StructureIndex.
+// specific instance it belongs to.  Used as values in World.structureIndex.
 type structureEntry struct {
 	Def    StructureDef
 	Origin Point
