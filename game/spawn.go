@@ -9,11 +9,6 @@ type SpawnAnchoredPlacer interface {
 	UseSpawnAnchoredPlacement() bool
 }
 
-// HasStructureOfType returns true if any tile in the world has the given structure type.
-func (s *State) HasStructureOfType(stype StructureType) bool {
-	return len(s.World.StructureTypeIndex[stype]) > 0
-}
-
 // findStructureDefByFoundationType returns the StructureDef registered for the
 // given FoundationType, or nil if none is found.
 // The explicit FoundationType check guards against accidentally passing a BuiltType,
@@ -83,23 +78,6 @@ func (s *State) findValidLocationNearPlayer(w, h int) (x, y int) {
 		}
 	}
 	return -1, -1
-}
-
-// chebyshevRingDo calls f(x, y) for every tile on the Chebyshev ring at
-// distance r from (cx, cy). Ring 0 is just the center point.
-func chebyshevRingDo(cx, cy, r int, f func(x, y int)) {
-	if r == 0 {
-		f(cx, cy)
-		return
-	}
-	for dx := -r; dx <= r; dx++ {
-		f(cx+dx, cy-r)
-		f(cx+dx, cy+r)
-	}
-	for dy := -r + 1; dy <= r-1; dy++ {
-		f(cx-r, cy+dy)
-		f(cx+r, cy+dy)
-	}
 }
 
 // findValidLocationNearSpawn searches outward from the world spawn point in
@@ -189,11 +167,4 @@ func (s *State) isValidArea(x, y, w, h int) bool {
 	}
 
 	return true
-}
-
-func abs(n int) int {
-	if n < 0 {
-		return -n
-	}
-	return n
 }

@@ -15,6 +15,11 @@ type State struct {
 	CompletedBeats map[string]bool
 }
 
+// HasStructureOfType returns true if any tile in the world has the given structure type.
+func (s *State) HasStructureOfType(stype StructureType) bool {
+	return s.World.HasStructureOfType(stype)
+}
+
 // AddOffer enqueues a card offer by its upgrade IDs.
 func (s *State) AddOffer(ids []string) {
 	if len(ids) == 0 {

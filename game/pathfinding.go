@@ -74,11 +74,6 @@ func tileCost(t *Tile) int {
 	return 1
 }
 
-// manhattan returns the Manhattan distance between two points.
-func manhattan(a, b Point) int {
-	return abs(a.X-b.X) + abs(a.Y-b.Y)
-}
-
 // reconstructPath walks cameFrom backwards from goal to start and returns the
 // path exclusive of start, inclusive of goal.
 func reconstructPath(cameFrom map[Point]Point, start, goal Point) []Point {
