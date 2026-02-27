@@ -1,13 +1,5 @@
 package game
 
-// ResourceType identifies a storable resource.
-type ResourceType int
-
-// Resource types.
-const (
-	Wood ResourceType = iota
-)
-
 // StorageDef is an optional sub-interface for structure defs that have storage.
 // LoadFrom uses it to reconstruct instances without persisting resource type in StorageState.
 type StorageDef interface {
