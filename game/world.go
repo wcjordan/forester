@@ -10,12 +10,12 @@ type World struct {
 	Width              int
 	Height             int
 	Tiles              [][]Tile
-	StructureIndex     map[Point]StructureEntry
+	structureIndex     map[Point]structureEntry
 	StructureTypeIndex map[StructureType]map[Point]struct{}
-	// StructureInstanceIndex maps each StructureType to the set of origin Points
+	// structureInstanceIndex maps each StructureType to the set of origin Points
 	// for all instances of that type. Maintained by IndexStructure so that
 	// CountStructureInstances is O(1).
-	StructureInstanceIndex map[StructureType]map[Point]struct{}
+	structureInstanceIndex map[StructureType]map[Point]struct{}
 	// NoGrowTiles is the set of tiles suppressed from tree regrowth because
 	// they are within noGrowRadius of the spawn point or any structure.
 	// Populated by NewWorld (spawn zone) and SetStructure (structure zones).
@@ -42,9 +42,9 @@ func NewWorld(width, height int) *World {
 		Width:                  width,
 		Height:                 height,
 		Tiles:                  tiles,
-		StructureIndex:         make(map[Point]StructureEntry),
+		structureIndex:         make(map[Point]structureEntry),
 		StructureTypeIndex:     make(map[StructureType]map[Point]struct{}),
-		StructureInstanceIndex: make(map[StructureType]map[Point]struct{}),
+		structureInstanceIndex: make(map[StructureType]map[Point]struct{}),
 		NoGrowTiles:            make(map[Point]struct{}),
 	}
 	w.markNoGrowZoneRect(width/2, height/2, 1, 1)
@@ -138,21 +138,21 @@ func (w *World) SetStructure(x, y, width, height int, stype StructureType) {
 // CountStructureInstances returns the number of distinct instances of stype.
 // O(1) — maintained by IndexStructure.
 func (w *World) CountStructureInstances(stype StructureType) int {
-	return len(w.StructureInstanceIndex[stype])
+	return len(w.structureInstanceIndex[stype])
 }
 
 // IndexStructure records every tile in the w×h footprint at (x, y) in the
-// StructureIndex, all sharing the same Origin so multi-tile instances can be
-// deduplicated by callers. Also maintains StructureInstanceIndex.
+// structureIndex, all sharing the same Origin so multi-tile instances can be
+// deduplicated by callers. Also maintains structureInstanceIndex.
 func (w *World) IndexStructure(x, y, width, height int, def StructureDef) {
 	origin := Point{x, y}
 
 	// If this origin was previously indexed under a different type, remove it.
-	for stype, origins := range w.StructureInstanceIndex {
+	for stype, origins := range w.structureInstanceIndex {
 		if _, ok := origins[origin]; ok {
 			delete(origins, origin)
 			if len(origins) == 0 {
-				delete(w.StructureInstanceIndex, stype)
+				delete(w.structureInstanceIndex, stype)
 			}
 			break
 		}
@@ -163,15 +163,15 @@ func (w *World) IndexStructure(x, y, width, height int, def StructureDef) {
 	tile := w.TileAt(x, y)
 	if tile != nil && tile.Structure != NoStructure {
 		stype := tile.Structure
-		if w.StructureInstanceIndex[stype] == nil {
-			w.StructureInstanceIndex[stype] = make(map[Point]struct{})
+		if w.structureInstanceIndex[stype] == nil {
+			w.structureInstanceIndex[stype] = make(map[Point]struct{})
 		}
-		w.StructureInstanceIndex[stype][origin] = struct{}{}
+		w.structureInstanceIndex[stype][origin] = struct{}{}
 	}
 
 	for dy := 0; dy < height; dy++ {
 		for dx := 0; dx < width; dx++ {
-			w.StructureIndex[Point{x + dx, y + dy}] = StructureEntry{Def: def, Origin: origin}
+			w.structureIndex[Point{x + dx, y + dy}] = structureEntry{Def: def, Origin: origin}
 		}
 	}
 }

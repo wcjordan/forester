@@ -76,7 +76,7 @@ func TestPlayerMoveCooldown(t *testing.T) {
 	}
 
 	// After cooldown elapses: move succeeds.
-	p.Move(1, 0, w, t0.Add(DefaultMoveCooldown))
+	p.Move(1, 0, w, t0.Add(defaultMoveCooldown))
 	if p.X != 7 {
 		t.Errorf("after cooldown: X = %d, want 7", p.X)
 	}

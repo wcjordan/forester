@@ -6,11 +6,11 @@ type State struct {
 	Player              *Player
 	World               *World
 	FoundationDeposited map[Point]int
-	// PendingOfferIDs stores each queued offer as a slice of upgrade IDs (strings),
+	// pendingOfferIDs stores each queued offer as a slice of upgrade IDs (strings),
 	// keeping State serializable without embedding interface values.
-	PendingOfferIDs [][]string
-	// CompletedBeats records which story beats have already fired (keyed by beat ID).
-	CompletedBeats map[string]bool
+	pendingOfferIDs [][]string
+	// completedBeats records which story beats have already fired (keyed by beat ID).
+	completedBeats map[string]bool
 }
 
 // AddOffer enqueues a card offer by its upgrade IDs.
@@ -18,14 +18,14 @@ func (s *State) AddOffer(ids []string) {
 	if len(ids) == 0 {
 		return
 	}
-	s.PendingOfferIDs = append(s.PendingOfferIDs, ids)
+	s.pendingOfferIDs = append(s.pendingOfferIDs, ids)
 }
 
 // FoundationProgress returns the build progress (0.0–1.0) of the first active foundation,
-// and whether any foundation is in progress. Uses StructureIndex to look up BuildCost.
+// and whether any foundation is in progress. Uses structureIndex to look up BuildCost.
 func (s *State) FoundationProgress() (float64, bool) {
 	for origin, deposited := range s.FoundationDeposited {
-		entry, ok := s.World.StructureIndex[origin]
+		entry, ok := s.World.structureIndex[origin]
 		if !ok {
 			continue
 		}
@@ -40,13 +40,13 @@ func (s *State) FoundationProgress() (float64, bool) {
 
 // newState creates an initial game state with defaults.
 func newState() *State {
-	world := GenerateWorld(100, 100, DefaultSeed)
+	world := GenerateWorld(100, 100, defaultSeed)
 	player := NewPlayer(world.Width/2, world.Height/2)
 
 	return &State{
 		Player:              player,
 		World:               world,
 		FoundationDeposited: make(map[Point]int),
-		CompletedBeats:      make(map[string]bool),
+		completedBeats:      make(map[string]bool),
 	}
 }

@@ -1,8 +1,8 @@
 package game
 
-// StorageDef is an optional sub-interface for structure defs that have storage.
+// storageDef is an optional sub-interface for structure defs that have storage.
 // LoadFrom uses it to reconstruct instances without persisting resource type in StorageState.
-type StorageDef interface {
+type storageDef interface {
 	StructureDef
 	StorageResource() ResourceType
 	StorageCapacity() int
@@ -29,13 +29,13 @@ func (si *StorageInstance) Deposit(amount int) int {
 	return amount
 }
 
-// ResourceStorage aggregates all storage instances for one resource type.
-type ResourceStorage struct {
+// resourceStorage aggregates all storage instances for one resource type.
+type resourceStorage struct {
 	Instances []*StorageInstance
 }
 
 // Total returns total stored across all instances.
-func (r *ResourceStorage) Total() int {
+func (r *resourceStorage) Total() int {
 	total := 0
 	for _, inst := range r.Instances {
 		total += inst.Stored
@@ -44,7 +44,7 @@ func (r *ResourceStorage) Total() int {
 }
 
 // AddInstance registers a new storage instance with the given resource type and capacity.
-func (r *ResourceStorage) AddInstance(resource ResourceType, capacity int) *StorageInstance {
+func (r *resourceStorage) AddInstance(resource ResourceType, capacity int) *StorageInstance {
 	inst := &StorageInstance{Resource: resource, Capacity: capacity}
 	r.Instances = append(r.Instances, inst)
 	return inst

@@ -1,6 +1,6 @@
 package game
 
-// StoryBeat is a one-shot trigger that fires exactly once when its condition is
+// storyBeat is a one-shot trigger that fires exactly once when its condition is
 // met. At most one beat fires per call to maybeAdvanceStory; beats are evaluated
 // in strict order — if an incomplete beat's condition is not yet true, evaluation
 // stops so that later beats cannot complete out of order.
@@ -8,7 +8,7 @@ package game
 // Action returns true when the beat is complete and should not fire again.
 // Returning false (e.g. when spawnFoundationAt finds no valid location) causes
 // the beat to retry on the next tick.
-type StoryBeat struct {
+type storyBeat struct {
 	ID        string
 	Condition func(env *Env) bool
 	Action    func(env *Env) bool
@@ -22,7 +22,7 @@ type StoryBeat struct {
 //  2. Reward first log storage completion (carry upgrade)
 //  3. Spawn first house foundation (enough wood in storage)
 //  4. Reward first house completion (build/deposit speed upgrades)
-var storyBeats = []StoryBeat{
+var storyBeats = []storyBeat{
 	{
 		// Spawn the first log storage foundation when the player's inventory is full.
 		ID: "initial_log_storage",
@@ -84,11 +84,11 @@ var storyBeats = []StoryBeat{
 // condition is not yet true, evaluation stops (strict ordering). At most one
 // beat fires per call; a beat is only marked complete when its action returns true.
 func maybeAdvanceStory(env *Env) {
-	if env.State.CompletedBeats == nil {
-		env.State.CompletedBeats = make(map[string]bool)
+	if env.State.completedBeats == nil {
+		env.State.completedBeats = make(map[string]bool)
 	}
 	for _, beat := range storyBeats {
-		if env.State.CompletedBeats[beat.ID] {
+		if env.State.completedBeats[beat.ID] {
 			continue
 		}
 		// Strict ordering: stop at the first incomplete beat whose condition is not met.
@@ -96,7 +96,7 @@ func maybeAdvanceStory(env *Env) {
 			return
 		}
 		if beat.Action(env) {
-			env.State.CompletedBeats[beat.ID] = true
+			env.State.completedBeats[beat.ID] = true
 		}
 		return
 	}

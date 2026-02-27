@@ -133,7 +133,6 @@ func makeEnv(w *game.World, px, py int) (*game.Env, *game.Player) {
 		Player:              p,
 		World:               w,
 		FoundationDeposited: make(map[game.Point]int),
-		CompletedBeats:      make(map[string]bool),
 	}
 	return &game.Env{State: s, Stores: game.NewStorageManager()}, p
 }

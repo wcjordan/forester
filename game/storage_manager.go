@@ -3,7 +3,7 @@ package game
 // StorageState is the serializable truth for all storage structures.
 // Amounts maps the origin (top-left corner) of each storage structure to
 // the amount currently stored. Resource type and capacity are derived on
-// load from the world's StructureIndex via StorageDef.
+// load from the world's structureIndex via storageDef.
 type StorageState struct {
 	Amounts map[Point]int // origin → stored amount
 }
@@ -13,7 +13,7 @@ type StorageState struct {
 type StorageManager struct {
 	amounts    map[Point]int                     // live truth: origin → stored amount
 	byOrigin   map[Point]*StorageInstance        // derived: origin → instance
-	byResource map[ResourceType]*ResourceStorage // derived: resource → aggregator
+	byResource map[ResourceType]*resourceStorage // derived: resource → aggregator
 }
 
 // NewStorageManager creates an empty StorageManager.
@@ -21,7 +21,7 @@ func NewStorageManager() *StorageManager {
 	return &StorageManager{
 		amounts:    make(map[Point]int),
 		byOrigin:   make(map[Point]*StorageInstance),
-		byResource: make(map[ResourceType]*ResourceStorage),
+		byResource: make(map[ResourceType]*resourceStorage),
 	}
 }
 
@@ -32,7 +32,7 @@ func (m *StorageManager) Register(origin Point, resource ResourceType, capacity 
 	m.byOrigin[origin] = inst
 	m.amounts[origin] = 0
 	if m.byResource[resource] == nil {
-		m.byResource[resource] = &ResourceStorage{}
+		m.byResource[resource] = &resourceStorage{}
 	}
 	m.byResource[resource].Instances = append(m.byResource[resource].Instances, inst)
 }
@@ -102,21 +102,21 @@ func (m *StorageManager) SaveData() StorageState {
 }
 
 // LoadFrom rebuilds derived structures from saved storage state and the world.
-// It uses the world's StructureIndex to find storage structure origins and
-// queries each def's StorageDef implementation for resource type and capacity.
+// It uses the world's structureIndex to find storage structure origins and
+// queries each def's storageDef implementation for resource type and capacity.
 // Origins in the world that are not in saved state are initialized with 0.
 func (m *StorageManager) LoadFrom(s StorageState, world *World) {
 	m.amounts = make(map[Point]int)
 	m.byOrigin = make(map[Point]*StorageInstance)
-	m.byResource = make(map[ResourceType]*ResourceStorage)
+	m.byResource = make(map[ResourceType]*resourceStorage)
 
 	seen := make(map[Point]bool)
-	for _, entry := range world.StructureIndex {
+	for _, entry := range world.structureIndex {
 		if seen[entry.Origin] {
 			continue
 		}
 		seen[entry.Origin] = true
-		sd, ok := entry.Def.(StorageDef)
+		sd, ok := entry.Def.(storageDef)
 		if !ok {
 			continue
 		}
@@ -127,7 +127,7 @@ func (m *StorageManager) LoadFrom(s StorageState, world *World) {
 		m.byOrigin[entry.Origin] = inst
 		m.amounts[entry.Origin] = amount
 		if m.byResource[resource] == nil {
-			m.byResource[resource] = &ResourceStorage{}
+			m.byResource[resource] = &resourceStorage{}
 		}
 		m.byResource[resource].Instances = append(m.byResource[resource].Instances, inst)
 	}
