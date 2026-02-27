@@ -28,6 +28,17 @@ type StructureEntry struct {
 	Origin Point
 }
 
+// FinalizeFoundation converts a completed foundation into its built structure type,
+// updates the world index, clears the deposit record, and calls OnBuilt.
+// Call this once the deposited amount has reached or exceeded BuildCost.
+func FinalizeFoundation(env *Env, def StructureDef, origin Point) {
+	w, h := def.Footprint()
+	env.State.World.SetStructure(origin.X, origin.Y, w, h, def.BuiltType())
+	env.State.World.IndexStructure(origin.X, origin.Y, w, h, def)
+	delete(env.State.FoundationDeposited, origin)
+	def.OnBuilt(env, origin)
+}
+
 // structures is the registry of all known structure definitions.
 // Each definition registers itself via init() in its own file.
 var structures []StructureDef

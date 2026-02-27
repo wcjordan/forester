@@ -164,11 +164,7 @@ func (v *Villager) Tick(env *Env, rng *rand.Rand, now time.Time) {
 						env.State.FoundationDeposited[foundOrigin] += deposit
 						v.Wood -= deposit
 						if env.State.FoundationDeposited[foundOrigin] >= buildCost {
-							fw, fh := entry.Def.Footprint()
-							env.State.World.SetStructure(foundOrigin.X, foundOrigin.Y, fw, fh, entry.Def.BuiltType())
-							env.State.World.IndexStructure(foundOrigin.X, foundOrigin.Y, fw, fh, entry.Def)
-							delete(env.State.FoundationDeposited, foundOrigin)
-							entry.Def.OnBuilt(env, foundOrigin)
+							FinalizeFoundation(env, entry.Def, foundOrigin)
 						}
 					}
 				}
