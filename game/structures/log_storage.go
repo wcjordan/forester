@@ -57,11 +57,7 @@ func (d logStorageDef) OnPlayerInteraction(env *game.Env, origin game.Point, now
 		p.Wood--
 		p.QueueCooldown(game.Build, now.Add(p.BuildInterval))
 		if env.State.FoundationDeposited[origin] >= d.BuildCost() {
-			w, h := d.Footprint()
-			env.State.World.SetStructure(origin.X, origin.Y, w, h, game.LogStorage)
-			env.State.World.IndexStructure(origin.X, origin.Y, w, h, d)
-			delete(env.State.FoundationDeposited, origin)
-			d.OnBuilt(env, origin)
+			game.FinalizeFoundation(env, d, origin)
 		}
 		return
 	}

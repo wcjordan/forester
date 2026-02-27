@@ -82,10 +82,6 @@ func (d houseDef) OnPlayerInteraction(env *game.Env, origin game.Point, now time
 	p.Wood--
 	p.QueueCooldown(game.Build, now.Add(p.BuildInterval))
 	if env.State.FoundationDeposited[origin] >= d.BuildCost() {
-		w, h := d.Footprint()
-		env.State.World.SetStructure(origin.X, origin.Y, w, h, game.House)
-		env.State.World.IndexStructure(origin.X, origin.Y, w, h, d)
-		delete(env.State.FoundationDeposited, origin)
-		d.OnBuilt(env, origin)
+		game.FinalizeFoundation(env, d, origin)
 	}
 }
