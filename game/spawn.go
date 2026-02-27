@@ -34,8 +34,7 @@ func spawnFoundationAt(world *World, playerX, playerY int, def StructureDef) boo
 		cx, cy = findValidLocationNearPlayer(world, playerX, playerY, w, h)
 	}
 	if cx >= 0 {
-		world.SetStructure(cx, cy, w, h, def.FoundationType())
-		world.IndexStructure(cx, cy, w, h, def)
+		world.AddStructure(cx, cy, w, h, def.FoundationType(), def)
 		return true
 	}
 	return false

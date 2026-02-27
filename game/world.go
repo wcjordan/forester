@@ -135,6 +135,14 @@ func (w *World) SetStructure(x, y, width, height int, stype StructureType) {
 	}
 }
 
+// AddStructure stamps stype onto the tile grid and records the def in the
+// structure index. It is the combined form of SetStructure + IndexStructure
+// and should be used whenever both need to be called together.
+func (w *World) AddStructure(x, y, width, height int, stype StructureType, def StructureDef) {
+	w.SetStructure(x, y, width, height, stype)
+	w.IndexStructure(x, y, width, height, def)
+}
+
 // CountStructureInstances returns the number of distinct instances of stype.
 // O(1) — maintained by IndexStructure.
 func (w *World) CountStructureInstances(stype StructureType) int {

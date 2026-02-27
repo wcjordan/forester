@@ -24,8 +24,7 @@ func TestVillagerSpawnsOnHouseBuilt(t *testing.T) {
 
 	// Place a house foundation adjacent to the player and build it.
 	origin := game.Point{X: 10, Y: 10}
-	s.World.SetStructure(origin.X, origin.Y, 2, 2, game.FoundationHouse)
-	s.World.IndexStructure(origin.X, origin.Y, 2, 2, houseDef{})
+	s.World.AddStructure(origin.X, origin.Y, 2, 2, game.FoundationHouse, houseDef{})
 
 	// Player adjacent to the foundation; give enough wood to build.
 	s.Player.X = 9
@@ -50,8 +49,7 @@ func TestVillagerSpawnsAdjacentToHouse(t *testing.T) {
 	g := &game.Game{State: s, Stores: stores, Villagers: vm}
 
 	origin := game.Point{X: 10, Y: 10}
-	s.World.SetStructure(origin.X, origin.Y, 2, 2, game.FoundationHouse)
-	s.World.IndexStructure(origin.X, origin.Y, 2, 2, houseDef{})
+	s.World.AddStructure(origin.X, origin.Y, 2, 2, game.FoundationHouse, houseDef{})
 
 	s.Player.X = 9
 	s.Player.Y = 10
@@ -89,8 +87,7 @@ func TestEachHouseSpawnsOneVillager(t *testing.T) {
 
 	buildHouse := func(ox, oy, playerX, playerY int) {
 		t.Helper()
-		s.World.SetStructure(ox, oy, 2, 2, game.FoundationHouse)
-		s.World.IndexStructure(ox, oy, 2, 2, houseDef{})
+		s.World.AddStructure(ox, oy, 2, 2, game.FoundationHouse, houseDef{})
 		s.Player.X = playerX
 		s.Player.Y = playerY
 		s.Player.Inventory[game.Wood] = houseBuildCost

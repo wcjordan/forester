@@ -11,8 +11,7 @@ func TestFoundationBuildMechanic(t *testing.T) {
 	// Set up a world with an indexed foundation at (5,5) and player just west at (4,5).
 	makeFoundationState := func(wood int) (*game.State, *game.StorageManager) {
 		w := game.NewWorld(20, 20)
-		w.SetStructure(5, 5, 4, 4, game.FoundationLogStorage)
-		w.IndexStructure(5, 5, 4, 4, logStorageDef{})
+		w.AddStructure(5, 5, 4, 4, game.FoundationLogStorage, logStorageDef{})
 		p := game.NewPlayer(4, 5)
 		p.Inventory[game.Wood] = wood
 		s := &game.State{
@@ -80,8 +79,7 @@ func TestTickAdjacentStructures(t *testing.T) {
 	makeDepositState := func(wood int) (*game.State, *game.StorageManager) {
 		w := game.NewWorld(10, 10)
 		origin := game.Point{X: 5, Y: 4}
-		w.SetStructure(origin.X, origin.Y, 4, 4, game.LogStorage)
-		w.IndexStructure(origin.X, origin.Y, 4, 4, logStorageDef{})
+		w.AddStructure(origin.X, origin.Y, 4, 4, game.LogStorage, logStorageDef{})
 		p := game.NewPlayer(5, 5)
 		p.Inventory[game.Wood] = wood
 		s := &game.State{Player: p, World: w, FoundationDeposited: make(map[game.Point]int)}
@@ -146,10 +144,8 @@ func TestTickAdjacentStructures(t *testing.T) {
 		w := game.NewWorld(20, 20)
 		originA := game.Point{X: 5, Y: 4}
 		originB := game.Point{X: 5, Y: 6}
-		w.SetStructure(originA.X, originA.Y, 1, 1, game.LogStorage)
-		w.IndexStructure(originA.X, originA.Y, 1, 1, logStorageDef{})
-		w.SetStructure(originB.X, originB.Y, 1, 1, game.LogStorage)
-		w.IndexStructure(originB.X, originB.Y, 1, 1, logStorageDef{})
+		w.AddStructure(originA.X, originA.Y, 1, 1, game.LogStorage, logStorageDef{})
+		w.AddStructure(originB.X, originB.Y, 1, 1, game.LogStorage, logStorageDef{})
 		p := game.NewPlayer(5, 5)
 		p.Inventory[game.Wood] = 5
 		s := &game.State{Player: p, World: w, FoundationDeposited: make(map[game.Point]int)}
@@ -182,10 +178,8 @@ func TestDepositRoutesToSpecificInstance(t *testing.T) {
 	w := game.NewWorld(15, 10)
 	originA := game.Point{X: 2, Y: 4}
 	originB := game.Point{X: 8, Y: 4}
-	w.SetStructure(originA.X, originA.Y, 1, 1, game.LogStorage)
-	w.IndexStructure(originA.X, originA.Y, 1, 1, logStorageDef{})
-	w.SetStructure(originB.X, originB.Y, 1, 1, game.LogStorage)
-	w.IndexStructure(originB.X, originB.Y, 1, 1, logStorageDef{})
+	w.AddStructure(originA.X, originA.Y, 1, 1, game.LogStorage, logStorageDef{})
+	w.AddStructure(originB.X, originB.Y, 1, 1, game.LogStorage, logStorageDef{})
 	p := game.NewPlayer(2, 5)
 	p.Inventory[game.Wood] = 3
 	s := &game.State{Player: p, World: w, FoundationDeposited: make(map[game.Point]int)}
@@ -210,8 +204,7 @@ func TestDepositRespectsInstanceCapacity(t *testing.T) {
 	// Storage at capacity — deposit should be refused and no cooldown queued.
 	w := game.NewWorld(10, 10)
 	origin := game.Point{X: 5, Y: 4}
-	w.SetStructure(origin.X, origin.Y, 1, 1, game.LogStorage)
-	w.IndexStructure(origin.X, origin.Y, 1, 1, logStorageDef{})
+	w.AddStructure(origin.X, origin.Y, 1, 1, game.LogStorage, logStorageDef{})
 	p := game.NewPlayer(5, 5)
 	p.Inventory[game.Wood] = 5
 	s := &game.State{Player: p, World: w, FoundationDeposited: make(map[game.Point]int)}
@@ -236,10 +229,8 @@ func TestStorageManagerRoundTrip(t *testing.T) {
 	w := game.NewWorld(20, 20)
 	originA := game.Point{X: 2, Y: 2}
 	originB := game.Point{X: 10, Y: 10}
-	w.SetStructure(originA.X, originA.Y, 4, 4, game.LogStorage)
-	w.IndexStructure(originA.X, originA.Y, 4, 4, logStorageDef{})
-	w.SetStructure(originB.X, originB.Y, 4, 4, game.LogStorage)
-	w.IndexStructure(originB.X, originB.Y, 4, 4, logStorageDef{})
+	w.AddStructure(originA.X, originA.Y, 4, 4, game.LogStorage, logStorageDef{})
+	w.AddStructure(originB.X, originB.Y, 4, 4, game.LogStorage, logStorageDef{})
 
 	// Register both with a manager and deposit into A only.
 	m := game.NewStorageManager()
@@ -287,8 +278,7 @@ func TestDepositCooldown(t *testing.T) {
 	makeDepositState := func(wood int) (*game.State, *game.StorageManager) {
 		w := game.NewWorld(10, 10)
 		origin := game.Point{X: 5, Y: 4}
-		w.SetStructure(origin.X, origin.Y, 4, 4, game.LogStorage) // storage above player
-		w.IndexStructure(origin.X, origin.Y, 4, 4, logStorageDef{})
+		w.AddStructure(origin.X, origin.Y, 4, 4, game.LogStorage, logStorageDef{}) // storage above player
 		p := game.NewPlayer(5, 5)
 		p.Inventory[game.Wood] = wood
 		s := &game.State{Player: p, World: w, FoundationDeposited: make(map[game.Point]int)}
