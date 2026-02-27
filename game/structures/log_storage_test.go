@@ -33,8 +33,8 @@ func TestFoundationBuildMechanic(t *testing.T) {
 
 	t.Run("adjacent deposit reduces player wood", func(t *testing.T) {
 		s, stores := makeFoundationState(5)
-		env := &game.Env{State: s, Stores: stores}
-		s.TickAdjacentStructures(env, time.Now())
+		g := &game.Game{State: s, Stores: stores}
+		g.TickAdjacentStructures(time.Now())
 		if s.Player.Inventory[game.Wood] != 4 {
 			t.Errorf("Inventory[Wood] = %d, want 4 after one deposit", s.Player.Inventory[game.Wood])
 		}
@@ -46,10 +46,10 @@ func TestFoundationBuildMechanic(t *testing.T) {
 
 	t.Run("deposit respects cooldown", func(t *testing.T) {
 		s, stores := makeFoundationState(5)
-		env := &game.Env{State: s, Stores: stores}
+		g := &game.Game{State: s, Stores: stores}
 		t0 := time.Now()
-		s.TickAdjacentStructures(env, t0)
-		s.TickAdjacentStructures(env, t0) // same timestamp — cooldown blocks
+		g.TickAdjacentStructures(t0)
+		g.TickAdjacentStructures(t0) // same timestamp — cooldown blocks
 		origin := game.Point{X: 5, Y: 5}
 		if s.FoundationDeposited[origin] != 1 {
 			t.Errorf("FoundationDeposited = %d, want 1 (second tick should be blocked by cooldown)", s.FoundationDeposited[origin])
@@ -58,10 +58,10 @@ func TestFoundationBuildMechanic(t *testing.T) {
 
 	t.Run("foundation completes after BuildCost deposits", func(t *testing.T) {
 		s, stores := makeFoundationState(logStorageBuildCost)
-		env := &game.Env{State: s, Stores: stores}
+		g := &game.Game{State: s, Stores: stores}
 		t0 := time.Now()
 		for i := range logStorageBuildCost {
-			s.TickAdjacentStructures(env, t0.Add(time.Duration(i)*(game.DepositTickInterval+time.Millisecond)))
+			g.TickAdjacentStructures(t0.Add(time.Duration(i) * (game.DepositTickInterval + time.Millisecond)))
 		}
 		if s.World.HasStructureOfType(game.FoundationLogStorage) {
 			t.Error("FoundationLogStorage tiles should be gone after build completes")
@@ -92,8 +92,8 @@ func TestTickAdjacentStructures(t *testing.T) {
 
 	t.Run("no deposit when Wood is 0", func(t *testing.T) {
 		s, stores := makeDepositState(0)
-		env := &game.Env{State: s, Stores: stores}
-		s.TickAdjacentStructures(env, time.Now())
+		g := &game.Game{State: s, Stores: stores}
+		g.TickAdjacentStructures(time.Now())
 		if stores.Total(game.Wood) != 0 {
 			t.Errorf("Total(Wood) = %d, want 0 when Wood == 0", stores.Total(game.Wood))
 		}
@@ -105,8 +105,8 @@ func TestTickAdjacentStructures(t *testing.T) {
 		p.Inventory[game.Wood] = 5
 		s := &game.State{Player: p, World: w, FoundationDeposited: make(map[game.Point]int)}
 		stores := game.NewStorageManager()
-		env := &game.Env{State: s, Stores: stores}
-		s.TickAdjacentStructures(env, time.Now())
+		g := &game.Game{State: s, Stores: stores}
+		g.TickAdjacentStructures(time.Now())
 		if stores.Total(game.Wood) != 0 {
 			t.Errorf("Total(Wood) = %d, want 0 when not adjacent", stores.Total(game.Wood))
 		}
@@ -114,8 +114,8 @@ func TestTickAdjacentStructures(t *testing.T) {
 
 	t.Run("deposits one wood when adjacent", func(t *testing.T) {
 		s, stores := makeDepositState(5)
-		env := &game.Env{State: s, Stores: stores}
-		s.TickAdjacentStructures(env, time.Now())
+		g := &game.Game{State: s, Stores: stores}
+		g.TickAdjacentStructures(time.Now())
 		if s.Player.Inventory[game.Wood] != 4 {
 			t.Errorf("Inventory[Wood] = %d, want 4 after deposit", s.Player.Inventory[game.Wood])
 		}
@@ -126,10 +126,10 @@ func TestTickAdjacentStructures(t *testing.T) {
 
 	t.Run("deposits one at a time with cooldown between ticks", func(t *testing.T) {
 		s, stores := makeDepositState(3)
-		env := &game.Env{State: s, Stores: stores}
+		g := &game.Game{State: s, Stores: stores}
 		t0 := time.Now()
-		s.TickAdjacentStructures(env, t0)
-		s.TickAdjacentStructures(env, t0.Add(game.DepositTickInterval+time.Millisecond))
+		g.TickAdjacentStructures(t0)
+		g.TickAdjacentStructures(t0.Add(game.DepositTickInterval + time.Millisecond))
 		if s.Player.Inventory[game.Wood] != 1 {
 			t.Errorf("Inventory[Wood] = %d, want 1 after 2 deposits", s.Player.Inventory[game.Wood])
 		}
@@ -158,8 +158,8 @@ func TestTickAdjacentStructures(t *testing.T) {
 		stores.Register(originB, game.Wood, logStorageCapacity)
 		instA := stores.FindByOrigin(originA)
 		instB := stores.FindByOrigin(originB)
-		env := &game.Env{State: s, Stores: stores}
-		s.TickAdjacentStructures(env, time.Now())
+		g := &game.Game{State: s, Stores: stores}
+		g.TickAdjacentStructures(time.Now())
 		// Two instances adjacent → two deposits, one per instance.
 		if s.Player.Inventory[game.Wood] != 3 {
 			t.Errorf("Inventory[Wood] = %d, want 3 after two-instance deposit", s.Player.Inventory[game.Wood])
@@ -194,9 +194,9 @@ func TestDepositRoutesToSpecificInstance(t *testing.T) {
 	stores.Register(originB, game.Wood, logStorageCapacity)
 	instA := stores.FindByOrigin(originA)
 	instB := stores.FindByOrigin(originB)
-	env := &game.Env{State: s, Stores: stores}
+	g := &game.Game{State: s, Stores: stores}
 
-	s.TickAdjacentStructures(env, time.Now())
+	g.TickAdjacentStructures(time.Now())
 
 	if instA.Stored != 1 {
 		t.Errorf("instA.Stored = %d, want 1 (adjacent storage)", instA.Stored)
@@ -219,9 +219,9 @@ func TestDepositRespectsInstanceCapacity(t *testing.T) {
 	stores.Register(origin, game.Wood, 2)
 	stores.DepositAt(origin, 2) // fill to capacity via the proper API
 	inst := stores.FindByOrigin(origin)
-	env := &game.Env{State: s, Stores: stores}
+	g := &game.Game{State: s, Stores: stores}
 
-	s.TickAdjacentStructures(env, time.Now())
+	g.TickAdjacentStructures(time.Now())
 
 	if inst.Stored != 2 {
 		t.Errorf("inst.Stored = %d, want 2 (full — no deposit)", inst.Stored)
@@ -299,10 +299,10 @@ func TestDepositCooldown(t *testing.T) {
 
 	t.Run("does not deposit when cooldown has not passed", func(t *testing.T) {
 		s, stores := makeDepositState(5)
-		env := &game.Env{State: s, Stores: stores}
+		g := &game.Game{State: s, Stores: stores}
 		now := time.Now()
 		s.Player.SetCooldown(game.Deposit, now.Add(time.Hour))
-		s.TickAdjacentStructures(env, now)
+		g.TickAdjacentStructures(now)
 		if stores.Total(game.Wood) != 0 {
 			t.Errorf("Total(Wood) = %d, want 0 when cooldown active", stores.Total(game.Wood))
 		}
@@ -310,8 +310,8 @@ func TestDepositCooldown(t *testing.T) {
 
 	t.Run("deposits when cooldown has passed", func(t *testing.T) {
 		s, stores := makeDepositState(5) // Cooldowns zero value = expired
-		env := &game.Env{State: s, Stores: stores}
-		s.TickAdjacentStructures(env, time.Now())
+		g := &game.Game{State: s, Stores: stores}
+		g.TickAdjacentStructures(time.Now())
 		if stores.Total(game.Wood) != 1 {
 			t.Errorf("Total(Wood) = %d, want 1", stores.Total(game.Wood))
 		}
@@ -319,9 +319,9 @@ func TestDepositCooldown(t *testing.T) {
 
 	t.Run("sets cooldown after deposit", func(t *testing.T) {
 		s, stores := makeDepositState(5)
-		env := &game.Env{State: s, Stores: stores}
+		g := &game.Game{State: s, Stores: stores}
 		now := time.Now()
-		s.TickAdjacentStructures(env, now)
+		g.TickAdjacentStructures(now)
 		if !s.Player.Cooldowns[game.Deposit].After(now) {
 			t.Error("Cooldowns[Deposit] should be set to a future time after deposit")
 		}
@@ -329,8 +329,8 @@ func TestDepositCooldown(t *testing.T) {
 
 	t.Run("does not set cooldown when nothing deposited", func(t *testing.T) {
 		s, stores := makeDepositState(0) // no wood to deposit
-		env := &game.Env{State: s, Stores: stores}
-		s.TickAdjacentStructures(env, time.Now())
+		g := &game.Game{State: s, Stores: stores}
+		g.TickAdjacentStructures(time.Now())
 		var zero time.Time
 		if s.Player.Cooldowns[game.Deposit] != zero {
 			t.Error("Cooldowns[Deposit] should remain zero when nothing was deposited")

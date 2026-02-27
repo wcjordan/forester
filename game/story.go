@@ -83,12 +83,12 @@ var storyBeats = []StoryBeat{
 // whose condition is met. Completed beats are skipped. If an incomplete beat's
 // condition is not yet true, evaluation stops (strict ordering). At most one
 // beat fires per call; a beat is only marked complete when its action returns true.
-func (s *State) maybeAdvanceStory(env *Env) {
-	if s.CompletedBeats == nil {
-		s.CompletedBeats = make(map[string]bool)
+func maybeAdvanceStory(env *Env) {
+	if env.State.CompletedBeats == nil {
+		env.State.CompletedBeats = make(map[string]bool)
 	}
 	for _, beat := range storyBeats {
-		if s.CompletedBeats[beat.ID] {
+		if env.State.CompletedBeats[beat.ID] {
 			continue
 		}
 		// Strict ordering: stop at the first incomplete beat whose condition is not met.
@@ -96,7 +96,7 @@ func (s *State) maybeAdvanceStory(env *Env) {
 			return
 		}
 		if beat.Action(env) {
-			s.CompletedBeats[beat.ID] = true
+			env.State.CompletedBeats[beat.ID] = true
 		}
 		return
 	}
