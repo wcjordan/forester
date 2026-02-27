@@ -256,16 +256,11 @@ func TestAddOfferAndSelectCard(t *testing.T) {
 	upgradeRegistry["test_carry"] = testCarryUpgrade{}
 	t.Cleanup(func() { delete(upgradeRegistry, "test_carry") })
 
-	g := &Game{
-		State: &State{
-			Player:              NewPlayer(5, 5),
-			World:               NewWorld(10, 10),
-			FoundationDeposited: make(map[Point]int),
-			CompletedBeats:      make(map[string]bool),
-		},
-		Stores:    NewStorageManager(),
-		Villagers: NewVillagerManager(),
-	}
+	g := NewWithClockAndRNG(time.Now, rand.New(rand.NewSource(1)))
+	g.State.Player = NewPlayer(5, 5)
+	g.State.World = NewWorld(10, 10)
+	g.State.FoundationDeposited = make(map[Point]int)
+	g.State.CompletedBeats = make(map[string]bool)
 	p := g.State.Player
 
 	if g.HasPendingOffer() {
