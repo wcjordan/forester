@@ -116,6 +116,16 @@ func (w *World) Regrow(rng *rand.Rand, now time.Time) {
 	}
 }
 
+// RegrowElapsed reports whether the regrowth cooldown has elapsed.
+func (w *World) RegrowElapsed(now time.Time) bool {
+	return now.After(w.regrowCooldown)
+}
+
+// MarkRegrowCooldown sets the next regrowth cooldown deadline.
+func (w *World) MarkRegrowCooldown(d time.Duration, now time.Time) {
+	w.regrowCooldown = now.Add(d)
+}
+
 // TileAt returns a pointer to the tile at the given coordinates.
 // Returns nil if out of bounds.
 func (w *World) TileAt(x, y int) *Tile {

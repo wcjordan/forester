@@ -1,9 +1,54 @@
 package game
 
 import (
+	"math/rand"
 	"testing"
 	"time"
 )
+
+// testWoodDef is a minimal ResourceDef for use in package game tests.
+// It mimics the harvest logic of woodDef without importing game/resources.
+type testWoodDef struct{}
+
+func (testWoodDef) Type() ResourceType { return Wood }
+func (testWoodDef) Harvest(env *Env, now time.Time) {
+	p := env.State.Player
+	if !p.CooldownExpired(Harvest, now) {
+		return
+	}
+	p.SetCooldown(Harvest, now.Add(p.HarvestInterval))
+	if p.Wood >= p.MaxCarry {
+		return
+	}
+	dx, dy := p.FacingDX, p.FacingDY
+	targets := [4][2]int{
+		{p.X, p.Y},
+		{p.X + dx, p.Y + dy},
+		{p.X + dx - dy, p.Y + dy + dx},
+		{p.X + dx + dy, p.Y + dy - dx},
+	}
+	for _, coord := range targets {
+		tile := env.State.World.TileAt(coord[0], coord[1])
+		if tile == nil || tile.Terrain != Forest {
+			continue
+		}
+		canTake := min(1, p.MaxCarry-p.Wood)
+		harvest := min(canTake, tile.TreeSize)
+		tile.TreeSize -= harvest
+		p.Wood += harvest
+	}
+}
+func (testWoodDef) Regrow(_ *Env, _ *rand.Rand, _ time.Time) {}
+
+// withTestResources registers testWoodDef for the duration of t and
+// restores the original registry on cleanup.
+func withTestResources(t *testing.T) {
+	t.Helper()
+	orig := resourceRegistry
+	resourceRegistry = map[ResourceType]ResourceDef{}
+	RegisterResource(testWoodDef{})
+	t.Cleanup(func() { resourceRegistry = orig })
+}
 
 // testLogStorageDef is a minimal StructureDef for spawning tests in package game.
 // It mimics just enough of logStorageDef (now in game/structures) to exercise
@@ -61,6 +106,7 @@ func countStructureTiles(w *World, st StructureType) int {
 
 func TestFoundationSpawnsWhenInventoryFull(t *testing.T) {
 	withTestStructures(t)
+	withTestResources(t)
 	// Build a world big enough that there's a clear path from player to center.
 	w := NewWorld(30, 30)
 	// Player at (5, 5) facing north; forest tile at (5, 4) with enough wood.

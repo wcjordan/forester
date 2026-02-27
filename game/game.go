@@ -53,5 +53,5 @@ func (g *Game) Tick() {
 	g.State.Harvest(env, now)
 	g.State.TickAdjacentStructures(env, now)
 	g.Villagers.Tick(env, g.rng, now)
-	g.State.World.Regrow(g.rng, now)
+	IterateResources(func(d ResourceDef) { d.Regrow(env, g.rng, now) })
 }

@@ -59,7 +59,7 @@ func (s *State) SelectCard(idx int) {
 // Harvest harvests adjacent trees without moving the player.
 // Advances story beats and world condition spawning each tick.
 func (s *State) Harvest(env *Env, now time.Time) {
-	s.Player.HarvestAdjacent(s.World, now)
+	IterateResources(func(d ResourceDef) { d.Harvest(env, now) })
 	s.maybeAdvanceStory(env)
 	s.maybeSpawnFoundation(env)
 }
