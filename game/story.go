@@ -42,7 +42,7 @@ var storyBeats = []StoryBeat{
 		// Queue the carry upgrade offer when the first log storage is completed.
 		ID: "first_log_storage_built",
 		Condition: func(env *Env) bool {
-			return env.State.HasStructureOfType(LogStorage)
+			return env.State.World.HasStructureOfType(LogStorage)
 		},
 		Action: func(env *Env) bool {
 			env.State.AddOffer([]string{"carry_capacity"})
@@ -70,7 +70,7 @@ var storyBeats = []StoryBeat{
 		// Queue the build/deposit speed upgrade offer when the first house is completed.
 		ID: "first_house_built",
 		Condition: func(env *Env) bool {
-			return env.State.HasStructureOfType(House)
+			return env.State.World.HasStructureOfType(House)
 		},
 		Action: func(env *Env) bool {
 			env.State.AddOffer([]string{"build_speed", "deposit_speed"})

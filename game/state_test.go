@@ -121,13 +121,13 @@ func TestFoundationSpawnsWhenInventoryFull(t *testing.T) {
 	for i := range InitialCarryingCapacity - 1 {
 		s.Harvest(env, t0.Add(time.Duration(i+1)*HarvestTickInterval*2))
 	}
-	if s.HasStructureOfType(FoundationLogStorage) {
+	if s.World.HasStructureOfType(FoundationLogStorage) {
 		t.Fatal("foundation appeared before inventory full")
 	}
 
 	// Final harvest fills inventory — story beat fires and foundation should now appear.
 	s.Harvest(env, t0.Add(time.Duration(InitialCarryingCapacity)*HarvestTickInterval*2))
-	if !s.HasStructureOfType(FoundationLogStorage) {
+	if !s.World.HasStructureOfType(FoundationLogStorage) {
 		t.Error("foundation did not appear when inventory became full")
 	}
 }
@@ -216,7 +216,7 @@ func TestHouseWorldConditionSpawnsAfterBuild(t *testing.T) {
 
 	// No house built yet — world condition should not fire.
 	maybeSpawnFoundation(env)
-	if s.HasStructureOfType(FoundationHouse) {
+	if s.World.HasStructureOfType(FoundationHouse) {
 		t.Error("house foundation spawned before any house was built")
 	}
 
@@ -226,7 +226,7 @@ func TestHouseWorldConditionSpawnsAfterBuild(t *testing.T) {
 
 	// World condition now satisfied: built house exists, no pending foundation.
 	maybeSpawnFoundation(env)
-	if !s.HasStructureOfType(FoundationHouse) {
+	if !s.World.HasStructureOfType(FoundationHouse) {
 		t.Error("house foundation did not spawn after a house was built")
 	}
 
@@ -271,21 +271,5 @@ func TestAddOfferAndSelectCard(t *testing.T) {
 	}
 	if p.MaxCarry != 100 {
 		t.Errorf("MaxCarry = %d, want 100 after carry capacity upgrade", p.MaxCarry)
-	}
-}
-
-func TestHasStructureOfType(t *testing.T) {
-	w := NewWorld(10, 10)
-	s := &State{Player: NewPlayer(5, 5), World: w}
-
-	if s.HasStructureOfType(LogStorage) {
-		t.Error("should have no LogStorage initially")
-	}
-	w.SetStructure(1, 1, 2, 2, LogStorage)
-	if !s.HasStructureOfType(LogStorage) {
-		t.Error("should detect LogStorage after SetStructure")
-	}
-	if s.HasStructureOfType(FoundationLogStorage) {
-		t.Error("should not detect FoundationLogStorage when none placed")
 	}
 }

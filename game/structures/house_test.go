@@ -38,7 +38,7 @@ func TestVillagerSpawnsOnHouseBuilt(t *testing.T) {
 		s.TickAdjacentStructures(env, t0.Add(time.Duration(i)*(game.DepositTickInterval+time.Millisecond)))
 	}
 
-	if !s.HasStructureOfType(game.House) {
+	if !s.World.HasStructureOfType(game.House) {
 		t.Fatal("house was not built after depositing build cost")
 	}
 	if vm.Count() != 1 {
