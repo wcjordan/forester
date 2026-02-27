@@ -330,7 +330,7 @@ func nearestClearTileAdjacent(world *World, stype StructureType, fromX, fromY in
 			continue
 		}
 		fw, fh := entry.Def.Footprint()
-		forFootprintPerimeter(origin.X, origin.Y, fw, fh, func(px, py int) {
+		forFootprintCardinalNeighbors(origin.X, origin.Y, fw, fh, func(px, py int) {
 			tile := world.TileAt(px, py)
 			if tile == nil || tile.Structure != NoStructure {
 				return
@@ -347,15 +347,17 @@ func nearestClearTileAdjacent(world *World, stype StructureType, fromX, fromY in
 	return tx, ty, found
 }
 
-// forFootprintPerimeter calls f for each tile in the 1-tile Chebyshev border
-// around the w×h footprint with top-left at (fx, fy).
-func forFootprintPerimeter(fx, fy, fw, fh int, f func(x, y int)) {
-	// Top and bottom rows (including corners).
-	for x := fx - 1; x <= fx+fw; x++ {
+// forFootprintCardinalNeighbors calls f for each tile that is cardinally
+// (orthogonally) adjacent to the w×h footprint with top-left at (fx, fy).
+// Corner tiles of the Chebyshev border are excluded because they are only
+// diagonally adjacent and villagers cannot interact with a structure from there.
+func forFootprintCardinalNeighbors(fx, fy, fw, fh int, f func(x, y int)) {
+	// Top and bottom edges (no corners).
+	for x := fx; x < fx+fw; x++ {
 		f(x, fy-1)
 		f(x, fy+fh)
 	}
-	// Left and right columns (excluding corners already covered above).
+	// Left and right edges.
 	for y := fy; y < fy+fh; y++ {
 		f(fx-1, y)
 		f(fx+fw, y)

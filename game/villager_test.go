@@ -244,6 +244,58 @@ func TestNearestClearTileAdjacent(t *testing.T) {
 	})
 }
 
+func TestNearestClearTileAdjacentExcludesCorners(t *testing.T) {
+	// 4×4 LogStorage at (5,5) — footprint matches testLogStorageDef.Footprint().
+	// Cardinal neighbors: top y=4 x∈[5,8], bottom y=9 x∈[5,8],
+	//                     left x=4 y∈[5,8], right x=9 y∈[5,8].
+	// Chebyshev corners (excluded): (4,4), (9,4), (4,9), (9,9).
+	w := NewWorld(20, 20)
+	w.SetStructure(5, 5, 4, 4, LogStorage)
+	w.IndexStructure(5, 5, 4, 4, testLogStorageDef{})
+
+	// Block all cardinal neighbors with House tiles (not indexed as LogStorage).
+	for x := 5; x < 9; x++ {
+		w.TileAt(x, 4).Structure = House // top edge
+		w.TileAt(x, 9).Structure = House // bottom edge
+	}
+	for y := 5; y < 9; y++ {
+		w.TileAt(4, y).Structure = House // left edge
+		w.TileAt(9, y).Structure = House // right edge
+	}
+
+	// All cardinal neighbors are blocked; only diagonal corners remain open.
+	// The function must treat corners as non-adjacent and return ok=false.
+	_, _, ok := nearestClearTileAdjacent(w, LogStorage, 7, 7)
+	if ok {
+		t.Error("nearestClearTileAdjacent returned ok=true when only diagonal corners are free; corners must not be considered adjacent")
+	}
+}
+
+func TestNearestClearTileAdjacentReturnedTileIsCardinallyAdjacent(t *testing.T) {
+	// 4×4 LogStorage at (5,5) — footprint matches testLogStorageDef.Footprint().
+	// Chebyshev corners: (4,4), (9,4), (4,9), (9,9) — must never be returned.
+	w := NewWorld(20, 20)
+	w.SetStructure(5, 5, 4, 4, LogStorage)
+	w.IndexStructure(5, 5, 4, 4, testLogStorageDef{})
+
+	corners := map[[2]int]bool{
+		{4, 4}: true, {9, 4}: true,
+		{4, 9}: true, {9, 9}: true,
+	}
+
+	// Run from several positions and confirm no corner is ever returned.
+	for _, from := range [][2]int{{0, 0}, {4, 4}, {9, 9}, {10, 10}} {
+		tx, ty, ok := nearestClearTileAdjacent(w, LogStorage, from[0], from[1])
+		if !ok {
+			t.Errorf("from (%d,%d): expected ok=true", from[0], from[1])
+			continue
+		}
+		if corners[[2]int{tx, ty}] {
+			t.Errorf("from (%d,%d): returned corner tile (%d,%d); corners must be excluded", from[0], from[1], tx, ty)
+		}
+	}
+}
+
 // --- Villager routing around obstacles ---
 
 func TestVillagerRoutesAroundObstacle(t *testing.T) {
