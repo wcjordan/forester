@@ -35,7 +35,7 @@ var storyBeats = []StoryBeat{
 			if def == nil {
 				return false
 			}
-			return env.State.spawnFoundationAt(def)
+			return spawnFoundationAt(env.State.World, env.State.Player.X, env.State.Player.Y, def)
 		},
 	},
 	{
@@ -63,7 +63,7 @@ var storyBeats = []StoryBeat{
 			if def == nil {
 				return false
 			}
-			return env.State.spawnFoundationAt(def)
+			return spawnFoundationAt(env.State.World, env.State.Player.X, env.State.Player.Y, def)
 		},
 	},
 	{

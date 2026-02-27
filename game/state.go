@@ -66,7 +66,7 @@ func (s *State) SelectCard(idx int) {
 func (s *State) Harvest(env *Env, now time.Time) {
 	IterateResources(func(d ResourceDef) { d.Harvest(env, now) })
 	s.maybeAdvanceStory(env)
-	s.maybeSpawnFoundation(env)
+	maybeSpawnFoundation(env)
 }
 
 // TickAdjacentStructures calls OnPlayerInteraction once per structure instance

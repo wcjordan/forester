@@ -162,8 +162,7 @@ func TestStoryBeatFiresOnce(t *testing.T) {
 func TestFoundationLocationIsAllGrassland(t *testing.T) {
 	w := NewWorld(30, 30)
 	p := NewPlayer(5, 15)
-	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int), CompletedBeats: make(map[string]bool)}
-	s.spawnFoundationAt(testLogStorageDef{})
+	spawnFoundationAt(w, p.X, p.Y, testLogStorageDef{})
 
 	// Find the foundation and verify all 16 tiles are on grassland terrain (underlying).
 	for y := range w.Tiles {
@@ -181,8 +180,7 @@ func TestFoundationLocationBetweenPlayerAndSpawn(t *testing.T) {
 	w := NewWorld(30, 30)
 	// Player at (2, 15); spawn at (15, 15).
 	p := NewPlayer(2, 15)
-	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int), CompletedBeats: make(map[string]bool)}
-	s.spawnFoundationAt(testLogStorageDef{})
+	spawnFoundationAt(w, p.X, p.Y, testLogStorageDef{})
 
 	spawnX := w.Width / 2
 	// Find foundation top-left.
@@ -217,7 +215,7 @@ func TestHouseWorldConditionSpawnsAfterBuild(t *testing.T) {
 	env := &Env{State: s, Stores: stores}
 
 	// No house built yet — world condition should not fire.
-	s.maybeSpawnFoundation(env)
+	maybeSpawnFoundation(env)
 	if s.HasStructureOfType(FoundationHouse) {
 		t.Error("house foundation spawned before any house was built")
 	}
@@ -227,13 +225,13 @@ func TestHouseWorldConditionSpawnsAfterBuild(t *testing.T) {
 	w.IndexStructure(10, 10, 2, 2, testHouseDef{})
 
 	// World condition now satisfied: built house exists, no pending foundation.
-	s.maybeSpawnFoundation(env)
+	maybeSpawnFoundation(env)
 	if !s.HasStructureOfType(FoundationHouse) {
 		t.Error("house foundation did not spawn after a house was built")
 	}
 
 	// Second call must not spawn another foundation while one is already pending.
-	s.maybeSpawnFoundation(env)
+	maybeSpawnFoundation(env)
 	if countStructureTiles(w, FoundationHouse) > 4 { // one 2×2 foundation = 4 tiles
 		t.Error("world condition spawned a second house foundation while one was already pending")
 	}
