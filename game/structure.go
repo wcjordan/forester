@@ -1,9 +1,12 @@
 package game
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // StructureDef describes the behavior of one structure type.
-// Each structure is registered in the structures slice (see log_storage.go etc.).
+// Each structure is registered in the structures map via RegisterStructure.
 type StructureDef interface {
 	FoundationType() StructureType
 	BuiltType() StructureType
@@ -39,21 +42,36 @@ func FinalizeFoundation(env *Env, def StructureDef, origin Point) {
 	def.OnBuilt(env, origin)
 }
 
-// structures is the registry of all known structure definitions.
-// Each definition registers itself via init() in its own file.
-var structures []StructureDef
+// structures maps every known StructureType to its StructureDef.
+// Each def is stored under two keys: its FoundationType and its BuiltType.
+// Use IterateStructures to visit each def exactly once.
+var structures = map[StructureType]StructureDef{}
 
 // RegisterStructure adds a StructureDef to the global registry.
 // Call this from an init() function in an external package (e.g. game/structures).
-// Panics on nil or duplicate registration (same FoundationType+BuiltType pair).
+// Panics on nil or if either FoundationType or BuiltType is already registered.
 func RegisterStructure(d StructureDef) {
 	if d == nil {
 		panic("RegisterStructure: def is nil")
 	}
-	for _, existing := range structures {
-		if existing.FoundationType() == d.FoundationType() && existing.BuiltType() == d.BuiltType() {
-			panic("RegisterStructure: duplicate registration")
+	if _, exists := structures[d.FoundationType()]; exists {
+		panic(fmt.Sprintf("RegisterStructure: FoundationType %d already registered", d.FoundationType()))
+	}
+	if _, exists := structures[d.BuiltType()]; exists {
+		panic(fmt.Sprintf("RegisterStructure: BuiltType %d already registered", d.BuiltType()))
+	}
+	structures[d.FoundationType()] = d
+	structures[d.BuiltType()] = d
+}
+
+// IterateStructures calls fn once for each registered StructureDef.
+// Because each def is stored under both its FoundationType and BuiltType keys,
+// only the FoundationType entry is visited to avoid double-calling.
+// Iteration order is undefined.
+func IterateStructures(fn func(StructureDef)) {
+	for stype, def := range structures {
+		if stype == def.FoundationType() {
+			fn(def)
 		}
 	}
-	structures = append(structures, d)
 }
