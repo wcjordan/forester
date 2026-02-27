@@ -23,6 +23,11 @@ type World struct {
 	regrowCooldown time.Time
 }
 
+// HasStructureOfType returns true if any tile in the world has the given structure type.
+func (w *World) HasStructureOfType(stype StructureType) bool {
+	return len(w.StructureTypeIndex[stype]) > 0
+}
+
 // NewWorld creates a world with the given dimensions, filled with grassland.
 func NewWorld(width, height int) *World {
 	tiles := make([][]Tile, height)
