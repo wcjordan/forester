@@ -45,13 +45,51 @@ func (g *Game) env() *Env {
 // Tick advances the game: harvests trees, handles adjacent-structure interactions,
 // ticks villagers, and fires probabilistic regrowth. Returns early when a card offer is pending.
 func (g *Game) Tick() {
-	if g.State.HasPendingOffer() {
+	if g.HasPendingOffer() {
 		return
 	}
 	now := g.clock.Now()
 	env := g.env()
-	g.State.Harvest(env, now)
+	IterateResources(func(d ResourceDef) { d.Harvest(env, now) })
+	g.State.maybeAdvanceStory(env)
+	maybeSpawnFoundation(env)
 	g.State.TickAdjacentStructures(env, now)
 	g.Villagers.Tick(env, g.rng, now)
 	IterateResources(func(d ResourceDef) { d.Regrow(env, g.rng, now) })
+}
+
+// HasPendingOffer reports whether there is at least one offer waiting.
+func (g *Game) HasPendingOffer() bool {
+	return len(g.State.PendingOfferIDs) > 0
+}
+
+// CurrentOffer resolves the front offer's IDs to UpgradeDef values.
+// Returns nil when there is no pending offer or no IDs resolve.
+func (g *Game) CurrentOffer() []UpgradeDef {
+	if len(g.State.PendingOfferIDs) == 0 {
+		return nil
+	}
+	ids := g.State.PendingOfferIDs[0]
+	result := make([]UpgradeDef, 0, len(ids))
+	for _, id := range ids {
+		if u, ok := upgradeRegistry[id]; ok {
+			result = append(result, u)
+		}
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	return result
+}
+
+// SelectCard applies the card at idx from the front offer and pops it from the queue.
+func (g *Game) SelectCard(idx int) {
+	offer := g.CurrentOffer()
+	if len(offer) == 0 {
+		return
+	}
+	if idx >= 0 && idx < len(offer) {
+		offer[idx].Apply(g.State.Player)
+		g.State.PendingOfferIDs = g.State.PendingOfferIDs[1:]
+	}
 }

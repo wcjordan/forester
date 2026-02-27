@@ -102,10 +102,10 @@ func TestHouseWorkflow(t *testing.T) {
 	}
 	// Extra tick: first_log_storage_built story beat fires → carry upgrade offer queued.
 	tick(&m, clock)
-	if !g.State.HasPendingOffer() {
+	if !g.HasPendingOffer() {
 		t.Fatal("phase 2: expected carry upgrade offer after log storage built")
 	}
-	g.State.SelectCard(0) // carry_capacity: MaxCarry 20 → 100
+	g.SelectCard(0) // carry_capacity: MaxCarry 20 → 100
 	if g.State.Player.MaxCarry != 100 {
 		t.Errorf("phase 2: MaxCarry = %d, want 100 after accepting carry upgrade",
 			g.State.Player.MaxCarry)
@@ -241,22 +241,22 @@ func TestHouseWorkflow(t *testing.T) {
 	}
 
 	// Offer must be pending with exactly 2 cards.
-	if !g.State.HasPendingOffer() {
+	if !g.HasPendingOffer() {
 		t.Fatal("phase 8: expected 2-card offer after house built")
 	}
-	offer := g.State.CurrentOffer()
+	offer := g.CurrentOffer()
 	if len(offer) != 2 {
 		t.Fatalf("phase 8: expected 2-card offer, got %d card(s)", len(offer))
 	}
 
 	// Selecting card 0 (build_speed) must reduce BuildInterval by 10%.
 	buildIntervalBefore := g.State.Player.BuildInterval
-	g.State.SelectCard(0)
+	g.SelectCard(0)
 	if g.State.Player.BuildInterval >= buildIntervalBefore {
 		t.Errorf("phase 8: BuildInterval should decrease; was %v, got %v",
 			buildIntervalBefore, g.State.Player.BuildInterval)
 	}
-	if g.State.HasPendingOffer() {
+	if g.HasPendingOffer() {
 		t.Error("phase 8: offer should be cleared after SelectCard")
 	}
 

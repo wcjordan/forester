@@ -23,47 +23,6 @@ func (s *State) AddOffer(ids []string) {
 	s.PendingOfferIDs = append(s.PendingOfferIDs, ids)
 }
 
-// HasPendingOffer reports whether there is at least one offer waiting.
-func (s *State) HasPendingOffer() bool {
-	return len(s.PendingOfferIDs) > 0
-}
-
-// CurrentOffer resolves the front offer's IDs to UpgradeDef values.
-// Returns nil when there is no pending offer or no IDs resolve.
-func (s *State) CurrentOffer() []UpgradeDef {
-	if len(s.PendingOfferIDs) == 0 {
-		return nil
-	}
-	ids := s.PendingOfferIDs[0]
-	result := make([]UpgradeDef, 0, len(ids))
-	for _, id := range ids {
-		if u, ok := upgradeRegistry[id]; ok {
-			result = append(result, u)
-		}
-	}
-	return result
-}
-
-// SelectCard applies the card at idx from the front offer and pops it from the queue.
-func (s *State) SelectCard(idx int) {
-	offer := s.CurrentOffer()
-	if len(offer) == 0 {
-		return
-	}
-	if idx >= 0 && idx < len(offer) {
-		offer[idx].Apply(s.Player)
-		s.PendingOfferIDs = s.PendingOfferIDs[1:]
-	}
-}
-
-// Harvest harvests adjacent trees without moving the player.
-// Advances story beats and world condition spawning each tick.
-func (s *State) Harvest(env *Env, now time.Time) {
-	IterateResources(func(d ResourceDef) { d.Harvest(env, now) })
-	s.maybeAdvanceStory(env)
-	maybeSpawnFoundation(env)
-}
-
 // TickAdjacentStructures calls OnPlayerInteraction once per structure instance
 // that the player is cardinally adjacent to, then commits any pending cooldowns.
 // Cooldowns are committed after all interactions so that multiple adjacent
