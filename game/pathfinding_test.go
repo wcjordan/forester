@@ -86,6 +86,22 @@ func TestFindPath_Unreachable(t *testing.T) {
 	}
 }
 
+// TestFindPath_OutOfBoundsOrBlockedEndpoints verifies fast-fail for invalid endpoints.
+func TestFindPath_OutOfBoundsOrBlockedEndpoints(t *testing.T) {
+	w := NewWorld(10, 10)
+	w.SetStructure(5, 5, 1, 1, LogStorage)
+
+	if findPath(w, -1, 0, 5, 5) != nil {
+		t.Error("out-of-bounds start should return nil")
+	}
+	if findPath(w, 0, 0, 20, 20) != nil {
+		t.Error("out-of-bounds goal should return nil")
+	}
+	if findPath(w, 0, 0, 5, 5) != nil {
+		t.Error("blocked goal should return nil")
+	}
+}
+
 // TestFindPath_StartEqualsGoal verifies an empty path is returned when start == goal.
 func TestFindPath_StartEqualsGoal(t *testing.T) {
 	w := NewWorld(10, 10)

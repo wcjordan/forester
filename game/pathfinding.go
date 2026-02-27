@@ -10,6 +10,15 @@ func findPath(w *World, fromX, fromY, toX, toY int) []Point {
 		return []Point{}
 	}
 
+	// Fast-fail: out-of-bounds or blocked endpoints can never be part of a valid path.
+	if !w.InBounds(fromX, fromY) || !w.InBounds(toX, toY) {
+		return nil
+	}
+	goalTile := w.TileAt(toX, toY)
+	if goalTile == nil || goalTile.Structure != NoStructure {
+		return nil
+	}
+
 	type key = Point
 
 	gCost := make(map[key]int)
