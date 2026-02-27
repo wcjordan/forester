@@ -47,18 +47,17 @@ func TestFoundationLocationBetweenPlayerAndSpawn(t *testing.T) {
 
 	spawnX := w.Width / 2
 	// Find foundation top-left.
-	gx, gy := -1, -1
+	gx := -1
 	for y := range w.Tiles {
 		for x := range w.Tiles[y] {
 			if w.Tiles[y][x].Structure == FoundationLogStorage && gx == -1 {
-				gx, gy = x, y
+				gx = x
 			}
 		}
 	}
 	if gx == -1 {
 		t.Fatal("no foundation placed")
 	}
-	_ = gy
 	// Foundation x-coordinate should be between player and spawn center.
 	if gx < p.X || gx > spawnX {
 		t.Errorf("foundation x=%d not between player x=%d and spawn x=%d", gx, p.X, spawnX)
