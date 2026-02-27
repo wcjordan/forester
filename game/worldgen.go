@@ -44,6 +44,7 @@ func GenerateWorld(width, height int, seed int64) *World {
 
 	// Step 2.5: Assign random tree sizes to all Forest tiles.
 	const minTreeSize = 4
+	const maxTreeSize = 10
 	for y := range world.Tiles {
 		for x := range world.Tiles[y] {
 			if world.Tiles[y][x].Terrain == Forest {

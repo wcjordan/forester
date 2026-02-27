@@ -28,7 +28,7 @@ var storyBeats = []StoryBeat{
 		ID: "initial_log_storage",
 		Condition: func(env *Env) bool {
 			p := env.State.Player
-			return p.Wood >= p.MaxCarry
+			return p.Inventory[Wood] >= p.MaxCarry
 		},
 		Action: func(env *Env) bool {
 			def := findStructureDefByFoundationType(FoundationLogStorage)

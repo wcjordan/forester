@@ -1,18 +1,6 @@
 package game
 
-import (
-	"math/rand"
-	"time"
-)
-
-// RegrowthCooldown is how often the regrowth tick fires.
-const RegrowthCooldown = 500 * time.Millisecond
-
-// RegrowthOdds is the 1-in-N chance each eligible Forest tile grows per regrowth tick.
-const RegrowthOdds = 40
-
-// maxTreeSize is the maximum TreeSize a Forest tile can grow to.
-const maxTreeSize = 10
+import "time"
 
 // Point is a 2D coordinate used as a map key for spatial indexes.
 type Point struct{ X, Y int }
@@ -82,35 +70,6 @@ func (w *World) markNoGrowZoneRect(fx, fy, fw, fh int) {
 				if w.InBounds(tx, ty) {
 					w.NoGrowTiles[Point{tx, ty}] = struct{}{}
 				}
-			}
-		}
-	}
-}
-
-// Regrow advances tree regrowth probabilistically if the regrowth cooldown has elapsed.
-// Each eligible Forest tile (including TreeSize=0 cut trees) has a 1/RegrowthOdds chance to grow,
-// unless it is in the precomputed NoGrowTiles set (within noGrowRadius of the spawn point or any structure tile).
-func (w *World) Regrow(rng *rand.Rand, now time.Time) {
-	if !now.After(w.regrowCooldown) {
-		return
-	}
-	w.regrowCooldown = now.Add(RegrowthCooldown)
-	for y := range w.Tiles {
-		for x := range w.Tiles[y] {
-			tile := &w.Tiles[y][x]
-			if tile.Terrain != Forest || tile.TreeSize >= maxTreeSize {
-				continue
-			}
-			if _, blocked := w.NoGrowTiles[Point{x, y}]; blocked {
-				// Cut trees (TreeSize=0) in no-grow zones convert to Grassland
-				// so the cleared area stays open for village growth.
-				if tile.TreeSize == 0 {
-					tile.Terrain = Grassland
-				}
-				continue
-			}
-			if rng.Intn(RegrowthOdds) == 0 {
-				tile.TreeSize++
 			}
 		}
 	}

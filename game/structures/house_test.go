@@ -31,7 +31,7 @@ func TestVillagerSpawnsOnHouseBuilt(t *testing.T) {
 	// Player adjacent to the foundation; give enough wood to build.
 	s.Player.X = 9
 	s.Player.Y = 10
-	s.Player.Wood = houseBuildCost
+	s.Player.Inventory[game.Wood] = houseBuildCost
 
 	t0 := time.Now()
 	for i := range houseBuildCost {
@@ -56,7 +56,7 @@ func TestVillagerSpawnsAdjacentToHouse(t *testing.T) {
 
 	s.Player.X = 9
 	s.Player.Y = 10
-	s.Player.Wood = houseBuildCost
+	s.Player.Inventory[game.Wood] = houseBuildCost
 
 	t0 := time.Now()
 	for i := range houseBuildCost {
@@ -94,7 +94,7 @@ func TestEachHouseSpawnsOneVillager(t *testing.T) {
 		s.World.IndexStructure(ox, oy, 2, 2, houseDef{})
 		s.Player.X = playerX
 		s.Player.Y = playerY
-		s.Player.Wood = houseBuildCost
+		s.Player.Inventory[game.Wood] = houseBuildCost
 		// Reset build cooldown so a prior house build doesn't block this one.
 		s.Player.SetCooldown(game.Build, time.Time{})
 		t0 := time.Now()

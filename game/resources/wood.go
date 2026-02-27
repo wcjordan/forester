@@ -38,7 +38,7 @@ func (woodDef) Harvest(env *game.Env, now time.Time) {
 		return
 	}
 	p.SetCooldown(game.Harvest, now.Add(p.HarvestInterval))
-	if p.Wood >= p.MaxCarry {
+	if p.Inventory[game.Wood] >= p.MaxCarry {
 		return
 	}
 	dx, dy := p.FacingDX, p.FacingDY
@@ -54,10 +54,10 @@ func (woodDef) Harvest(env *game.Env, now time.Time) {
 		if tile == nil || tile.Terrain != game.Forest {
 			continue
 		}
-		canTake := min(woodHarvestPerStep, p.MaxCarry-p.Wood)
+		canTake := min(woodHarvestPerStep, p.MaxCarry-p.Inventory[game.Wood])
 		harvest := min(canTake, tile.TreeSize)
 		tile.TreeSize -= harvest
-		p.Wood += harvest
+		p.Inventory[game.Wood] += harvest
 	}
 }
 

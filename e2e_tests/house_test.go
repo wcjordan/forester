@@ -123,14 +123,14 @@ func TestHouseWorkflow(t *testing.T) {
 		moveSafe(&m, clock, g, "w") // north
 		for range ticksPerStep {
 			tick(&m, clock)
-			if g.State.Player.Wood >= g.State.Player.MaxCarry {
+			if g.State.Player.Inventory[game.Wood] >= g.State.Player.MaxCarry {
 				break
 			}
 		}
 	}
-	if g.State.Player.Wood < houseBuildCost {
+	if g.State.Player.Inventory[game.Wood] < houseBuildCost {
 		t.Fatalf("phase 3: Wood = %d after north harvest, need at least %d for house build",
-			g.State.Player.Wood, houseBuildCost)
+			g.State.Player.Inventory[game.Wood], houseBuildCost)
 	}
 	// Player should be at (48,40) after 5 north steps from (48,44 start).
 	if g.State.Player.X != 48 || g.State.Player.Y != 40 {
@@ -164,10 +164,10 @@ func TestHouseWorkflow(t *testing.T) {
 		}
 		if i == maxDepositTicks-1 {
 			t.Fatalf("phase 5: stores only %d after %d ticks; player.Wood=%d",
-				g.Stores.Total(game.Wood), maxDepositTicks, g.State.Player.Wood)
+				g.Stores.Total(game.Wood), maxDepositTicks, g.State.Player.Inventory[game.Wood])
 		}
 	}
-	woodForHouse := g.State.Player.Wood
+	woodForHouse := g.State.Player.Inventory[game.Wood]
 	if woodForHouse < houseBuildCost {
 		t.Fatalf("phase 5: need %d wood to build house, only have %d (stores=%d)",
 			houseBuildCost, woodForHouse, g.Stores.Total(game.Wood))
@@ -217,7 +217,7 @@ func TestHouseWorkflow(t *testing.T) {
 		}
 		if i == maxHouseBuildTicks-1 {
 			t.Fatalf("phase 7: house not built after %d ticks; Wood=%d foundationDeposited=%v hasFoundation=%v",
-				maxHouseBuildTicks, g.State.Player.Wood,
+				maxHouseBuildTicks, g.State.Player.Inventory[game.Wood],
 				g.State.FoundationDeposited, g.State.HasStructureOfType(game.FoundationHouse))
 		}
 	}

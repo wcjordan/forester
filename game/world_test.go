@@ -1,10 +1,6 @@
 package game
 
-import (
-	"math/rand"
-	"testing"
-	"time"
-)
+import "testing"
 
 func TestNewWorld(t *testing.T) {
 	w := NewWorld(50, 30)
@@ -57,117 +53,6 @@ func TestInBounds(t *testing.T) {
 			t.Errorf("InBounds(%d, %d) = %v, want %v", tt.x, tt.y, got, tt.want)
 		}
 	}
-}
-
-// regrowTick advances the regrowth cooldown by 2x RegrowthCooldown per iteration,
-// guaranteeing each call fires the regrowth logic regardless of current cooldown state.
-func regrowTick(w *World, rng *rand.Rand, i int) {
-	t0 := time.Time{}
-	w.Regrow(rng, t0.Add(time.Duration(i+1)*RegrowthCooldown*2))
-}
-
-func TestRegrow(t *testing.T) {
-	// Use a 20×20 world and place Forest tiles at (0,0), which is ~14 tiles
-	// from the spawn center (10,10) — well outside the no-grow radius of 8.
-	t.Run("cut tree eventually grows", func(t *testing.T) {
-		rng := rand.New(rand.NewSource(0))
-		w := NewWorld(20, 20)
-		w.Tiles[0][0] = Tile{Terrain: Forest, TreeSize: 0}
-		grew := false
-		for i := 0; i < 1000; i++ {
-			regrowTick(w, rng, i)
-			if w.Tiles[0][0].TreeSize > 0 {
-				grew = true
-				break
-			}
-		}
-		if !grew {
-			t.Error("cut tree (Forest/TreeSize=0) should eventually grow")
-		}
-	})
-
-	t.Run("forest eventually grows toward maxTreeSize", func(t *testing.T) {
-		rng := rand.New(rand.NewSource(0))
-		w := NewWorld(20, 20)
-		w.Tiles[0][0] = Tile{Terrain: Forest, TreeSize: 5}
-		grew := false
-		for i := 0; i < 1000; i++ {
-			regrowTick(w, rng, i)
-			if w.Tiles[0][0].TreeSize > 5 {
-				grew = true
-				break
-			}
-		}
-		if !grew {
-			t.Error("forest should eventually grow toward maxTreeSize")
-		}
-	})
-
-	t.Run("forest at maxTreeSize does not grow further", func(t *testing.T) {
-		rng := rand.New(rand.NewSource(0))
-		w := NewWorld(20, 20)
-		w.Tiles[0][0] = Tile{Terrain: Forest, TreeSize: maxTreeSize}
-		for i := 0; i < 1000; i++ {
-			regrowTick(w, rng, i)
-		}
-		if w.Tiles[0][0].TreeSize != maxTreeSize {
-			t.Errorf("TreeSize = %d, want %d", w.Tiles[0][0].TreeSize, maxTreeSize)
-		}
-	})
-
-	t.Run("grassland is unaffected", func(t *testing.T) {
-		rng := rand.New(rand.NewSource(0))
-		w := NewWorld(20, 20)
-		w.Tiles[0][0] = Tile{Terrain: Grassland}
-		for i := 0; i < 1000; i++ {
-			regrowTick(w, rng, i)
-		}
-		tile := w.Tiles[0][0]
-		if tile.Terrain != Grassland {
-			t.Errorf("Terrain = %v, want Grassland", tile.Terrain)
-		}
-	})
-
-	t.Run("cut tree within spawn no-grow zone converts to Grassland", func(t *testing.T) {
-		rng := rand.New(rand.NewSource(0))
-		// 20×20 world: spawn = (10,10). Tile at (10,10) is distance 0 ≤ 8.
-		w := NewWorld(20, 20)
-		w.Tiles[10][10] = Tile{Terrain: Forest, TreeSize: 0}
-		regrowTick(w, rng, 0)
-		if w.Tiles[10][10].Terrain != Grassland {
-			t.Errorf("Terrain = %v, want Grassland (cut tree in no-grow zone should convert)", w.Tiles[10][10].Terrain)
-		}
-	})
-
-	t.Run("living forest within spawn no-grow zone does not grow or convert", func(t *testing.T) {
-		rng := rand.New(rand.NewSource(0))
-		w := NewWorld(20, 20)
-		w.Tiles[10][10] = Tile{Terrain: Forest, TreeSize: 5}
-		for i := 0; i < 1000; i++ {
-			regrowTick(w, rng, i)
-		}
-		tile := w.Tiles[10][10]
-		if tile.Terrain != Forest {
-			t.Errorf("Terrain = %v, want Forest (living tree should not convert)", tile.Terrain)
-		}
-		if tile.TreeSize != 5 {
-			t.Errorf("TreeSize = %d, want 5 (living tree in no-grow zone should not grow)", tile.TreeSize)
-		}
-	})
-
-	t.Run("cut tree within building no-grow zone converts to Grassland", func(t *testing.T) {
-		rng := rand.New(rand.NewSource(0))
-		// 40×40 world: spawn = (20,20). Place a structure at (5,5) and a Forest
-		// tile at (5,10) — distance 5 ≤ 8 from the structure, and distance
-		// sqrt(225+100)=~18 from spawn (safely outside the spawn zone).
-		w := NewWorld(40, 40)
-		w.SetStructure(5, 5, 1, 1, LogStorage)
-		w.Tiles[10][5] = Tile{Terrain: Forest, TreeSize: 0}
-		regrowTick(w, rng, 0)
-		if w.Tiles[10][5].Terrain != Grassland {
-			t.Errorf("Terrain = %v, want Grassland (cut tree in building no-grow zone should convert)", w.Tiles[10][5].Terrain)
-		}
-	})
 }
 
 func TestSetStructure(t *testing.T) {

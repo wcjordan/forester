@@ -17,7 +17,7 @@ func (testWoodDef) Harvest(env *Env, now time.Time) {
 		return
 	}
 	p.SetCooldown(Harvest, now.Add(p.HarvestInterval))
-	if p.Wood >= p.MaxCarry {
+	if p.Inventory[Wood] >= p.MaxCarry {
 		return
 	}
 	dx, dy := p.FacingDX, p.FacingDY
@@ -32,10 +32,10 @@ func (testWoodDef) Harvest(env *Env, now time.Time) {
 		if tile == nil || tile.Terrain != Forest {
 			continue
 		}
-		canTake := min(1, p.MaxCarry-p.Wood)
+		canTake := min(1, p.MaxCarry-p.Inventory[Wood])
 		harvest := min(canTake, tile.TreeSize)
 		tile.TreeSize -= harvest
-		p.Wood += harvest
+		p.Inventory[Wood] += harvest
 	}
 }
 func (testWoodDef) Regrow(_ *Env, _ *rand.Rand, _ time.Time) {}
@@ -139,7 +139,7 @@ func TestStoryBeatFiresOnce(t *testing.T) {
 		w.Tiles[4][5+i] = Tile{Terrain: Forest, TreeSize: 1}
 	}
 	p := NewPlayer(5, 5)
-	p.Wood = InitialCarryingCapacity
+	p.Inventory[Wood] = InitialCarryingCapacity
 	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int), CompletedBeats: make(map[string]bool)}
 	stores := NewStorageManager()
 	env := &Env{State: s, Stores: stores}
