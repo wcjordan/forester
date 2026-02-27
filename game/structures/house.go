@@ -39,31 +39,27 @@ func (houseDef) ShouldSpawn(env *game.Env) bool {
 func (houseDef) UseSpawnAnchoredPlacement() bool { return true }
 
 // OnBuilt is called when a House is completed. It spawns a villager at the
-// first clear tile adjacent to the house footprint.
+// first clear tile on the full Chebyshev border around the house footprint.
 func (d houseDef) OnBuilt(env *game.Env, origin game.Point) {
 	fw, fh := d.Footprint()
 	px, py := env.State.Player.X, env.State.Player.Y
-	// Candidates: tiles just outside each edge of the footprint.
-	candidates := []game.Point{
-		{X: origin.X - 1, Y: origin.Y},
-		{X: origin.X - 1, Y: origin.Y + fh - 1},
-		{X: origin.X + fw, Y: origin.Y},
-		{X: origin.X + fw, Y: origin.Y + fh - 1},
-		{X: origin.X, Y: origin.Y - 1},
-		{X: origin.X + fw - 1, Y: origin.Y - 1},
-		{X: origin.X, Y: origin.Y + fh},
-		{X: origin.X + fw - 1, Y: origin.Y + fh},
-	}
-	for _, c := range candidates {
-		if c.X == px && c.Y == py {
-			continue
+	// Iterate the complete 1-tile Chebyshev border (all sides including corners).
+	for bx := origin.X - 1; bx <= origin.X+fw; bx++ {
+		for by := origin.Y - 1; by <= origin.Y+fh; by++ {
+			// Skip the footprint itself.
+			if bx >= origin.X && bx < origin.X+fw && by >= origin.Y && by < origin.Y+fh {
+				continue
+			}
+			if bx == px && by == py {
+				continue
+			}
+			tile := env.State.World.TileAt(bx, by)
+			if tile == nil || tile.Structure != game.NoStructure {
+				continue
+			}
+			env.Villagers.Spawn(bx, by)
+			return
 		}
-		tile := env.State.World.TileAt(c.X, c.Y)
-		if tile == nil || tile.Structure != game.NoStructure {
-			continue
-		}
-		env.State.SpawnVillager(c.X, c.Y)
-		return
 	}
 }
 

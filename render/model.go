@@ -120,6 +120,12 @@ func (m Model) View() string {
 	vpX := clamp(player.X-mapWidth/2, 0, max(0, world.Width-mapWidth))
 	vpY := clamp(player.Y-mapHeight/2, 0, max(0, world.Height-mapHeight))
 
+	// Build a position set for O(1) villager lookup during rendering.
+	villagerPos := make(map[game.Point]struct{}, m.game.Villagers.Count())
+	for _, v := range m.game.Villagers.Villagers {
+		villagerPos[game.Point{X: v.X, Y: v.Y}] = struct{}{}
+	}
+
 	var sb strings.Builder
 	for row := 0; row < mapHeight; row++ {
 		for col := 0; col < mapWidth; col++ {
@@ -131,14 +137,7 @@ func (m Model) View() string {
 				continue
 			}
 
-			isVillager := false
-			for _, v := range m.game.State.Villagers {
-				if worldX == v.X && worldY == v.Y {
-					isVillager = true
-					break
-				}
-			}
-			if isVillager {
+			if _, isVillager := villagerPos[game.Point{X: worldX, Y: worldY}]; isVillager {
 				sb.WriteString(villagerStyle.Render("v"))
 				continue
 			}
@@ -193,7 +192,7 @@ func (m Model) View() string {
 		status += fmt.Sprintf("  Log: %d/%d", logStored, logCap)
 	}
 
-	villagerCount := len(m.game.State.Villagers)
+	villagerCount := m.game.Villagers.Count()
 	houseCount := world.CountStructureInstances(game.House)
 	if villagerCount > 0 || houseCount > 0 {
 		status += fmt.Sprintf("  Villagers: %d/%d", villagerCount, houseCount)

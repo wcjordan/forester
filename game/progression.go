@@ -85,6 +85,23 @@ func (s *State) findValidLocationNearPlayer(w, h int) (x, y int) {
 	return -1, -1
 }
 
+// chebyshevRingDo calls f(x, y) for every tile on the Chebyshev ring at
+// distance r from (cx, cy). Ring 0 is just the center point.
+func chebyshevRingDo(cx, cy, r int, f func(x, y int)) {
+	if r == 0 {
+		f(cx, cy)
+		return
+	}
+	for dx := -r; dx <= r; dx++ {
+		f(cx+dx, cy-r)
+		f(cx+dx, cy+r)
+	}
+	for dy := -r + 1; dy <= r-1; dy++ {
+		f(cx-r, cy+dy)
+		f(cx+r, cy+dy)
+	}
+}
+
 // findValidLocationNearSpawn searches outward from the world spawn point in
 // expanding Chebyshev rings, returning the top-left corner of the closest valid
 // w×h area by Euclidean distance from footprint center to spawn.
@@ -106,20 +123,10 @@ func (s *State) findValidLocationNearSpawn(w, h int) (x, y int) {
 	maxR := s.World.Width + s.World.Height
 
 	for r := 0; r <= maxR; r++ {
-		// Collect the perimeter of the Chebyshev ring at distance r from anchor.
 		var ring []pos
-		if r == 0 {
-			ring = []pos{{anchorX, anchorY}}
-		} else {
-			for dx := -r; dx <= r; dx++ {
-				ring = append(ring, pos{anchorX + dx, anchorY - r})
-				ring = append(ring, pos{anchorX + dx, anchorY + r})
-			}
-			for dy := -r + 1; dy <= r-1; dy++ {
-				ring = append(ring, pos{anchorX - r, anchorY + dy})
-				ring = append(ring, pos{anchorX + r, anchorY + dy})
-			}
-		}
+		chebyshevRingDo(anchorX, anchorY, r, func(px, py int) {
+			ring = append(ring, pos{px, py})
+		})
 
 		// Sort this ring by Euclidean distance so we check the closest positions first.
 		sort.Slice(ring, func(i, j int) bool {

@@ -7,7 +7,7 @@ import (
 	"forester/game"
 )
 
-func makeHouseState() (*game.State, *game.StorageManager) {
+func makeHouseEnv() (*game.State, *game.StorageManager, *game.VillagerManager) {
 	w := game.NewWorld(30, 30)
 	p := game.NewPlayer(15, 15)
 	s := &game.State{
@@ -16,12 +16,12 @@ func makeHouseState() (*game.State, *game.StorageManager) {
 		FoundationDeposited: make(map[game.Point]int),
 		CompletedBeats:      make(map[string]bool),
 	}
-	return s, game.NewStorageManager()
+	return s, game.NewStorageManager(), game.NewVillagerManager()
 }
 
 func TestVillagerSpawnsOnHouseBuilt(t *testing.T) {
-	s, stores := makeHouseState()
-	env := &game.Env{State: s, Stores: stores}
+	s, stores, vm := makeHouseEnv()
+	env := &game.Env{State: s, Stores: stores, Villagers: vm}
 
 	// Place a house foundation adjacent to the player and build it.
 	origin := game.Point{X: 10, Y: 10}
@@ -41,14 +41,14 @@ func TestVillagerSpawnsOnHouseBuilt(t *testing.T) {
 	if !s.HasStructureOfType(game.House) {
 		t.Fatal("house was not built after depositing build cost")
 	}
-	if len(s.Villagers) != 1 {
-		t.Errorf("villager count = %d, want 1 after house is built", len(s.Villagers))
+	if vm.Count() != 1 {
+		t.Errorf("villager count = %d, want 1 after house is built", vm.Count())
 	}
 }
 
 func TestVillagerSpawnsAdjacentToHouse(t *testing.T) {
-	s, stores := makeHouseState()
-	env := &game.Env{State: s, Stores: stores}
+	s, stores, vm := makeHouseEnv()
+	env := &game.Env{State: s, Stores: stores, Villagers: vm}
 
 	origin := game.Point{X: 10, Y: 10}
 	s.World.SetStructure(origin.X, origin.Y, 2, 2, game.FoundationHouse)
@@ -63,11 +63,11 @@ func TestVillagerSpawnsAdjacentToHouse(t *testing.T) {
 		s.TickAdjacentStructures(env, t0.Add(time.Duration(i)*(game.DepositTickInterval+time.Millisecond)))
 	}
 
-	if len(s.Villagers) == 0 {
+	if vm.Count() == 0 {
 		t.Fatal("no villager spawned")
 	}
 
-	v := s.Villagers[0]
+	v := vm.Villagers[0]
 	// Villager must not be inside the house footprint.
 	insideHouse := v.X >= origin.X && v.X < origin.X+2 && v.Y >= origin.Y && v.Y < origin.Y+2
 	if insideHouse {
@@ -85,8 +85,8 @@ func TestVillagerSpawnsAdjacentToHouse(t *testing.T) {
 }
 
 func TestEachHouseSpawnsOneVillager(t *testing.T) {
-	s, stores := makeHouseState()
-	env := &game.Env{State: s, Stores: stores}
+	s, stores, vm := makeHouseEnv()
+	env := &game.Env{State: s, Stores: stores, Villagers: vm}
 
 	buildHouse := func(ox, oy, playerX, playerY int) {
 		t.Helper()
@@ -104,12 +104,12 @@ func TestEachHouseSpawnsOneVillager(t *testing.T) {
 	}
 
 	buildHouse(5, 5, 4, 5)
-	if len(s.Villagers) != 1 {
-		t.Fatalf("after first house: villager count = %d, want 1", len(s.Villagers))
+	if vm.Count() != 1 {
+		t.Fatalf("after first house: villager count = %d, want 1", vm.Count())
 	}
 
 	buildHouse(20, 20, 19, 20)
-	if len(s.Villagers) != 2 {
-		t.Errorf("after second house: villager count = %d, want 2", len(s.Villagers))
+	if vm.Count() != 2 {
+		t.Errorf("after second house: villager count = %d, want 2", vm.Count())
 	}
 }

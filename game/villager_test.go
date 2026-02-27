@@ -8,7 +8,7 @@ import (
 
 // makeVillagerEnv creates a small world with one log storage and one house
 // pre-built and indexed, plus a registered storage manager.
-func makeVillagerEnv(t *testing.T) (*State, *StorageManager) {
+func makeVillagerEnv(t *testing.T) (*State, *Env) {
 	t.Helper()
 	w := NewWorld(40, 40)
 
@@ -31,7 +31,8 @@ func makeVillagerEnv(t *testing.T) (*State, *StorageManager) {
 		FoundationDeposited: make(map[Point]int),
 		CompletedBeats:      make(map[string]bool),
 	}
-	return s, stores
+	env := &Env{State: s, Stores: stores, Villagers: NewVillagerManager()}
+	return s, env
 }
 
 func advanceVillager(v *Villager, env *Env, rng *rand.Rand, steps int) {
@@ -73,6 +74,21 @@ func TestWithdrawFrom(t *testing.T) {
 		n := m.WithdrawFrom(Point{99, 99}, 10)
 		if n != 0 {
 			t.Errorf("WithdrawFrom unknown = %d, want 0", n)
+		}
+	})
+
+	t.Run("non-positive amount returns 0", func(t *testing.T) {
+		m2 := NewStorageManager()
+		m2.Register(Point{1, 1}, Wood, 100)
+		m2.DepositAt(Point{1, 1}, 10)
+		if m2.WithdrawFrom(Point{1, 1}, 0) != 0 {
+			t.Error("WithdrawFrom(0) should return 0")
+		}
+		if m2.WithdrawFrom(Point{1, 1}, -5) != 0 {
+			t.Error("WithdrawFrom(-5) should return 0")
+		}
+		if m2.Total(Wood) != 10 {
+			t.Errorf("Total(Wood) = %d, want 10 after zero-amount withdrawals", m2.Total(Wood))
 		}
 	})
 }
@@ -132,8 +148,7 @@ func TestFindNearestTree(t *testing.T) {
 // --- Villager task: chop wood → carry to storage ---
 
 func TestVillagerChopsAndCarries(t *testing.T) {
-	s, stores := makeVillagerEnv(t)
-	env := &Env{State: s, Stores: stores}
+	s, env := makeVillagerEnv(t)
 
 	// Place a tree near (15, 15).
 	s.World.Tiles[15][15] = Tile{Terrain: Forest, TreeSize: 10}
@@ -162,15 +177,19 @@ func TestVillagerChopsAndCarries(t *testing.T) {
 	}
 }
 
-// --- Villager task: fetch from storage → deliver to house ---
+// --- Villager task: fetch from storage → deliver to house foundation ---
 
 func TestVillagerFetchesAndDelivers(t *testing.T) {
-	s, stores := makeVillagerEnv(t)
-	env := &Env{State: s, Stores: stores}
+	s, env := makeVillagerEnv(t)
 	lsOrigin := Point{X: 5, Y: 5}
 
+	// Add a FoundationHouse so tryAssignDeliverTask succeeds.
+	fhOrigin := Point{X: 30, Y: 30}
+	s.World.SetStructure(fhOrigin.X, fhOrigin.Y, 2, 2, FoundationHouse)
+	s.World.IndexStructure(fhOrigin.X, fhOrigin.Y, 2, 2, testHouseDef{})
+
 	// Pre-fill storage so fillRatio=1 → villager always wants to deliver.
-	stores.DepositAt(lsOrigin, 500)
+	env.Stores.DepositAt(lsOrigin, 500)
 
 	// Villager starts adjacent to storage: at (4, 5) — one left of top-left.
 	v := &Villager{X: 4, Y: 5}
@@ -184,15 +203,15 @@ func TestVillagerFetchesAndDelivers(t *testing.T) {
 	// One step: arrives at target (should already be there or very close), fetches wood.
 	advanceVillager(v, env, rng, 5)
 
-	// After fetching, should have wood and be heading to house.
+	// After fetching, should have wood and be heading to house foundation.
 	if v.Task == VillagerWalkingToStorage {
 		// Give it more steps to reach target.
 		advanceVillager(v, env, rng, 20)
 	}
 
 	// Storage should have less wood than it started with.
-	if stores.Total(Wood) >= 500 {
-		t.Errorf("storage still full (%d); villager should have fetched some", stores.Total(Wood))
+	if env.Stores.Total(Wood) >= 500 {
+		t.Errorf("storage still full (%d); villager should have fetched some", env.Stores.Total(Wood))
 	}
 }
 
@@ -200,8 +219,9 @@ func TestVillagerFetchesAndDelivers(t *testing.T) {
 
 func TestNearestClearTileAdjacent(t *testing.T) {
 	w := NewWorld(20, 20)
-	// Log storage at (5,5) 4×4.
+	// Log storage at (5,5) 4×4 — must call IndexStructure so StructureInstanceIndex is populated.
 	w.SetStructure(5, 5, 4, 4, LogStorage)
+	w.IndexStructure(5, 5, 4, 4, testLogStorageDef{})
 
 	tx, ty, ok := nearestClearTileAdjacent(w, LogStorage, 5, 4)
 	if !ok {

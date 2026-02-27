@@ -3,11 +3,10 @@ package game
 import "time"
 
 // State holds serializable game state (truth data).
-// Derived runtime structures (e.g. StorageManager) live on Game.
+// Derived runtime structures (e.g. StorageManager, VillagerManager) live on Game.
 type State struct {
 	Player              *Player
 	World               *World
-	Villagers           []*Villager
 	FoundationDeposited map[Point]int
 	// PendingOfferIDs stores each queued offer as a slice of upgrade IDs (strings),
 	// keeping State serializable without embedding interface values.

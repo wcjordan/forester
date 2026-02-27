@@ -40,6 +40,9 @@ func (m *StorageManager) Register(origin Point, resource ResourceType, capacity 
 // WithdrawFrom removes up to amount from the instance at origin.
 // Returns the amount actually withdrawn. Keeps amounts in sync with the instance.
 func (m *StorageManager) WithdrawFrom(origin Point, amount int) int {
+	if amount <= 0 {
+		return 0
+	}
 	inst := m.byOrigin[origin]
 	if inst == nil {
 		return 0
