@@ -49,6 +49,7 @@ type Villager struct {
 	TargetX      int
 	TargetY      int
 	moveCooldown time.Time
+	path         []Point // nil = recompute; []Point{} = at goal
 }
 
 // VillagerManager manages the set of autonomous villagers at runtime.
@@ -213,6 +214,7 @@ func (v *Villager) tryAssignChopTask(env *Env) bool {
 	}
 	v.Task = VillagerWalkingToTree
 	v.TargetX, v.TargetY = tx, ty
+	v.path = nil
 	return true
 }
 
@@ -229,6 +231,7 @@ func (v *Villager) tryAssignDeliverTask(env *Env) bool {
 	}
 	v.Task = VillagerWalkingToStorage
 	v.TargetX, v.TargetY = tx, ty
+	v.path = nil
 	return true
 }
 
@@ -242,6 +245,7 @@ func (v *Villager) headToStorage(env *Env) {
 	}
 	v.Task = VillagerCarryingToStorage
 	v.TargetX, v.TargetY = tx, ty
+	v.path = nil
 }
 
 // headToHouse transitions the villager to DeliveringToHouse toward the nearest house foundation.
@@ -253,52 +257,30 @@ func (v *Villager) headToHouse(env *Env) bool {
 	}
 	v.Task = VillagerDeliveringToHouse
 	v.TargetX, v.TargetY = tx, ty
+	v.path = nil
 	return true
 }
 
-// move takes one cardinal step toward (TargetX, TargetY), preferring the axis
-// with larger remaining distance. Falls back to the secondary axis if blocked.
+// move advances the villager one step along its cached A* path toward (TargetX, TargetY).
+// Recomputes the path if nil (new target) or if the next step becomes blocked.
 func (v *Villager) move(world *World) {
-	diffX := v.TargetX - v.X
-	diffY := v.TargetY - v.Y
-
-	type step struct{ dx, dy int }
-	var primary, secondary step
-	if abs(diffX) >= abs(diffY) {
-		if diffX > 0 {
-			primary = step{1, 0}
-		} else {
-			primary = step{-1, 0}
-		}
-		if diffY > 0 {
-			secondary = step{0, 1}
-		} else if diffY < 0 {
-			secondary = step{0, -1}
-		}
-	} else {
-		if diffY > 0 {
-			primary = step{0, 1}
-		} else {
-			primary = step{0, -1}
-		}
-		if diffX > 0 {
-			secondary = step{1, 0}
-		} else if diffX < 0 {
-			secondary = step{-1, 0}
+	if v.path == nil {
+		v.path = findPath(world, v.X, v.Y, v.TargetX, v.TargetY)
+		if v.path == nil {
+			return // unreachable; try again next tick
 		}
 	}
-
-	for _, s := range []step{primary, secondary} {
-		if s.dx == 0 && s.dy == 0 {
-			continue
-		}
-		nx, ny := v.X+s.dx, v.Y+s.dy
-		tile := world.TileAt(nx, ny)
-		if tile != nil && tile.Structure == NoStructure {
-			v.X, v.Y = nx, ny
-			return
-		}
+	if len(v.path) == 0 {
+		return // already at goal
 	}
+	next := v.path[0]
+	tile := world.TileAt(next.X, next.Y)
+	if tile == nil || tile.Structure != NoStructure {
+		v.path = nil // next step blocked; recompute next tick
+		return
+	}
+	v.X, v.Y = next.X, next.Y
+	v.path = v.path[1:]
 }
 
 // findNearestTree returns the world coordinates of the closest Forest tile with

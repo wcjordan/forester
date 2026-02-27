@@ -244,6 +244,25 @@ func TestNearestClearTileAdjacent(t *testing.T) {
 	})
 }
 
+// --- Villager routing around obstacles ---
+
+func TestVillagerRoutesAroundObstacle(t *testing.T) {
+	w := NewWorld(20, 20)
+	// Vertical wall at X=10, Y=0..14 (width=1, height=15).
+	w.SetStructure(10, 0, 1, 15, LogStorage)
+
+	// Villager at (5,7), target at (15,7). Direct route blocked by wall.
+	v := &Villager{X: 5, Y: 7, TargetX: 15, TargetY: 7}
+
+	for range 60 {
+		v.move(w)
+	}
+
+	if v.X != 15 || v.Y != 7 {
+		t.Errorf("villager at (%d,%d) after 60 moves, want (15,7)", v.X, v.Y)
+	}
+}
+
 // --- CountStructureInstances ---
 
 func TestCountStructureInstances(t *testing.T) {
