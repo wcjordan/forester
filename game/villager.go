@@ -165,26 +165,27 @@ func (v *Villager) Tick(env *Env, rng *rand.Rand, now time.Time) {
 // P(chop wood → storage) = 1 - fillRatio; P(fetch storage → house) = fillRatio.
 // Falls back to the other task when the preferred one has no valid target.
 func (v *Villager) pickTask(env *Env, rng *rand.Rand) {
+	// Set this higher to encourage building earlier.  2.0 encourages building when > 25% full
+	const fillFactor = 2.0
+
 	total := env.Stores.Total(Wood)
 	storageCap := env.Stores.TotalCapacity(Wood)
 
 	fillRatio := 0.0
 	if storageCap > 0 {
-		fillRatio = float64(total) / float64(storageCap)
+		fillRatio = fillFactor * float64(total) / float64(storageCap)
 		if fillRatio > 1 {
 			fillRatio = 1
 		}
 	}
 
-	wantChop := rng.Float64() > fillRatio
-	if wantChop {
-		v.tryAssignChopTask(env)
-	} else {
+	wantBuild := rng.Float64() <= fillRatio
+	if wantBuild {
 		if v.tryAssignDeliverTask(env) {
 			return
 		}
-		v.tryAssignChopTask(env)
 	}
+	v.tryAssignChopTask(env)
 }
 
 func (v *Villager) tryAssignChopTask(env *Env) bool {
