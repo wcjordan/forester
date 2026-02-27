@@ -14,15 +14,10 @@ func (s *State) HasStructureOfType(stype StructureType) bool {
 	return len(s.World.StructureTypeIndex[stype]) > 0
 }
 
-// findStructureDefByFoundationType returns the first registered StructureDef whose
-// FoundationType matches the given type, or nil if none is found.
+// findStructureDefByFoundationType returns the StructureDef registered for the
+// given FoundationType, or nil if none is found.
 func findStructureDefByFoundationType(ft StructureType) StructureDef {
-	for _, def := range structures {
-		if def.FoundationType() == ft {
-			return def
-		}
-	}
-	return nil
+	return structures[ft]
 }
 
 // spawnFoundationAt finds a valid location for def and places its foundation tile.
@@ -49,12 +44,11 @@ func (s *State) spawnFoundationAt(def StructureDef) bool {
 // when its ShouldSpawn world condition is met. Each ShouldSpawn implementation is responsible
 // for its own idempotency (e.g. checking that no foundation is already pending).
 func (s *State) maybeSpawnFoundation(env *Env) {
-	for _, def := range structures {
-		if !def.ShouldSpawn(env) {
-			continue
+	IterateStructures(func(def StructureDef) {
+		if def.ShouldSpawn(env) {
+			s.spawnFoundationAt(def)
 		}
-		s.spawnFoundationAt(def)
-	}
+	})
 }
 
 // findValidLocationNearPlayer walks from the player position toward the world center,
