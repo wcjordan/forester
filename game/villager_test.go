@@ -29,7 +29,7 @@ func makeVillagerEnv(t *testing.T) (*State, *Env) {
 		Player:              NewPlayer(10, 30),
 		World:               w,
 		FoundationDeposited: make(map[Point]int),
-		CompletedBeats:      make(map[string]bool),
+		completedBeats:      make(map[string]bool),
 	}
 	env := &Env{State: s, Stores: stores, Villagers: NewVillagerManager()}
 	return s, env
@@ -38,7 +38,7 @@ func makeVillagerEnv(t *testing.T) (*State, *Env) {
 func advanceVillager(v *Villager, env *Env, rng *rand.Rand, steps int) {
 	t0 := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	for i := range steps {
-		v.Tick(env, rng, t0.Add(time.Duration(i+1)*VillagerMoveCooldown*2))
+		v.Tick(env, rng, t0.Add(time.Duration(i+1)*villagerMoveCooldown*2))
 	}
 }
 
@@ -219,7 +219,7 @@ func TestVillagerFetchesAndDelivers(t *testing.T) {
 
 func TestNearestClearTileAdjacent(t *testing.T) {
 	w := NewWorld(20, 20)
-	// Log storage at (5,5) 4×4 — must call IndexStructure so StructureInstanceIndex is populated.
+	// Log storage at (5,5) 4×4 — must call IndexStructure so structureInstanceIndex is populated.
 	w.SetStructure(5, 5, 4, 4, LogStorage)
 	w.IndexStructure(5, 5, 4, 4, testLogStorageDef{})
 

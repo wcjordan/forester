@@ -51,7 +51,7 @@ func TestAddOfferAndSelectCard(t *testing.T) {
 	g.State.Player = NewPlayer(5, 5)
 	g.State.World = NewWorld(10, 10)
 	g.State.FoundationDeposited = make(map[Point]int)
-	g.State.CompletedBeats = make(map[string]bool)
+	g.State.completedBeats = make(map[string]bool)
 	p := g.State.Player
 
 	if g.HasPendingOffer() {

@@ -60,16 +60,16 @@ func (g *Game) Tick() {
 
 // HasPendingOffer reports whether there is at least one offer waiting.
 func (g *Game) HasPendingOffer() bool {
-	return len(g.State.PendingOfferIDs) > 0
+	return len(g.State.pendingOfferIDs) > 0
 }
 
 // CurrentOffer resolves the front offer's IDs to UpgradeDef values.
 // Returns nil when there is no pending offer or no IDs resolve.
 func (g *Game) CurrentOffer() []UpgradeDef {
-	if len(g.State.PendingOfferIDs) == 0 {
+	if len(g.State.pendingOfferIDs) == 0 {
 		return nil
 	}
-	ids := g.State.PendingOfferIDs[0]
+	ids := g.State.pendingOfferIDs[0]
 	result := make([]UpgradeDef, 0, len(ids))
 	for _, id := range ids {
 		if u, ok := upgradeRegistry[id]; ok {
@@ -92,7 +92,7 @@ func (g *Game) TickAdjacentStructures(now time.Time) {
 	seen := make(map[Point]bool)
 	for _, d := range [4][2]int{{0, -1}, {0, 1}, {-1, 0}, {1, 0}} {
 		p := Point{s.Player.X + d[0], s.Player.Y + d[1]}
-		entry, ok := s.World.StructureIndex[p]
+		entry, ok := s.World.structureIndex[p]
 		if !ok || seen[entry.Origin] {
 			continue
 		}
@@ -110,6 +110,6 @@ func (g *Game) SelectCard(idx int) {
 	}
 	if idx >= 0 && idx < len(offer) {
 		offer[idx].Apply(g.State.Player)
-		g.State.PendingOfferIDs = g.State.PendingOfferIDs[1:]
+		g.State.pendingOfferIDs = g.State.pendingOfferIDs[1:]
 	}
 }

@@ -14,7 +14,6 @@ func makeHouseEnv() (*game.State, *game.StorageManager, *game.VillagerManager) {
 		Player:              p,
 		World:               w,
 		FoundationDeposited: make(map[game.Point]int),
-		CompletedBeats:      make(map[string]bool),
 	}
 	return s, game.NewStorageManager(), game.NewVillagerManager()
 }

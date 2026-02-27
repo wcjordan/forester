@@ -156,7 +156,7 @@ func TestIndexStructure(t *testing.T) {
 	t.Run("single tile entry has correct origin", func(t *testing.T) {
 		w := NewWorld(10, 10)
 		w.IndexStructure(3, 4, 1, 1, testLogStorageDef{})
-		entry, ok := w.StructureIndex[Point{3, 4}]
+		entry, ok := w.structureIndex[Point{3, 4}]
 		if !ok {
 			t.Fatal("expected entry at (3,4)")
 		}
@@ -172,7 +172,7 @@ func TestIndexStructure(t *testing.T) {
 		for dy := 0; dy < 4; dy++ {
 			for dx := 0; dx < 4; dx++ {
 				p := Point{2 + dx, 3 + dy}
-				entry, ok := w.StructureIndex[p]
+				entry, ok := w.structureIndex[p]
 				if !ok {
 					t.Errorf("missing entry at %v", p)
 					continue
@@ -188,8 +188,8 @@ func TestIndexStructure(t *testing.T) {
 		w := NewWorld(10, 10)
 		w.IndexStructure(1, 1, 1, 1, testLogStorageDef{})
 		w.IndexStructure(1, 1, 1, 1, testLogStorageDef{})
-		if len(w.StructureIndex) != 1 {
-			t.Errorf("index len = %d, want 1", len(w.StructureIndex))
+		if len(w.structureIndex) != 1 {
+			t.Errorf("index len = %d, want 1", len(w.structureIndex))
 		}
 	})
 }

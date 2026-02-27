@@ -72,7 +72,7 @@ func TestHouseWorldConditionSpawnsAfterBuild(t *testing.T) {
 
 	w := NewWorld(30, 30)
 	p := NewPlayer(5, 15)
-	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int), CompletedBeats: make(map[string]bool)}
+	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int), completedBeats: make(map[string]bool)}
 	stores := NewStorageManager()
 	env := &Env{State: s, Stores: stores}
 

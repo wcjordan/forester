@@ -2,9 +2,9 @@ package game
 
 import "math/rand"
 
-// DefaultSeed is used by newState to produce a consistent map each run.
+// defaultSeed is used by newState to produce a consistent map each run.
 // Pass a different seed to GenerateWorld for a different map.
-const DefaultSeed int64 = 42
+const defaultSeed int64 = 42
 
 // GenerateWorld creates a world with procedurally generated forest/grassland
 // terrain using cellular automata. The same seed always produces the same map.

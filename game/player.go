@@ -40,7 +40,7 @@ func NewPlayer(x, y int) *Player {
 		MaxCarry:         InitialCarryingCapacity,
 		BuildInterval:    DepositTickInterval,
 		DepositInterval:  DepositTickInterval,
-		HarvestInterval:  HarvestTickInterval,
+		HarvestInterval:  harvestTickInterval,
 		Cooldowns:        make(map[CooldownType]time.Time),
 		pendingCooldowns: make(map[CooldownType]time.Time),
 	}
@@ -81,7 +81,7 @@ func (p *Player) commitCooldowns() {
 // Updates the player's facing direction when the cooldown is satisfied.
 func (p *Player) Move(dx, dy int, w *World, now time.Time) {
 	tile := w.TileAt(p.X, p.Y)
-	cooldown := DefaultMoveCooldown
+	cooldown := defaultMoveCooldown
 	if tile != nil {
 		cooldown = MoveCooldownFor(tile)
 	}
@@ -105,26 +105,26 @@ func (p *Player) Move(dx, dy int, w *World, now time.Time) {
 	p.Y = ny
 }
 
-// DefaultMoveCooldown is the minimum time between moves on standard terrain.
-const DefaultMoveCooldown = 150 * time.Millisecond
+// defaultMoveCooldown is the minimum time between moves on standard terrain.
+const defaultMoveCooldown = 150 * time.Millisecond
 
-// MoveCooldowns defines the minimum time between moves per terrain type.
-// Terrain types not present use DefaultMoveCooldown.
-var MoveCooldowns = map[TerrainType]time.Duration{
+// moveCooldowns defines the minimum time between moves per terrain type.
+// Terrain types not present use defaultMoveCooldown.
+var moveCooldowns = map[TerrainType]time.Duration{
 	Grassland: 150 * time.Millisecond,
 	Forest:    300 * time.Millisecond,
 }
 
 // MoveCooldownFor returns the move cooldown for the given tile.
-// Forest with TreeSize=0 (cut tree) uses DefaultMoveCooldown.
+// Forest with TreeSize=0 (cut tree) uses defaultMoveCooldown.
 func MoveCooldownFor(tile *Tile) time.Duration {
 	if tile.Terrain == Forest && tile.TreeSize == 0 {
-		return DefaultMoveCooldown
+		return defaultMoveCooldown
 	}
-	if d, ok := MoveCooldowns[tile.Terrain]; ok {
+	if d, ok := moveCooldowns[tile.Terrain]; ok {
 		return d
 	}
-	return DefaultMoveCooldown
+	return defaultMoveCooldown
 }
 
 // InitialCarryingCapacity is the carrying capacity a new player starts with.
@@ -136,5 +136,5 @@ const DepositTickInterval = 100 * time.Millisecond
 // GameTickInterval is the base cadence of the game loop (how often game.Tick is called).
 const GameTickInterval = 100 * time.Millisecond
 
-// HarvestTickInterval is how often the player auto-harvests adjacent trees.
-const HarvestTickInterval = 100 * time.Millisecond
+// harvestTickInterval is how often the player auto-harvests adjacent trees.
+const harvestTickInterval = 100 * time.Millisecond

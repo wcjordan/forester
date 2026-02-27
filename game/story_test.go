@@ -95,14 +95,14 @@ func TestFoundationSpawnsWhenInventoryFull(t *testing.T) {
 	// Player at (5, 5) facing north; forest tile at (5, 4) with enough wood.
 	w.Tiles[4][5] = Tile{Terrain: Forest, TreeSize: InitialCarryingCapacity}
 	p := NewPlayer(5, 5)
-	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int), CompletedBeats: make(map[string]bool)}
+	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int), completedBeats: make(map[string]bool)}
 	stores := NewStorageManager()
 	env := &Env{State: s, Stores: stores}
 
 	// Harvest InitialCarryingCapacity-1 times — foundation should not appear yet.
 	t0 := time.Now()
 	for i := range InitialCarryingCapacity - 1 {
-		now := t0.Add(time.Duration(i+1) * HarvestTickInterval * 2)
+		now := t0.Add(time.Duration(i+1) * harvestTickInterval * 2)
 		IterateResources(func(d ResourceDef) { d.Harvest(env, now) })
 		maybeAdvanceStory(env)
 		maybeSpawnFoundation(env)
@@ -112,7 +112,7 @@ func TestFoundationSpawnsWhenInventoryFull(t *testing.T) {
 	}
 
 	// Final harvest fills inventory — story beat fires and foundation should now appear.
-	now := t0.Add(time.Duration(InitialCarryingCapacity) * HarvestTickInterval * 2)
+	now := t0.Add(time.Duration(InitialCarryingCapacity) * harvestTickInterval * 2)
 	IterateResources(func(d ResourceDef) { d.Harvest(env, now) })
 	maybeAdvanceStory(env)
 	maybeSpawnFoundation(env)
@@ -129,7 +129,7 @@ func TestStoryBeatFiresOnce(t *testing.T) {
 	}
 	p := NewPlayer(5, 5)
 	p.Inventory[Wood] = InitialCarryingCapacity
-	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int), CompletedBeats: make(map[string]bool)}
+	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int), completedBeats: make(map[string]bool)}
 	stores := NewStorageManager()
 	env := &Env{State: s, Stores: stores}
 

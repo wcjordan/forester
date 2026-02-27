@@ -2,10 +2,10 @@ package game
 
 import "sort"
 
-// SpawnAnchoredPlacer is an optional interface for StructureDef implementations
+// spawnAnchoredPlacer is an optional interface for StructureDef implementations
 // that want to be placed as close as possible to the world spawn point rather
 // than on the path from the player toward the center.
-type SpawnAnchoredPlacer interface {
+type spawnAnchoredPlacer interface {
 	UseSpawnAnchoredPlacement() bool
 }
 
@@ -22,13 +22,13 @@ func findStructureDefByFoundationType(ft StructureType) StructureDef {
 }
 
 // spawnFoundationAt finds a valid location for def and places its foundation tile.
-// Placement is near the world spawn point if def implements SpawnAnchoredPlacer,
+// Placement is near the world spawn point if def implements spawnAnchoredPlacer,
 // otherwise near the player. Returns true if a foundation was placed, false if no
 // valid location was found (caller may retry on the next tick).
 func spawnFoundationAt(world *World, playerX, playerY int, def StructureDef) bool {
 	w, h := def.Footprint()
 	var cx, cy int
-	if sa, ok := def.(SpawnAnchoredPlacer); ok && sa.UseSpawnAnchoredPlacement() {
+	if sa, ok := def.(spawnAnchoredPlacer); ok && sa.UseSpawnAnchoredPlacement() {
 		cx, cy = findValidLocationNearSpawn(world, playerX, playerY, w, h)
 	} else {
 		cx, cy = findValidLocationNearPlayer(world, playerX, playerY, w, h)

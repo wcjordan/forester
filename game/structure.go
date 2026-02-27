@@ -24,9 +24,9 @@ type StructureDef interface {
 	OnBuilt(env *Env, origin Point)
 }
 
-// StructureEntry pairs a StructureDef with the origin (top-left corner) of the
+// structureEntry pairs a StructureDef with the origin (top-left corner) of the
 // specific instance it belongs to.  Used as values in World.StructureIndex.
-type StructureEntry struct {
+type structureEntry struct {
 	Def    StructureDef
 	Origin Point
 }

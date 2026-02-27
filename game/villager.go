@@ -8,8 +8,8 @@ import (
 // VillagerMaxCarry is the maximum wood a villager can carry at once.
 const VillagerMaxCarry = 5
 
-// VillagerMoveCooldown is how often a villager takes one movement or harvest step.
-const VillagerMoveCooldown = 300 * time.Millisecond
+// villagerMoveCooldown is how often a villager takes one movement or harvest step.
+const villagerMoveCooldown = 300 * time.Millisecond
 
 // VillagerTask identifies the villager's current activity.
 type VillagerTask int
@@ -84,7 +84,7 @@ func (v *Villager) Tick(env *Env, rng *rand.Rand, now time.Time) {
 	if now.Before(v.moveCooldown) {
 		return
 	}
-	v.moveCooldown = now.Add(VillagerMoveCooldown)
+	v.moveCooldown = now.Add(villagerMoveCooldown)
 
 	switch v.Task {
 	case VillagerIdle:
@@ -154,7 +154,7 @@ func (v *Villager) Tick(env *Env, rng *rand.Rand, now time.Time) {
 		if v.X == v.TargetX && v.Y == v.TargetY {
 			foundOrigin, ok := foundationHouseOriginAdjacent(env.State.World, v.X, v.Y)
 			if ok {
-				entry, hasEntry := env.State.World.StructureIndex[foundOrigin]
+				entry, hasEntry := env.State.World.structureIndex[foundOrigin]
 				if hasEntry {
 					buildCost := entry.Def.BuildCost()
 					current := env.State.FoundationDeposited[foundOrigin]
@@ -315,13 +315,13 @@ func findNearestTree(world *World, fromX, fromY int) (x, y int, ok bool) {
 
 // nearestClearTileAdjacent returns the clear tile (no structure, in-bounds) on the
 // perimeter of the nearest instance of stype to (fromX, fromY).
-// Uses StructureInstanceIndex for O(instances) iteration over the footprint perimeter.
+// Uses structureInstanceIndex for O(instances) iteration over the footprint perimeter.
 // Returns ok=false if no such tile exists.
 func nearestClearTileAdjacent(world *World, stype StructureType, fromX, fromY int) (tx, ty int, ok bool) {
 	bestDist2 := 0
 	found := false
-	for origin := range world.StructureInstanceIndex[stype] {
-		entry, hasEntry := world.StructureIndex[origin]
+	for origin := range world.structureInstanceIndex[stype] {
+		entry, hasEntry := world.structureIndex[origin]
 		if !hasEntry {
 			continue
 		}
@@ -361,11 +361,11 @@ func forFootprintCardinalNeighbors(fx, fy, fw, fh int, f func(x, y int)) {
 }
 
 // storageOriginAdjacent returns the origin of a LogStorage tile cardinally adjacent
-// to (x, y), using the StructureIndex for lookup. Returns ok=false if none found.
+// to (x, y), using the structureIndex for lookup. Returns ok=false if none found.
 func storageOriginAdjacent(world *World, x, y int) (Point, bool) {
 	for _, d := range [4][2]int{{0, -1}, {0, 1}, {-1, 0}, {1, 0}} {
 		nx, ny := x+d[0], y+d[1]
-		entry, found := world.StructureIndex[Point{nx, ny}]
+		entry, found := world.structureIndex[Point{nx, ny}]
 		if !found {
 			continue
 		}
@@ -378,11 +378,11 @@ func storageOriginAdjacent(world *World, x, y int) (Point, bool) {
 }
 
 // foundationHouseOriginAdjacent returns the origin of a FoundationHouse tile cardinally
-// adjacent to (x, y), using the StructureIndex for lookup. Returns ok=false if none found.
+// adjacent to (x, y), using the structureIndex for lookup. Returns ok=false if none found.
 func foundationHouseOriginAdjacent(world *World, x, y int) (Point, bool) {
 	for _, d := range [4][2]int{{0, -1}, {0, 1}, {-1, 0}, {1, 0}} {
 		nx, ny := x+d[0], y+d[1]
-		entry, found := world.StructureIndex[Point{nx, ny}]
+		entry, found := world.structureIndex[Point{nx, ny}]
 		if !found {
 			continue
 		}
