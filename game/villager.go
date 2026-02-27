@@ -23,6 +23,24 @@ const (
 	VillagerDeliveringToHouse                     // carrying fetched wood to a house foundation
 )
 
+// String returns a short readable name for the task.
+func (t VillagerTask) String() string {
+	switch t {
+	case VillagerIdle:
+		return "Idle"
+	case VillagerWalkingToTree:
+		return "WalkingToTree"
+	case VillagerCarryingToStorage:
+		return "CarryingToStorage"
+	case VillagerWalkingToStorage:
+		return "WalkingToStorage"
+	case VillagerDeliveringToHouse:
+		return "DeliveringToHouse"
+	default:
+		return "Unknown"
+	}
+}
+
 // Villager is an autonomous agent that collects and delivers wood.
 type Villager struct {
 	X, Y         int
