@@ -93,7 +93,7 @@ func TestHouseWorkflow(t *testing.T) {
 	const maxLogStorageTicks = 200
 	for i := range maxLogStorageTicks {
 		tick(&m, clock)
-		if g.State.HasStructureOfType(game.LogStorage) {
+		if g.State.World.HasStructureOfType(game.LogStorage) {
 			break
 		}
 		if i == maxLogStorageTicks-1 {
@@ -173,7 +173,7 @@ func TestHouseWorkflow(t *testing.T) {
 			houseBuildCost, woodForHouse, g.Stores.Total(game.Wood))
 	}
 	// House foundation should NOT have spawned yet (spawns on Phase 7 tick 1).
-	if g.State.HasStructureOfType(game.FoundationHouse) {
+	if g.State.World.HasStructureOfType(game.FoundationHouse) {
 		t.Error("phase 5: house foundation appeared before navigation; expected it to spawn on Phase 7 tick 1")
 	}
 
@@ -212,13 +212,13 @@ func TestHouseWorkflow(t *testing.T) {
 	const maxHouseBuildTicks = 150
 	for i := range maxHouseBuildTicks {
 		tick(&m, clock)
-		if g.State.HasStructureOfType(game.House) {
+		if g.State.World.HasStructureOfType(game.House) {
 			break
 		}
 		if i == maxHouseBuildTicks-1 {
 			t.Fatalf("phase 7: house not built after %d ticks; Wood=%d foundationDeposited=%v hasFoundation=%v",
 				maxHouseBuildTicks, g.State.Player.Inventory[game.Wood],
-				g.State.FoundationDeposited, g.State.HasStructureOfType(game.FoundationHouse))
+				g.State.FoundationDeposited, g.State.World.HasStructureOfType(game.FoundationHouse))
 		}
 	}
 	// Extra tick: first_house_built story beat fires → 2-card offer queued.
@@ -230,7 +230,7 @@ func TestHouseWorkflow(t *testing.T) {
 	announcePhase(m, "Phase 8: Accept house upgrade card")
 
 	// House must be built.
-	if !g.State.HasStructureOfType(game.House) {
+	if !g.State.World.HasStructureOfType(game.House) {
 		t.Fatal("phase 8: House structure not found after build loop")
 	}
 

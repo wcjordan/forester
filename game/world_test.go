@@ -194,6 +194,21 @@ func TestIndexStructure(t *testing.T) {
 	})
 }
 
+func TestHasStructureOfType(t *testing.T) {
+	w := NewWorld(10, 10)
+
+	if w.HasStructureOfType(LogStorage) {
+		t.Error("should have no LogStorage initially")
+	}
+	w.SetStructure(1, 1, 2, 2, LogStorage)
+	if !w.HasStructureOfType(LogStorage) {
+		t.Error("should detect LogStorage after SetStructure")
+	}
+	if w.HasStructureOfType(FoundationLogStorage) {
+		t.Error("should not detect FoundationLogStorage when none placed")
+	}
+}
+
 func TestTileAt(t *testing.T) {
 	w := NewWorld(10, 10)
 

@@ -115,7 +115,7 @@ func TestLogStorageWorkflow(t *testing.T) {
 	const maxHarvestTicks = 30
 	for i := range maxHarvestTicks {
 		tick(&m, clock)
-		if g.State.HasStructureOfType(game.FoundationLogStorage) || g.State.HasStructureOfType(game.LogStorage) {
+		if g.State.World.HasStructureOfType(game.FoundationLogStorage) || g.State.World.HasStructureOfType(game.LogStorage) {
 			break
 		}
 		if i == maxHarvestTicks-1 {
@@ -140,7 +140,7 @@ func TestLogStorageWorkflow(t *testing.T) {
 	const maxBuildTicks = 120
 	for i := range maxBuildTicks {
 		tick(&m, clock)
-		if g.State.HasStructureOfType(game.LogStorage) {
+		if g.State.World.HasStructureOfType(game.LogStorage) {
 			break
 		}
 		if i == maxBuildTicks-1 {
@@ -149,7 +149,7 @@ func TestLogStorageWorkflow(t *testing.T) {
 	}
 
 	// Foundation tiles should be gone; LogStorage should exist.
-	if g.State.HasStructureOfType(game.FoundationLogStorage) {
+	if g.State.World.HasStructureOfType(game.FoundationLogStorage) {
 		t.Error("phase 4: FoundationLogStorage tiles should be gone after build completes")
 	}
 	lsTile := g.State.World.TileAt(49, 48)
