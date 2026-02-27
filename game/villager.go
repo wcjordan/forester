@@ -178,10 +178,7 @@ func (v *Villager) pickTask(env *Env, rng *rand.Rand) {
 
 	wantChop := rng.Float64() > fillRatio
 	if wantChop {
-		if v.tryAssignChopTask(env) {
-			return
-		}
-		v.tryAssignDeliverTask(env)
+		v.tryAssignChopTask(env)
 	} else {
 		if v.tryAssignDeliverTask(env) {
 			return
