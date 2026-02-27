@@ -34,10 +34,12 @@ var (
 // Model is the bubbletea model for the game. It owns viewport dimensions
 // and delegates all game logic to game.Game.
 type Model struct {
-	game       *game.Game
-	termWidth  int
-	termHeight int
-	clock      game.Clock
+	game             *game.Game
+	termWidth        int
+	termHeight       int
+	clock            game.Clock
+	debugVillager    bool // whether the debug bar is visible
+	debugVillagerIdx int  // currently selected villager index
 }
 
 // NewModel creates a Model wrapping the given game using the system clock.
@@ -92,6 +94,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.game.State.Player.Move(-1, 0, m.game.State.World, m.clock.Now())
 		case "right", "d":
 			m.game.State.Player.Move(1, 0, m.game.State.World, m.clock.Now())
+		case "\\":
+			m.debugVillager = !m.debugVillager
+		case "[":
+			if n := m.game.Villagers.Count(); n > 0 {
+				m.debugVillagerIdx = (m.debugVillagerIdx - 1 + n) % n
+			}
+		case "]":
+			if n := m.game.Villagers.Count(); n > 0 {
+				m.debugVillagerIdx = (m.debugVillagerIdx + 1) % n
+			}
 		}
 	}
 
@@ -109,7 +121,11 @@ func (m Model) View() string {
 	}
 
 	// Status bar occupies the last line; map gets the rest.
+	// Debug bar (when visible) takes one additional line.
 	mapHeight := m.termHeight - 1
+	if m.debugVillager {
+		mapHeight--
+	}
 	mapWidth := m.termWidth
 
 	world := m.game.State.World
@@ -204,7 +220,25 @@ func (m Model) View() string {
 	sb.WriteByte('\n')
 	sb.WriteString(status)
 
+	if m.debugVillager {
+		sb.WriteByte('\n')
+		sb.WriteString(m.villagerDebugBar())
+	}
+
 	return sb.String()
+}
+
+// villagerDebugBar returns a one-line debug string for the selected villager.
+func (m Model) villagerDebugBar() string {
+	villagers := m.game.Villagers.Villagers
+	n := len(villagers)
+	if n == 0 {
+		return " Debug: no villagers"
+	}
+	idx := clamp(m.debugVillagerIdx, 0, n-1)
+	v := villagers[idx]
+	return fmt.Sprintf(" Debug V%d/%d  Pos: (%d,%d)  Task: %s  Target: (%d,%d)  Wood: %d/%d",
+		idx+1, n, v.X, v.Y, v.Task, v.TargetX, v.TargetY, v.Wood, game.VillagerMaxCarry)
 }
 
 // renderCardScreen renders the milestone card selection overlay centered in the terminal.
