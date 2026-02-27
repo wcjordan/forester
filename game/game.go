@@ -7,10 +7,11 @@ import (
 
 // Game is the top-level orchestrator that owns the game state and loop.
 type Game struct {
-	State  *State
-	Stores *StorageManager
-	rng    *rand.Rand
-	clock  Clock
+	State     *State
+	Stores    *StorageManager
+	Villagers *VillagerManager
+	rng       *rand.Rand
+	clock     Clock
 }
 
 // New creates a new Game with default state using the system clock.
@@ -28,20 +29,21 @@ func NewWithClock(clock Clock) *Game {
 // tests to get fully deterministic behavior (e.g. rand.New(rand.NewSource(0))).
 func NewWithClockAndRNG(clock Clock, rng *rand.Rand) *Game {
 	return &Game{
-		State:  newState(),
-		Stores: NewStorageManager(),
-		rng:    rng,
-		clock:  clock,
+		State:     newState(),
+		Stores:    NewStorageManager(),
+		Villagers: NewVillagerManager(),
+		rng:       rng,
+		clock:     clock,
 	}
 }
 
 // env returns the runtime context for the current tick.
 func (g *Game) env() *Env {
-	return &Env{State: g.State, Stores: g.Stores}
+	return &Env{State: g.State, Stores: g.Stores, Villagers: g.Villagers}
 }
 
 // Tick advances the game: harvests trees, handles adjacent-structure interactions,
-// and fires probabilistic regrowth. Returns early when a card offer is pending.
+// ticks villagers, and fires probabilistic regrowth. Returns early when a card offer is pending.
 func (g *Game) Tick() {
 	if g.State.HasPendingOffer() {
 		return
@@ -50,5 +52,6 @@ func (g *Game) Tick() {
 	env := g.env()
 	g.State.Harvest(env, now)
 	g.State.TickAdjacentStructures(env, now)
+	g.Villagers.Tick(env, g.rng, now)
 	g.State.World.Regrow(g.rng, now)
 }

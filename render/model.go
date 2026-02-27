@@ -28,6 +28,7 @@ var (
 	foundationStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))            // yellow (dim)
 	logStorageStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Bold(true) // bold yellow
 	houseStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true) // bold magenta
+	villagerStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("14"))           // cyan
 )
 
 // Model is the bubbletea model for the game. It owns viewport dimensions
@@ -119,6 +120,12 @@ func (m Model) View() string {
 	vpX := clamp(player.X-mapWidth/2, 0, max(0, world.Width-mapWidth))
 	vpY := clamp(player.Y-mapHeight/2, 0, max(0, world.Height-mapHeight))
 
+	// Build a position set for O(1) villager lookup during rendering.
+	villagerPos := make(map[game.Point]struct{}, m.game.Villagers.Count())
+	for _, v := range m.game.Villagers.Villagers {
+		villagerPos[game.Point{X: v.X, Y: v.Y}] = struct{}{}
+	}
+
 	var sb strings.Builder
 	for row := 0; row < mapHeight; row++ {
 		for col := 0; col < mapWidth; col++ {
@@ -127,6 +134,11 @@ func (m Model) View() string {
 
 			if worldX == player.X && worldY == player.Y {
 				sb.WriteString(playerStyle.Render("@"))
+				continue
+			}
+
+			if _, isVillager := villagerPos[game.Point{X: worldX, Y: worldY}]; isVillager {
+				sb.WriteString(villagerStyle.Render("v"))
 				continue
 			}
 
@@ -173,6 +185,19 @@ func (m Model) View() string {
 	// Status bar.
 	status := fmt.Sprintf(" Player: (%d, %d)  Wood: %d/%d",
 		player.X, player.Y, player.Wood, player.MaxCarry)
+
+	logStored := m.game.Stores.Total(game.Wood)
+	logCap := m.game.Stores.TotalCapacity(game.Wood)
+	if logCap > 0 {
+		status += fmt.Sprintf("  Log: %d/%d", logStored, logCap)
+	}
+
+	villagerCount := m.game.Villagers.Count()
+	houseCount := world.CountStructureInstances(game.House)
+	if villagerCount > 0 || houseCount > 0 {
+		status += fmt.Sprintf("  Villagers: %d/%d", villagerCount, houseCount)
+	}
+
 	if progress, ok := m.game.State.FoundationProgress(); ok {
 		status += "  " + buildProgressBar(progress)
 	}

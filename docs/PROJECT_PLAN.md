@@ -15,14 +15,16 @@ A city builder/simulation game where you play as a character who develops a vill
 ## Technology Stack
 
 - **Language**: Go
-- **UI**: Terminal-based (using bubbletea or similar TUI library)
+- **UI**: Terminal-based (bubbletea TUI library)
 - **Hot-reloading**: air (for rapid iteration)
 - **Architecture**: Clean separation of game logic from rendering
 
-### Key Libraries to Consider
-- `bubbletea` - Elm-inspired TUI framework (primary choice)
-- `tcell` - Low-level terminal handling (if we need more control)
+### Libraries in use
+- `bubbletea` - Elm-inspired TUI framework (primary event loop)
+- `lipgloss` - Terminal color and style (ANSI)
 - `air` - Live reload for Go applications
+
+---
 
 ## Core Mechanics
 
@@ -30,22 +32,22 @@ A city builder/simulation game where you play as a character who develops a vill
 - Moves around a top-down map
 - Auto-interacts with nearby objects (trees, resources)
 - Carries resources on their back
-- Earns XP from gathering resources (not villagers)
-- Triggers card/upgrade choices through XP levels
+- Earns XP from gathering resources (not villagers) *(XP not yet tracked)*
+- Triggers card/upgrade choices through milestone story beats *(XP-based triggers planned)*
 
 ### 2. World & Map
-- **Size**: 1000x1000 tiles
-- **Generation**: Procedurally generated
-- **Terrain Types** (MVP): Forest, Grassland
+- **Target size**: 1000×1000 tiles *(current: 100×100)*
+- **Generation**: Procedurally generated (cellular automata)
+- **Terrain Types**: Forest, Grassland
 - **Boundaries**: Fixed (not infinite)
 
 ### 3. Tree Cutting (Primary Mechanic)
 - **Auto-cut**: When player is near trees, automatically cut them
-- **Resource gain**: Wood accumulates on player's back
-- **Space clearing**: Tree tile becomes empty/grassland
-- **Regrowth**: Trees can regrow in forests if no structures built
+- **Resource gain**: Wood accumulates on player's back (carry cap 20, upgradable to 100)
+- **Space clearing**: Tree tile becomes a stump; stays Forest terrain
+- **Regrowth**: Trees regrow probabilistically in forests, suppressed near structures and spawn
 
-### 4. Road Formation
+### 4. Road Formation *(not yet implemented)*
 - **Progressive states**: Grassland → Trodden Grassland → Road
 - **Frequency-based**: Requires repeated/frequent travel
 - **Quality levels**: More traffic = better road quality
@@ -53,298 +55,270 @@ A city builder/simulation game where you play as a character who develops a vill
 - **Contributors**: Both player and villagers contribute
 
 ### 5. Structures
-- **Organic development**: Appear from repeated harvesting in an area
-- **Progression example**: Wood Storage → Lumber Mill
-- **Block regrowth**: Trees won't regrow where structures exist
+- **Organic development**: Foundations appear when gameplay conditions are met
+- **Progression chain**: Log Storage → House → Resource Depot *(Depot not yet implemented)*
+- **Block regrowth**: Trees won't regrow within noGrowRadius of any structure
 
 ### 6. Experience & Upgrades
-- **XP Source**: Gathering resources (player only)
-- **Card Triggers**:
-  - Regular cards: XP milestones/level ups
-  - Rare cards: Village progression milestones
-- **Upgrade Types**:
-  - Player abilities (move faster, cut faster, carry more)
-  - Village improvements (villagers work faster, structures upgrade sooner)
-  - Unlock mechanics (villagers can cut trees, new resource types)
+- **Card Triggers** (implemented as ordered story beats):
+  - After first log storage built: Expanded Carry Capacity (20 → 100 wood)
+  - After first house built: choose Faster Construction or Faster Depositing
+- **XP Source**: Gathering resources (player only) *(XP not yet tracked; triggers are milestone-based)*
+- **Upgrade Types** (implemented):
+  - Player carry capacity (+80 max wood)
+  - Foundation build speed (+10%)
+  - Storage deposit speed (+10%)
 
 ### 7. Villagers
-- **Population growth**: Grows over time as village expands
-- **Behavior**: Follow player and help with current task
-- **Contribution**: Generate resources (not XP)
-- **Foreman system**:
+- **Spawning**: One villager spawns for each house built
+- **Behavior**: Autonomous; probabilistic task selection based on log storage fill level
+  - P(chop task) = 1 − fill_ratio; P(deliver task) = fill_ratio
+  - **Chop task**: Walk to nearest tree → harvest up to 5 wood → carry to log storage
+  - **Deliver task**: Fetch up to 5 wood from log storage → carry to nearest house (wood consumed)
+- **Movement**: Cardinal step-toward-target (300 ms/step); avoids structures; no BFS pathfinding yet
+- **Contribution**: Wood flow — not XP
+- **Following behavior**: Not yet implemented (villagers work independently)
+- **Foreman system**: Not yet implemented
   - Can promote a villager to "foreman"
   - Foreman continues task autonomously
   - Encourages other villagers to do the same task
   - Allows player to move on to new activities
 - **No direct control**: Lead by example only
 
+---
+
 ## MVP Implementation Phases
 
-### Phase 1: Core Loop (Foundation) ✅ COMPLETE
-**Goal**: Get basic player movement and tree cutting working
+### Phase 1: Core Loop ✅ COMPLETE
+**Goal**: Basic player movement and tree cutting
 
 #### Features
 - [x] Player character with movement (WASD/arrow keys)
-- [x] 1000x1000 tile map data structure
-- [x] Procedural map generation (cellular automata — forest + grassland)
-- [x] Viewport/camera (show portion of map around player)
-- [x] Tree entities on map
-- [x] Auto-detection of nearby trees
-- [x] Auto-cutting mechanic (timer-based, when near tree)
-- [x] Resource tracking (wood counter)
-- [x] Tree removal from map
-- [x] Tree regrowth system (timer-based in forests)
-- [x] Basic terminal rendering (ASCII)
-- [x] Game loop (tick-based)
-- [x] Forest movement slowdown (half speed through forest tiles)
+- [x] 100×100 tile map (procedural, cellular automata; target 1000×1000)
+- [x] Viewport/camera centered on player
+- [x] Forest tiles with tree sizes (1–10); stumps at 0
+- [x] Auto-harvesting forward arc (timer-based, 100 ms interval)
+- [x] Wood carry counter
+- [x] Tree regrowth (probabilistic, 500 ms cooldown, 1-in-40 odds)
+- [x] Basic terminal rendering (ASCII glyphs + lipgloss color)
+- [x] Game loop (100 ms tick via bubbletea)
+- [x] Forest movement slowdown (300 ms vs 150 ms on grassland)
 
-#### ASCII Representation (Phase 1)
+#### ASCII glyphs
 ```
-@ = Player
-T = Tree
-. = Grassland
-# = Forest floor
-```
-
-#### Technical Components
-- `main.go` - Entry point, hot-reload setup
-- `game/state.go` - Core game state
-- `game/player.go` - Player entity and movement
-- `game/map.go` - Map data structure and generation
-- `game/tree.go` - Tree entities and cutting logic
-- `game/tick.go` - Game loop and update logic
-- `render/terminal.go` - Terminal UI rendering
-- `util/math.go` - Distance calculations, etc.
-
-### Phase 2: Structures & Progression ✅ PARTIALLY COMPLETE
-**Goal**: Add carry capacity, organic structure growth, and a basic village progression loop
-
-#### Design Decisions
-- **Village center**: Player spawn point. Houses and depot appear near here.
-- **Foundation structures**: When conditions are met, a foundation tile appears on the map. Player deposits wood while adjacent to construct it. (Original design was "walk into ghost to build"; implementation uses adjacent deposit instead.)
-- **Carry capacity**: Player carries max 20 wood. Cutting stops when full. Auto-deposit when adjacent to log storage.
-
-#### Structure Progression
-1. **Log Storage (4×4)** ✅ — Foundation appears when player inventory is full (≥20 wood). Deposit 20 wood while adjacent to build it. Auto-deposits wood when player is adjacent to built storage.
-2. **House** — Available when 50 wood has been deposited into the log storage. Visual milestone; hooks into future villager spawning.
-3. **Resource Depot** — Available when 4 houses have been built. Details TBD.
-
-#### Features
-- [x] Carry capacity (max 20 wood; cutting stops when full)
-- [x] Status bar shows `Wood: 14/20`
-- [x] Foundation structure indicator on map when conditions met (trigger: player inventory full)
-- [x] Structure construction: deposit wood while adjacent to foundation to build
-- [x] Build progress bar shown in status bar while adjacent to foundation
-- [x] Log Storage (4×4): auto-deposits wood when adjacent; capacity 500 wood
-- [x] Structure registry pattern (`StructureDef` interface + `init()` registration)
-- [x] Resource storage system (`StorageManager`, `StorageInstance`, `ResourceStorage`)
-- [x] Tree no-grow zones (trees don't regrow under/near structures)
-- [x] Circular clearing around spawn point
-- [ ] House: triggered by 50 wood deposited in log storage; visual only for now
-- [ ] Resource Depot: triggered by 4 houses built; details TBD
-- [ ] Road formation (grassland → trodden → road) — deferred, post-structures
-- [ ] XP / card upgrade system — deferred, see Phase 3
-
-#### ASCII Representation (Phase 2)
-```
-@ = Player
-T = Tree
-. = Grassland
-? = Foundation (deposit wood while adjacent to build)
-L = Log Storage
-H = House
-D = Resource Depot
+@  Player (blue)
+#  Dense tree, size ≥7 (green)
+t  Mid tree, size 4–6 (green)
+,  Sapling, size 1–3 (green)
+%  Stump, size 0 (gray)
+.  Grassland
 ```
 
-#### Technical Components
-- `game/structure.go` — `StructureDef` interface + structure registry (`structures` slice)
-- `game/log_storage.go` — `logStorageDef` implementation, registered via `init()`
-- `game/storage.go` — `ResourceType`, `StorageInstance`, `ResourceStorage`, `StorageDef` sub-interface
-- `game/storage_manager.go` — `StorageManager` (runtime storage state), `StorageState` (serializable)
-- `game/env.go` — `Env` (runtime context passed to StructureDef methods)
-- `game/progression.go` — `maybeSpawnFoundation`, `findValidLocationNearPlayer`, `isValidArea`
-- Player carry capacity and harvest stop logic live in `game/player.go`
-
-### Phase 3: XP & Upgrades → Villagers & Automation
-**Goal**: Add XP tracking, card-based upgrade system, then villagers and foreman
-
-#### Features
-- [ ] XP tracking (earned from harvesting wood)
-- [ ] XP level-up thresholds and card selection screen
-- [ ] Upgrade cards: player abilities (move faster, cut faster, carry more)
-- [ ] Upgrade cards: village improvements (structures upgrade sooner)
-- [ ] Unlock cards: new mechanics (villagers cut trees, new resource types)
-- [ ] Villager entities
-- [ ] Population growth system (tied to village milestones)
-- [ ] Villager spawning
-- [ ] Following behavior (villagers follow player)
-- [ ] Task detection (villagers see what player is doing)
-- [ ] Villager resource gathering (contribute to village)
-- [ ] Foreman promotion mechanic
-- [ ] Foreman autonomous behavior (continue task)
-- [ ] Foreman influence (encourage other villagers)
-- [ ] Milestone tracking (trigger rare cards)
-
-#### ASCII Representation (Phase 3)
-```
-@ = Player
-v = Villager
-V = Foreman
-T = Tree
-. = Grassland
-: = Trodden path
-= = Road
-S = Storage structure
-M = Mill structure
-```
-
-#### Technical Components
-- `game/villager.go` - Villager entity and behavior
-- `game/population.go` - Population growth system
-- `game/foreman.go` - Foreman promotion and autonomous behavior
-- `game/milestone.go` - Milestone tracking for rare cards
-
-## Architecture Design
-
-### Game Loop
-```
-while running:
-    1. Handle Input (movement commands)
-    2. Update Game State (tick)
-        - Move player
-        - Auto-interact (cut trees)
-        - Update villagers
-        - Update roads (traffic)
-        - Update structures
-        - Check for level ups
-        - Regrow trees
-    3. Render (terminal output)
-    4. Sleep until next tick (60 FPS target)
-```
-
-### Entity System
-- **Player**: Position, inventory, stats, XP
-- **Tree**: Position, growth stage, regrowth timer
-- **Villager**: Position, assigned task, following target
-- **Foreman**: Position, autonomous task, influence radius
-- **Structure**: Position, type, level, area of effect
-
-### Map/Tile System
-```go
-type Tile struct {
-    Terrain     TerrainType  // Grassland, Forest
-    WalkCount   int          // Traffic counter
-    RoadLevel   int          // 0=none, 1=trodden, 2=road, 3+=better road
-    Entity      Entity       // Tree, Structure, etc
-    ActivityMap map[string]int // Track activity types (tree cutting, etc)
-}
-```
-
-### Separation of Concerns
-- **Game Logic**: Pure Go functions, no rendering dependencies
-- **Rendering**: Swappable (terminal now, web later)
-- **State Management**: Single source of truth for game state
-- **Input Handling**: Abstract input layer (keyboard now, mouse later)
-
-## Development Workflow
-
-### Setup
-1. Initialize Go module: `go mod init forester`
-2. Install dependencies: `bubbletea`, `tcell`
-3. Install air: `go install github.com/cosmtrek/air@latest`
-4. Create `.air.toml` configuration
-5. Run with hot-reload: `air`
-
-### Testing Strategy
-- Unit tests for game logic (tree cutting, road formation, etc.)
-- Manual playtesting for balance and feel
-- Debug view to inspect game state (tile info, entity counts, etc.)
-
-### Iteration Approach
-1. Build minimal feature
-2. Test in game
-3. Tune parameters (cutting speed, road thresholds, etc.)
-4. Iterate quickly with hot-reload
-
-## Future Enhancements (Post-MVP)
-
-### Additional Resources & Activities
-- Berry harvesting (from bushes)
-- Mining (stone, ore)
-- Farming (planting and harvesting)
-- Fishing (near water)
-
-### Combat System
-- Enemies/threats
-- Combat mechanics (auto-attack like Vampire Survivors)
-- Defensive structures
-- Combat upgrades
-
-### Crafting
-- Combine resources
-- Create tools/equipment
-- Unlock new structures
-
-### Advanced Features
-- Multiple biomes (desert, mountains, swamps)
-- Weather system
-- Day/night cycle
-- Seasons affecting growth/gameplay
-- Trade with other settlements
-- Quests/objectives
-
-### Rendering Upgrades
-- Web-based renderer (HTML5 canvas)
-- Sprite graphics (2D pixel art)
-- Isometric view (like original vision)
-- Animations
-- Particle effects
-
-## Success Metrics
-
-### Phase 1 Complete When:
-- Can move player around map
-- Trees auto-cut when nearby
-- Wood counter increases
-- Trees regrow over time
-- Map generates with varied forest patches
-
-### Phase 2 Complete When:
-- ✅ Player has a carry capacity (20 wood) and status bar reflects it
-- ✅ Cutting stops when player is full
-- ✅ Log storage foundation appears when player is full
-- ✅ Depositing wood while adjacent builds the log storage (20 wood cost)
-- ✅ Wood auto-deposits when player is adjacent to built log storage
-- [ ] House foundation appears after 50 wood deposited; builds on contact
-- [ ] Resource depot foundation appears after 4 houses built
-
-### Phase 3 Complete When:
-- Villagers spawn and follow player
-- Villagers contribute to resource gathering
-- Can promote villagers to foremen
-- Foremen work autonomously
-- Village feels "alive" with activity
-
-## Design Principles
-
-1. **Minimal Input, Maximum Expression**: Like Vampire Survivors, focus on positioning and movement, not micro-management
-2. **Organic Over Explicit**: Let systems emerge from interaction rather than explicit building
-3. **Lead by Example**: Player teaches through action, not commands
-4. **Rapid Iteration**: Hot-reload and simple rendering enable fast experimentation
-5. **Separation of Concerns**: Keep game logic independent of rendering for future flexibility
-
-## Open Questions / Future Decisions
-
-- Exact XP curve and level up frequency?
-- How many upgrade options per level (3? 4?)?
-- Structure upgrade thresholds (how many trees = storage?)?
-- Villager population growth rate?
-- Road traffic thresholds (how many walks = road?)?
-- Tree regrowth timer (how long until respawn?)?
-- Foreman mechanics details (influence radius, task switching?)?
-
-These will be determined through playtesting and iteration.
+#### Technical components
+- `main.go` — entry point
+- `game/game.go` — `Game`, `Tick()` orchestrator
+- `game/state.go` — `State` (Player + World)
+- `game/player.go` — movement, `HarvestAdjacent()`, cooldowns
+- `game/world.go` — grid, regrowth, no-grow zones, structure indexes
+- `game/worldgen.go` — procedural terrain (cellular automata, seed 42)
+- `game/tile.go` — `Tile`, `TerrainType`, `StructureType`
+- `game/clock.go` — `Clock` interface, `RealClock`, `FakeClock`
+- `render/model.go` — bubbletea `Model`, `View()`, `Update()`
 
 ---
 
-**Next Steps**: Begin Phase 3 — XP tracking and card-based upgrade system, then house/depot structures to complete Phase 2's progression chain.
+### Phase 2: Structures & Progression ✅ SUBSTANTIALLY COMPLETE
+**Goal**: Carry capacity, organic structure growth, and basic village progression
+
+#### Design notes
+- **Foundation mechanic**: When a spawn condition is met, a `?` foundation tile appears. Player deposits wood while adjacent to complete it.
+- **Story beats**: Ordered one-shot triggers check conditions each tick and fire exactly once, in sequence. Prevent out-of-order progression.
+- **World conditions**: Per-`StructureDef` `ShouldSpawn()` drives autonomous re-spawning of additional instances (e.g. more houses once first is built).
+- **Placement**: Spawn-anchored (near world center) for houses; player-anchored (between player and center) for log storage. Enforces 1-tile buffer between structures; no placement under player.
+
+#### Structure progression
+1. **Log Storage (4×4)** ✅ — Foundation appears when inventory is full (≥20 wood). Costs 20 wood. Auto-deposits player wood at 100 ms/unit when adjacent. Capacity: 500 wood.
+2. **House (2×2)** ✅ — Foundation appears after 50 wood deposited in storage. Costs 50 wood. Spawns a villager on completion. Subsequent houses spawn automatically when no foundation is pending.
+3. **Resource Depot** — Planned after 4 houses built. Details TBD.
+
+#### Features
+- [x] Carry capacity (20 wood max; cutting stops when full)
+- [x] Status bar: `Wood: X/Y`
+- [x] Foundation tile (`?`) appears when spawn condition met
+- [x] Adjacent deposit to build; progress bar in status bar
+- [x] Log Storage: auto-deposit to storage when adjacent; `StorageManager` aggregates instances
+- [x] House: foundation triggered by 50 wood in storage; spawns a villager on completion
+- [x] Story beat system (`game/story.go`): ordered, one-shot, retry-able
+- [x] Milestone upgrade cards offered after key beats (carry capacity; build/deposit speed)
+- [x] Card selection overlay (side-by-side for 2 cards; `1`/`2` to choose)
+- [x] Structure registry (`StructureDef` interface + `init()` registration)
+- [x] Resource storage system (`StorageManager`, `StorageInstance`, `ResourceStorage`)
+- [x] Tree no-grow zones (radius 8 around spawn and every structure)
+- [x] Circular grassland clearing around spawn point
+- [x] Placement constraints: 1-tile buffer, no-under-player, spawn-anchored houses
+- [ ] Resource Depot: triggered after 4 houses; details TBD
+- [ ] Road formation (deferred)
+- [ ] XP-based card triggers (currently milestone/story-beat-based only)
+
+#### ASCII glyphs added
+```
+?  Foundation (yellow)
+L  Log Storage (bold yellow)
+H  House (bold magenta)
+```
+
+#### Technical components
+- `game/story.go` — `StoryBeat`, `storyBeats`, `maybeAdvanceStory()`
+- `game/structure.go` — `StructureDef` interface, `StructureEntry`, registry
+- `game/structures/log_storage.go` — `logStorageDef` (implements `StorageDef`)
+- `game/structures/house.go` — `houseDef`; `OnBuilt` spawns a villager
+- `game/storage.go` — `ResourceType`, `StorageDef`, `StorageInstance`, `ResourceStorage`
+- `game/storage_manager.go` — `StorageManager`: `Register`, `DepositAt`, `WithdrawFrom`, `Total`, `TotalCapacity`
+- `game/env.go` — `Env` (runtime context passed to `StructureDef` methods)
+- `game/progression.go` — `spawnFoundationAt`, `findValidLocationNearPlayer`, `findValidLocationNearSpawn`, `isValidArea`
+- `game/upgrade.go` — `UpgradeDef` interface, `upgradeRegistry`
+- `game/upgrades/carry_upgrade.go` — `carryCapacityUpgrade`
+- `game/upgrades/deposit_upgrades.go` — `buildSpeedUpgrade`, `depositSpeedUpgrade`
+
+---
+
+### Phase 3: Villagers & Automation ✅ PARTIALLY COMPLETE
+**Goal**: Autonomous villagers that keep wood flowing; later XP, upgrades, and foreman
+
+#### Features
+- [x] Villager entity (`Villager` struct: position, task, wood inventory, move cooldown)
+- [x] Villager spawning (one per house built, via `houseDef.OnBuilt`)
+- [x] Autonomous task selection: probabilistic based on log storage fill
+- [x] Chop task: walk to nearest tree → harvest (up to 5 wood) → carry to log storage
+- [x] Deliver task: fetch wood from log storage → carry to nearest house (wood consumed)
+- [x] Cardinal movement: step toward target, primary axis first, fallback if blocked
+- [x] Status bar: `Log: X/Y` (stored/capacity) and `Villagers: X/Y` (count/house count)
+- [x] `StorageManager.WithdrawFrom` for villager fetch
+- [ ] XP tracking (player earns XP from harvesting)
+- [ ] XP level-up thresholds and card selection
+- [ ] Upgrade cards: player abilities (more move/harvest speed)
+- [ ] Upgrade cards: village improvements (villager speed, structure thresholds)
+- [ ] Following behavior (villagers trail player and mirror current task)
+- [ ] Foreman promotion (player promotes a villager; foreman works autonomously)
+- [ ] Foreman influence (foreman encourages nearby villagers to join its task)
+- [ ] Milestone tracking for rare card triggers
+- [ ] Resource Depot structure
+
+#### ASCII glyphs added
+```
+v  Villager (cyan)
+```
+
+#### Technical components
+- `game/villager.go` — `Villager`, `VillagerTask`, `Tick()`, `pickTask()`, `move()`, helpers
+
+---
+
+## Architecture
+
+### Game loop (actual)
+```
+bubbletea tick (100 ms):
+  game.Tick()
+    State.Harvest()               — player auto-harvests forward arc
+    State.TickAdjacentStructures() — player interacts with adjacent structures
+    State.TickVillagers()         — each villager takes one step / interaction
+    World.Regrow()                — probabilistic tree regrowth (500 ms cooldown)
+```
+
+### Key patterns
+- **Clock injection**: `Clock` interface → `RealClock` prod / `*FakeClock` tests
+- **RNG injection**: `NewWithClockAndRNG(clock, rng)` for deterministic tests
+- **Structure registry**: `RegisterStructure()` called from `init()` in `game/structures/`; blank-imported by `main.go` and `e2e_tests/`
+- **Upgrade registry**: `RegisterUpgrade()` called from `init()` in `game/upgrades/`
+- **Story beats**: evaluated in strict order; at most one fires per tick; retry until action succeeds
+- **Tile indexing**: `World.Tiles[y][x]` (row-major); always use `TileAt(x, y)` for safe access
+
+### Tile data
+```go
+type Tile struct {
+    Terrain   TerrainType   // Grassland, Forest
+    TreeSize  int           // Forest only: 1–10 alive, 0 = stump
+    WalkCount int           // traffic counter (road formation — not yet used)
+    Structure StructureType // overlay: NoStructure, Foundation*, LogStorage, House, …
+}
+```
+
+---
+
+## Development Workflow
+
+### Commands
+```bash
+make check    # lint + test (primary gate)
+make test     # go test -race ./...
+make lint     # golangci-lint run
+make build    # compile binary
+make run      # build and run
+make dev      # hot-reload with air
+make e2e_viz  # visual E2E playback (E2E_VISUAL=1 E2E_VISUAL_DELAY=150ms)
+make format   # gofmt
+```
+
+### Testing strategy
+- Unit tests for all game logic (`game/` package)
+- End-to-end tests with injected clock + RNG (`e2e_tests/`)
+- `make e2e_viz` for manual visual playback
+
+---
+
+## Future Enhancements (Post-MVP)
+
+### Near-term
+- Resource Depot (triggered after 4 houses)
+- XP tracking and XP-based card triggers
+- Villager following behavior
+- Foreman system
+
+### Medium-term
+- Road formation (grassland → trodden → road from walk traffic)
+- BFS pathfinding for villagers
+- Map scale-up to 1000×1000
+- Additional upgrade cards
+
+### Long-term / Post-MVP
+- Berry harvesting, mining, farming, fishing
+- Combat system (enemies, auto-attack, defensive structures)
+- Crafting (combine resources, new tools)
+- Multiple biomes, weather, day/night cycle, seasons
+- Trade with other settlements
+- Web-based renderer (HTML5 canvas), sprite graphics, isometric view
+
+---
+
+## Open Questions / Future Decisions
+
+- XP curve and level-up frequency?
+- Number of upgrade options per level (2? 3?)?
+- Villager population cap / housing ratio?
+- Road traffic thresholds?
+- Foreman mechanics (influence radius, task switching)?
+- Resource Depot trigger threshold and function?
+
+---
+
+## Success Metrics
+
+### Phase 2 Complete When:
+- ✅ Player has carry capacity (20 wood) and status bar reflects it
+- ✅ Cutting stops when full
+- ✅ Log storage foundation appears when inventory is full
+- ✅ Depositing wood while adjacent builds log storage
+- ✅ Wood auto-deposits when adjacent to built log storage
+- ✅ House foundation appears after 50 wood deposited; builds on adjacent deposit
+- ✅ Milestone card offers appear after key story beats
+- [ ] Resource Depot foundation appears after 4 houses built
+
+### Phase 3 Complete When:
+- ✅ Villagers spawn (1 per house) and appear on map
+- ✅ Villagers autonomously collect and deliver wood
+- ✅ Status bar shows log storage fill and villager/house ratio
+- [ ] XP tracked and triggers card offers at milestones
+- [ ] Villagers follow player and mirror current activity
+- [ ] Foreman can be promoted; works autonomously with influence
+- [ ] Village feels "alive" with coordinated activity
