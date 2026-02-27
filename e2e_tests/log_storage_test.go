@@ -164,7 +164,7 @@ func TestLogStorageWorkflow(t *testing.T) {
 	announcePhase(m, "Phase 5: Accept upgrade card")
 	// One extra tick to let the story beat fire and queue the offer.
 	tick(&m, clock)
-	if !g.State.HasPendingOffer() {
+	if !g.HasPendingOffer() {
 		t.Fatal("phase 5: expected a pending card offer after building log storage")
 	}
 	woodBeforePause := g.State.Player.Inventory[game.Wood]
@@ -173,11 +173,11 @@ func TestLogStorageWorkflow(t *testing.T) {
 		t.Errorf("phase 5: game should be paused during card selection; Wood changed from %d to %d",
 			woodBeforePause, g.State.Player.Inventory[game.Wood])
 	}
-	g.State.SelectCard(0)
+	g.SelectCard(0)
 	if g.State.Player.MaxCarry != 100 {
 		t.Errorf("phase 5: MaxCarry = %d, want 100 after accepting carry upgrade", g.State.Player.MaxCarry)
 	}
-	if g.State.HasPendingOffer() {
+	if g.HasPendingOffer() {
 		t.Error("phase 5: offer should be gone after SelectCard")
 	}
 

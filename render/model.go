@@ -75,12 +75,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 
-		if m.game.State.HasPendingOffer() {
+		if m.game.HasPendingOffer() {
 			switch msg.String() {
 			case "1", "enter":
-				m.game.State.SelectCard(0)
+				m.game.SelectCard(0)
 			case "2":
-				m.game.State.SelectCard(1)
+				m.game.SelectCard(1)
 			}
 			return m, nil
 		}
@@ -116,7 +116,7 @@ func (m Model) View() string {
 		return ""
 	}
 
-	if m.game.State.HasPendingOffer() {
+	if m.game.HasPendingOffer() {
 		return m.renderCardScreen()
 	}
 
@@ -244,7 +244,7 @@ func (m Model) villagerDebugBar() string {
 // renderCardScreen renders the milestone card selection overlay centered in the terminal.
 // When two cards are offered they are displayed side by side horizontally.
 func (m Model) renderCardScreen() string {
-	offer := m.game.State.CurrentOffer()
+	offer := m.game.CurrentOffer()
 	if len(offer) == 0 {
 		return ""
 	}

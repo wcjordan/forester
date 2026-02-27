@@ -119,14 +119,20 @@ func TestFoundationSpawnsWhenInventoryFull(t *testing.T) {
 	// Harvest InitialCarryingCapacity-1 times — foundation should not appear yet.
 	t0 := time.Now()
 	for i := range InitialCarryingCapacity - 1 {
-		s.Harvest(env, t0.Add(time.Duration(i+1)*HarvestTickInterval*2))
+		now := t0.Add(time.Duration(i+1) * HarvestTickInterval * 2)
+		IterateResources(func(d ResourceDef) { d.Harvest(env, now) })
+		s.maybeAdvanceStory(env)
+		maybeSpawnFoundation(env)
 	}
 	if s.World.HasStructureOfType(FoundationLogStorage) {
 		t.Fatal("foundation appeared before inventory full")
 	}
 
 	// Final harvest fills inventory — story beat fires and foundation should now appear.
-	s.Harvest(env, t0.Add(time.Duration(InitialCarryingCapacity)*HarvestTickInterval*2))
+	now := t0.Add(time.Duration(InitialCarryingCapacity) * HarvestTickInterval * 2)
+	IterateResources(func(d ResourceDef) { d.Harvest(env, now) })
+	s.maybeAdvanceStory(env)
+	maybeSpawnFoundation(env)
 	if !s.World.HasStructureOfType(FoundationLogStorage) {
 		t.Error("foundation did not appear when inventory became full")
 	}
@@ -250,23 +256,31 @@ func TestAddOfferAndSelectCard(t *testing.T) {
 	upgradeRegistry["test_carry"] = testCarryUpgrade{}
 	t.Cleanup(func() { delete(upgradeRegistry, "test_carry") })
 
-	w := NewWorld(10, 10)
-	p := NewPlayer(5, 5)
-	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int), CompletedBeats: make(map[string]bool)}
+	g := &Game{
+		State: &State{
+			Player:              NewPlayer(5, 5),
+			World:               NewWorld(10, 10),
+			FoundationDeposited: make(map[Point]int),
+			CompletedBeats:      make(map[string]bool),
+		},
+		Stores:    NewStorageManager(),
+		Villagers: NewVillagerManager(),
+	}
+	p := g.State.Player
 
-	if s.HasPendingOffer() {
+	if g.HasPendingOffer() {
 		t.Fatal("should have no pending offer initially")
 	}
 
-	s.AddOffer([]string{"test_carry"})
+	g.State.AddOffer([]string{"test_carry"})
 
-	if !s.HasPendingOffer() {
+	if !g.HasPendingOffer() {
 		t.Fatal("should have pending offer after AddOffer")
 	}
 
-	s.SelectCard(0)
+	g.SelectCard(0)
 
-	if s.HasPendingOffer() {
+	if g.HasPendingOffer() {
 		t.Error("should have no pending offer after SelectCard")
 	}
 	if p.MaxCarry != 100 {
