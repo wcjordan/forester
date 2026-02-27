@@ -1,10 +1,10 @@
 package game
 
-// storageState is the serializable truth for all storage structures.
+// StorageState is the serializable truth for all storage structures.
 // Amounts maps the origin (top-left corner) of each storage structure to
 // the amount currently stored. Resource type and capacity are derived on
 // load from the world's structureIndex via storageDef.
-type storageState struct {
+type StorageState struct {
 	Amounts map[Point]int // origin → stored amount
 }
 
@@ -12,7 +12,7 @@ type storageState struct {
 // It owns the live amounts (truth) and derived lookup structures.
 type StorageManager struct {
 	amounts    map[Point]int                     // live truth: origin → stored amount
-	byOrigin   map[Point]*storageInstance        // derived: origin → instance
+	byOrigin   map[Point]*StorageInstance        // derived: origin → instance
 	byResource map[ResourceType]*resourceStorage // derived: resource → aggregator
 }
 
@@ -20,7 +20,7 @@ type StorageManager struct {
 func NewStorageManager() *StorageManager {
 	return &StorageManager{
 		amounts:    make(map[Point]int),
-		byOrigin:   make(map[Point]*storageInstance),
+		byOrigin:   make(map[Point]*StorageInstance),
 		byResource: make(map[ResourceType]*resourceStorage),
 	}
 }
@@ -28,7 +28,7 @@ func NewStorageManager() *StorageManager {
 // Register creates a new storage instance for the structure at origin.
 // Called from StructureDef.OnBuilt when a storage structure is completed.
 func (m *StorageManager) Register(origin Point, resource ResourceType, capacity int) {
-	inst := &storageInstance{Resource: resource, Capacity: capacity, Stored: 0}
+	inst := &StorageInstance{Resource: resource, Capacity: capacity, Stored: 0}
 	m.byOrigin[origin] = inst
 	m.amounts[origin] = 0
 	if m.byResource[resource] == nil {
@@ -66,7 +66,7 @@ func (m *StorageManager) DepositAt(origin Point, amount int) int {
 }
 
 // FindByOrigin returns the storage instance at the given origin, or nil if none.
-func (m *StorageManager) FindByOrigin(origin Point) *storageInstance {
+func (m *StorageManager) FindByOrigin(origin Point) *StorageInstance {
 	return m.byOrigin[origin]
 }
 
@@ -93,21 +93,21 @@ func (m *StorageManager) Total(r ResourceType) int {
 }
 
 // SaveData returns a snapshot of the current storage truth.
-func (m *StorageManager) SaveData() storageState {
+func (m *StorageManager) SaveData() StorageState {
 	snap := make(map[Point]int, len(m.amounts))
 	for k, v := range m.amounts {
 		snap[k] = v
 	}
-	return storageState{Amounts: snap}
+	return StorageState{Amounts: snap}
 }
 
 // LoadFrom rebuilds derived structures from saved storage state and the world.
 // It uses the world's structureIndex to find storage structure origins and
 // queries each def's storageDef implementation for resource type and capacity.
 // Origins in the world that are not in saved state are initialized with 0.
-func (m *StorageManager) LoadFrom(s storageState, world *World) {
+func (m *StorageManager) LoadFrom(s StorageState, world *World) {
 	m.amounts = make(map[Point]int)
-	m.byOrigin = make(map[Point]*storageInstance)
+	m.byOrigin = make(map[Point]*StorageInstance)
 	m.byResource = make(map[ResourceType]*resourceStorage)
 
 	seen := make(map[Point]bool)
@@ -123,7 +123,7 @@ func (m *StorageManager) LoadFrom(s storageState, world *World) {
 		amount := s.Amounts[entry.Origin]
 		resource := sd.StorageResource()
 		capacity := sd.StorageCapacity()
-		inst := &storageInstance{Resource: resource, Capacity: capacity, Stored: amount}
+		inst := &StorageInstance{Resource: resource, Capacity: capacity, Stored: amount}
 		m.byOrigin[entry.Origin] = inst
 		m.amounts[entry.Origin] = amount
 		if m.byResource[resource] == nil {

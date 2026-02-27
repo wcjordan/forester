@@ -8,8 +8,8 @@ type storageDef interface {
 	StorageCapacity() int
 }
 
-// storageInstance tracks one storage structure's fill level.
-type storageInstance struct {
+// StorageInstance tracks one storage structure's fill level.
+type StorageInstance struct {
 	Resource ResourceType
 	Capacity int
 	Stored   int
@@ -17,7 +17,7 @@ type storageInstance struct {
 
 // Deposit adds up to amount into this instance, capped at remaining capacity.
 // Returns the amount actually deposited.
-func (si *storageInstance) Deposit(amount int) int {
+func (si *StorageInstance) Deposit(amount int) int {
 	space := si.Capacity - si.Stored
 	if space <= 0 || amount <= 0 {
 		return 0
@@ -31,7 +31,7 @@ func (si *storageInstance) Deposit(amount int) int {
 
 // resourceStorage aggregates all storage instances for one resource type.
 type resourceStorage struct {
-	Instances []*storageInstance
+	Instances []*StorageInstance
 }
 
 // Total returns total stored across all instances.
@@ -44,8 +44,8 @@ func (r *resourceStorage) Total() int {
 }
 
 // AddInstance registers a new storage instance with the given resource type and capacity.
-func (r *resourceStorage) AddInstance(resource ResourceType, capacity int) *storageInstance {
-	inst := &storageInstance{Resource: resource, Capacity: capacity}
+func (r *resourceStorage) AddInstance(resource ResourceType, capacity int) *StorageInstance {
+	inst := &StorageInstance{Resource: resource, Capacity: capacity}
 	r.Instances = append(r.Instances, inst)
 	return inst
 }
