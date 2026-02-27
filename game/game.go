@@ -76,6 +76,9 @@ func (g *Game) CurrentOffer() []UpgradeDef {
 			result = append(result, u)
 		}
 	}
+	if len(result) == 0 {
+		return nil
+	}
 	return result
 }
 

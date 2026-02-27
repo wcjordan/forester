@@ -256,7 +256,7 @@ func TestAddOfferAndSelectCard(t *testing.T) {
 	upgradeRegistry["test_carry"] = testCarryUpgrade{}
 	t.Cleanup(func() { delete(upgradeRegistry, "test_carry") })
 
-	g := NewWithClockAndRNG(time.Now, rand.New(rand.NewSource(1)))
+	g := NewWithClockAndRNG(RealClock{}, rand.New(rand.NewSource(1)))
 	g.State.Player = NewPlayer(5, 5)
 	g.State.World = NewWorld(10, 10)
 	g.State.FoundationDeposited = make(map[Point]int)
