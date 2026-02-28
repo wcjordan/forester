@@ -204,7 +204,7 @@ func (v *Villager) pickTask(env *Env, rng *rand.Rand) {
 }
 
 func (v *Villager) tryAssignChopTask(env *Env) bool {
-	tx, ty, ok := findNearestTree(env.State.World, v.X, v.Y)
+	tx, ty, ok := findNearbyTree(env.State.World, v.X, v.Y)
 	if !ok {
 		return false
 	}
@@ -279,38 +279,18 @@ func (v *Villager) move(world *World) {
 	v.path = v.path[1:]
 }
 
-// findNearestTree returns the world coordinates of the closest Forest tile with
-// TreeSize > 0, measured by Euclidean distance from (fromX, fromY).
-// Expands Chebyshev rings outward; stops once all remaining tiles are provably
-// farther than the current best. Returns ok=false if none found.
-func findNearestTree(world *World, fromX, fromY int) (x, y int, ok bool) {
-	bestDist2 := 0
-	found := false
+// findNearbyTree returns the world coordinates of the first Forest tile with
+// TreeSize > 0 found by expanding Chebyshev rings outward from (fromX, fromY).
+// Returns ok=false if none found.
+func findNearbyTree(world *World, fromX, fromY int) (x, y int, ok bool) {
 	maxR := world.Width + world.Height
-	for r := 0; r <= maxR; r++ {
-		// All tiles at Chebyshev distance r have Euclidean distance >= r.
-		// Once r^2 >= bestDist2 no closer tile can exist.
-		if found && r*r >= bestDist2 {
-			break
+	return spiralSearchDo(fromX, fromY, maxR, func(tx, ty int) bool {
+		if !world.InBounds(tx, ty) {
+			return false
 		}
-		chebyshevRingDo(fromX, fromY, r, func(tx, ty int) {
-			if !world.InBounds(tx, ty) {
-				return
-			}
-			tile := world.TileAt(tx, ty)
-			if tile == nil || tile.Terrain != Forest || tile.TreeSize <= 0 {
-				return
-			}
-			dx, dy := tx-fromX, ty-fromY
-			d2 := dx*dx + dy*dy
-			if !found || d2 < bestDist2 {
-				bestDist2 = d2
-				x, y = tx, ty
-				found = true
-			}
-		})
-	}
-	return x, y, found
+		tile := world.TileAt(tx, ty)
+		return tile != nil && tile.Terrain == Forest && tile.TreeSize > 0
+	})
 }
 
 // nearestClearTileAdjacent returns the clear tile (no structure, in-bounds) on the
@@ -341,23 +321,6 @@ func nearestClearTileAdjacent(world *World, stype StructureType, fromX, fromY in
 		})
 	}
 	return tx, ty, found
-}
-
-// forFootprintCardinalNeighbors calls f for each tile that is cardinally
-// (orthogonally) adjacent to the w×h footprint with top-left at (fx, fy).
-// Corner tiles of the Chebyshev border are excluded because they are only
-// diagonally adjacent and villagers cannot interact with a structure from there.
-func forFootprintCardinalNeighbors(fx, fy, fw, fh int, f func(x, y int)) {
-	// Top and bottom edges (no corners).
-	for x := fx; x < fx+fw; x++ {
-		f(x, fy-1)
-		f(x, fy+fh)
-	}
-	// Left and right edges.
-	for y := fy; y < fy+fh; y++ {
-		f(fx-1, y)
-		f(fx+fw, y)
-	}
 }
 
 // storageOriginAdjacent returns the origin of a LogStorage tile cardinally adjacent

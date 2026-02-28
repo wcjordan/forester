@@ -42,7 +42,7 @@ func moveSafe(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) 
 //  3. Harvest wood going north in 5 steps to fill MaxCarry (100 wood).
 //  4. Return south to (48,45) adjacent to the log storage.
 //  5. Deposit 50 wood into storage to trigger the house foundation spawn.
-//  6. Navigate east×4, south×5, west×1, south×1 to (51,51).
+//  6. Navigate west×2, south×6 to (46,51).
 //  7. Tick until the house is built (50 wood deposited into the foundation).
 //  8. Accept the house's 2-card upgrade offer and verify the effect.
 //
@@ -50,9 +50,10 @@ func moveSafe(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) 
 //   - Player starts at (50,50). Log storage foundation spawns at (48,46)–(51,49).
 //   - After Phase 3 north harvest: fresh trees at y=43–39 provide 100+ wood total.
 //   - After Phase 5 deposits 50 into log storage, player.Wood = 50.
-//   - Phase 7 tick 1: house foundation spawns at (49,51)–(50,52), the closest valid
-//     2×2 grassland area to spawn (50,50) with a full 1-tile gap from the log storage.
-//     Player at (50,50) is adjacent to (50,51) and drives the per-tick deposits.
+//   - Phase 7 tick 1: house foundation spawns at (47,51)–(48,52), the first valid
+//     2×2 grassland area found by spiralSearchDo from anchor (49,49) with a 1-tile
+//     gap from the log storage. Player at (46,51) is adjacent east to (47,51) and
+//     drives the per-tick deposits.
 //   - The 2-card offer after house completion: card 0 = "Faster Construction"
 //     (build_speed, reduces BuildInterval by 10%), card 1 = "Faster Depositing"
 //     (deposit_speed, reduces DepositInterval by 10%).
@@ -177,34 +178,31 @@ func TestHouseWorkflow(t *testing.T) {
 		t.Error("phase 5: house foundation appeared before navigation; expected it to spawn on Phase 7 tick 1")
 	}
 
-	// ── Phase 6: Navigate to (51,51) ─────────────────────────────────────────
-	// Route: east×4 through mixed terrain to (52,45), south×5 to (52,50) —
-	// x=52 bypasses the log storage footprint (x=48–51) — west×1 to (51,50),
-	// south×1 to (51,51).
-	// At (51,51) the player is adjacent west to (50,51) [house foundation] but
-	// is NOT adjacent to the log storage (nearest tile (51,49) is 2 tiles north).
-	// This ensures Phase 7 ticks deposit only into the house foundation.
-	// moveSafe handles the Forest→Grassland cooldown transitions along this route.
+	// ── Phase 6: Navigate to (46,51) ─────────────────────────────────────────
+	// Route: west×2 to (46,45), south×6 to (46,51).
+	// At (46,51) the player is adjacent east to (47,51) [house foundation] but
+	// is NOT adjacent to the log storage (nearest log storage tile (48,49) is
+	// 2 tiles east and 2 tiles north). This ensures Phase 7 ticks deposit only into the house
+	// foundation. moveSafe handles any terrain cooldown transitions.
 	// No ticks during navigation: player.Wood stays at woodForHouse.
-	announcePhase(m, "Phase 6: Navigate to (51,51)")
-	for range 4 {
-		moveSafe(&m, clock, g, "d") // east
+	announcePhase(m, "Phase 6: Navigate to (46,51)")
+	for range 2 {
+		moveSafe(&m, clock, g, "a") // west
 	}
-	for range 5 {
+	for range 6 {
 		moveSafe(&m, clock, g, "s") // south
 	}
-	moveSafe(&m, clock, g, "a") // west
-	moveSafe(&m, clock, g, "s") // south
-	if g.State.Player.X != 51 || g.State.Player.Y != 51 {
-		t.Fatalf("phase 6: expected player at (51,51), got (%d,%d)",
+	if g.State.Player.X != 46 || g.State.Player.Y != 51 {
+		t.Fatalf("phase 6: expected player at (46,51), got (%d,%d)",
 			g.State.Player.X, g.State.Player.Y)
 	}
 
 	// ── Phase 7: Build house ──────────────────────────────────────────────────
 	// First tick fires Harvest → maybeAdvanceStory fires initial_house story beat
-	// (stores≥50) → spawns house foundation at (49,51) (closest valid 2×2 to spawn
-	// with 1-tile gap from log storage). Within the same tick, TickAdjacentStructures sees (50,51)
-	// adjacent to player at (51,51), fires OnPlayerInteraction, deposits 1 wood.
+	// (stores≥50) → spawns house foundation at (47,51) (first valid 2×2 found by
+	// spiralSearchDo from anchor (49,49) with 1-tile gap from log storage). Within
+	// the same tick, TickAdjacentStructures sees (47,51) adjacent to player at
+	// (46,51), fires OnPlayerInteraction, deposits 1 wood.
 	// After 50 total build ticks the house is complete. One extra tick then fires the
 	// first_house_built story beat → 2-card offer; world condition also spawns the
 	// next house foundation since built≥1 and no foundation is pending yet.
@@ -234,10 +232,10 @@ func TestHouseWorkflow(t *testing.T) {
 		t.Fatal("phase 8: House structure not found after build loop")
 	}
 
-	// House tile at (49,51) (origin of the foundation) must show House structure.
-	houseTile := g.State.World.TileAt(49, 51)
+	// House tile at (47,51) (origin of the foundation) must show House structure.
+	houseTile := g.State.World.TileAt(47, 51)
 	if houseTile == nil || houseTile.Structure != game.House {
-		t.Errorf("phase 8: expected House at (49,51), got %v", houseTile)
+		t.Errorf("phase 8: expected House at (47,51), got %v", houseTile)
 	}
 
 	// Offer must be pending with exactly 2 cards.
