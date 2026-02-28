@@ -23,7 +23,7 @@ func TestFindPath_DirectPath(t *testing.T) {
 func TestFindPath_RouteAroundWall(t *testing.T) {
 	w := NewWorld(20, 20)
 	// Vertical wall at X=5, Y=0..14 (width=1, height=15).
-	w.addStructure(5, 0, 1, 15, LogStorage, testLogStorageDef{})
+	w.PlaceBuilt(5, 0, testWallDef{1, 15})
 
 	// Villager at (2,7), goal at (10,7). Direct route blocked by wall.
 	path := findPath(w, 2, 7, 10, 7)
@@ -78,7 +78,7 @@ func TestFindPath_PrefersGrassOverForest(t *testing.T) {
 func TestFindPath_Unreachable(t *testing.T) {
 	w := NewWorld(20, 20)
 	// Full vertical wall at X=10, blocking the entire height.
-	w.addStructure(10, 0, 1, 20, LogStorage, testLogStorageDef{})
+	w.PlaceBuilt(10, 0, testWallDef{1, 20})
 
 	path := findPath(w, 5, 5, 15, 5)
 	if path != nil {

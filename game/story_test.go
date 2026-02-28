@@ -64,6 +64,19 @@ func (testLogStorageDef) ShouldSpawn(_ *Env) bool                          { ret
 func (testLogStorageDef) OnPlayerInteraction(_ *Env, _ Point, _ time.Time) {}
 func (testLogStorageDef) OnBuilt(_ *Env, _ Point)                          {}
 
+// testWallDef is a minimal StructureDef for pathfinding/routing obstacle tests.
+// The width and height fields let callers specify arbitrary rectangular walls
+// (e.g. 1×15) without accessing the unexported addStructure.
+type testWallDef struct{ width, height int }
+
+func (d testWallDef) FoundationType() StructureType                    { return LogStorage }
+func (d testWallDef) BuiltType() StructureType                         { return LogStorage }
+func (d testWallDef) Footprint() (w, h int)                            { return d.width, d.height }
+func (d testWallDef) BuildCost() int                                   { return 0 }
+func (d testWallDef) ShouldSpawn(_ *Env) bool                          { return false }
+func (d testWallDef) OnPlayerInteraction(_ *Env, _ Point, _ time.Time) {}
+func (d testWallDef) OnBuilt(_ *Env, _ Point)                          {}
+
 // withTestStructures registers testLogStorageDef for the duration of t and
 // restores the original registry on cleanup.
 func withTestStructures(t *testing.T) {

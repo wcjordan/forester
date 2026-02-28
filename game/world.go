@@ -170,7 +170,8 @@ func (w *World) addStructure(x, y, width, height int, stype StructureType, def S
 		}
 	}
 
-	// Record per-tile and per-instance entries for the new type.
+	// Record per-tile and per-instance entries for the new type, or remove
+	// stale structureIndex entries when clearing.
 	if stype != NoStructure {
 		if w.structureInstanceIndex[stype] == nil {
 			w.structureInstanceIndex[stype] = make(map[Point]struct{})
@@ -178,7 +179,20 @@ func (w *World) addStructure(x, y, width, height int, stype StructureType, def S
 		w.structureInstanceIndex[stype][origin] = struct{}{}
 		for dy := 0; dy < height; dy++ {
 			for dx := 0; dx < width; dx++ {
-				w.structureIndex[Point{x + dx, y + dy}] = structureEntry{Def: def, Origin: origin}
+				pt := Point{x + dx, y + dy}
+				if w.TileAt(pt.X, pt.Y) == nil {
+					continue
+				}
+				w.structureIndex[pt] = structureEntry{Def: def, Origin: origin}
+			}
+		}
+	} else {
+		for dy := 0; dy < height; dy++ {
+			for dx := 0; dx < width; dx++ {
+				pt := Point{x + dx, y + dy}
+				if w.TileAt(pt.X, pt.Y) != nil {
+					delete(w.structureIndex, pt)
+				}
 			}
 		}
 	}

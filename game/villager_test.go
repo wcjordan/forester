@@ -294,7 +294,7 @@ func TestNearestClearTileAdjacentReturnedTileIsCardinallyAdjacent(t *testing.T) 
 func TestVillagerRoutesAroundObstacle(t *testing.T) {
 	w := NewWorld(20, 20)
 	// Vertical wall at X=10, Y=0..14 (width=1, height=15).
-	w.addStructure(10, 0, 1, 15, LogStorage, testLogStorageDef{})
+	w.PlaceBuilt(10, 0, testWallDef{1, 15})
 
 	// Villager at (5,7), target at (15,7). Direct route blocked by wall.
 	v := &Villager{X: 5, Y: 7, TargetX: 15, TargetY: 7}
