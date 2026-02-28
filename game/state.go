@@ -1,11 +1,13 @@
 package game
 
+import "forester/game/geom"
+
 // State holds serializable game state (truth data).
 // Derived runtime structures (e.g. StorageManager, VillagerManager) live on Game.
 type State struct {
 	Player              *Player
 	World               *World
-	FoundationDeposited map[point]int
+	FoundationDeposited map[geom.Point]int
 	// pendingOfferIDs stores each queued offer as a slice of upgrade IDs (strings),
 	// keeping State serializable without embedding interface values.
 	pendingOfferIDs [][]string
@@ -46,7 +48,7 @@ func newState() *State {
 	return &State{
 		Player:              player,
 		World:               world,
-		FoundationDeposited: make(map[point]int),
+		FoundationDeposited: make(map[geom.Point]int),
 		completedBeats:      make(map[string]bool),
 	}
 }

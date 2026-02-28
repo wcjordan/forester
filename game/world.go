@@ -15,7 +15,7 @@ type World struct {
 	Height             int
 	Tiles              [][]Tile
 	structureIndex     map[point]structureEntry
-	StructureTypeIndex map[StructureType]map[point]struct{}
+	StructureTypeIndex map[StructureType]map[geom.Point]struct{}
 	// structureInstanceIndex maps each StructureType to the set of origin Points
 	// for all instances of that type. Maintained by PlaceFoundation/PlaceBuilt
 	// so that CountStructureInstances is O(1).
@@ -23,7 +23,7 @@ type World struct {
 	// NoGrowTiles is the set of tiles suppressed from tree regrowth because
 	// they are within noGrowRadius of the spawn point or any structure.
 	// Populated by NewWorld (spawn zone) and PlaceFoundation/PlaceBuilt (structures).
-	NoGrowTiles    map[point]struct{}
+	NoGrowTiles    map[geom.Point]struct{}
 	regrowCooldown time.Time
 }
 

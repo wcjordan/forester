@@ -1,11 +1,13 @@
 package game
 
+import "forester/game/geom"
+
 // StorageState is the serializable truth for all storage structures.
 // Amounts maps the origin (top-left corner) of each storage structure to
 // the amount currently stored. Resource type and capacity are derived on
 // load from the world's structureIndex via storageDef.
 type StorageState struct {
-	Amounts map[point]int // origin → stored amount
+	Amounts map[geom.Point]int // origin → stored amount
 }
 
 // StorageManager manages storage instances at runtime.
@@ -27,7 +29,7 @@ func NewStorageManager() *StorageManager {
 
 // Register creates a new storage instance for the structure at origin.
 // Called from StructureDef.OnBuilt when a storage structure is completed.
-func (m *StorageManager) Register(origin point, resource ResourceType, capacity int) {
+func (m *StorageManager) Register(origin geom.Point, resource ResourceType, capacity int) {
 	inst := &StorageInstance{Resource: resource, Capacity: capacity, Stored: 0}
 	m.byOrigin[origin] = inst
 	m.amounts[origin] = 0
@@ -39,7 +41,7 @@ func (m *StorageManager) Register(origin point, resource ResourceType, capacity 
 
 // WithdrawFrom removes up to amount from the instance at origin.
 // Returns the amount actually withdrawn. Keeps amounts in sync with the instance.
-func (m *StorageManager) WithdrawFrom(origin point, amount int) int {
+func (m *StorageManager) WithdrawFrom(origin geom.Point, amount int) int {
 	if amount <= 0 {
 		return 0
 	}
@@ -55,7 +57,7 @@ func (m *StorageManager) WithdrawFrom(origin point, amount int) int {
 
 // DepositAt deposits up to amount into the instance at origin.
 // Returns the amount actually deposited. Keeps amounts in sync with the instance.
-func (m *StorageManager) DepositAt(origin point, amount int) int {
+func (m *StorageManager) DepositAt(origin geom.Point, amount int) int {
 	inst := m.byOrigin[origin]
 	if inst == nil {
 		return 0
@@ -66,7 +68,7 @@ func (m *StorageManager) DepositAt(origin point, amount int) int {
 }
 
 // FindByOrigin returns the storage instance at the given origin, or nil if none.
-func (m *StorageManager) FindByOrigin(origin point) *StorageInstance {
+func (m *StorageManager) FindByOrigin(origin geom.Point) *StorageInstance {
 	return m.byOrigin[origin]
 }
 
