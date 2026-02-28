@@ -1,16 +1,22 @@
-package game
+package geom_test
 
-import "testing"
+import (
+	"testing"
+
+	"forester/game"
+	"forester/game/geom"
+	"forester/game/internal/gametest"
+)
 
 // TestFindPath_DirectPath verifies a straight-line path on an open grassland world.
 func TestFindPath_DirectPath(t *testing.T) {
-	w := NewWorld(20, 20)
-	path := findPath(w, 0, 0, 5, 0)
+	w := game.NewWorld(20, 20)
+	path := geom.FindPath(w, 0, 0, 5, 0)
 	if path == nil {
-		t.Fatal("findPath returned nil, want a valid path")
+		t.Fatal("geom.FindPath returned nil, want a valid path")
 	}
 	last := path[len(path)-1]
-	if last != (Point{5, 0}) {
+	if last != (geom.Point{X: 5, Y: 0}) {
 		t.Errorf("last point = %v, want {5,0}", last)
 	}
 	// 5 steps in X direction.
@@ -21,17 +27,17 @@ func TestFindPath_DirectPath(t *testing.T) {
 
 // TestFindPath_RouteAroundWall verifies the path routes around a blocking structure wall.
 func TestFindPath_RouteAroundWall(t *testing.T) {
-	w := NewWorld(20, 20)
+	w := game.NewWorld(20, 20)
 	// Vertical wall at X=5, Y=0..14 (width=1, height=15).
-	w.PlaceBuilt(5, 0, testWallDef{1, 15})
+	w.PlaceBuilt(5, 0, gametest.WallDef{Width: 1, Height: 15})
 
 	// Villager at (2,7), goal at (10,7). Direct route blocked by wall.
-	path := findPath(w, 2, 7, 10, 7)
+	path := geom.FindPath(w, 2, 7, 10, 7)
 	if path == nil {
-		t.Fatal("findPath returned nil, want a path around the wall")
+		t.Fatal("geom.FindPath returned nil, want a path around the wall")
 	}
 	last := path[len(path)-1]
-	if last != (Point{10, 7}) {
+	if last != (geom.Point{X: 10, Y: 7}) {
 		t.Errorf("goal = %v, want {10,7}", last)
 	}
 	// No path point should be inside the wall (X=5, Y=0..14).
@@ -48,20 +54,20 @@ func TestFindPath_PrefersGrassOverForest(t *testing.T) {
 	// 10×10 world, villager at (0,5), goal at (6,5).
 	// Three forest tiles block the direct row: (2,5),(3,5),(4,5).
 	// Clear rows above (y=4) and below (y=6) let A* find a lower-cost detour.
-	w := NewWorld(10, 10)
-	w.Tiles[5][2] = Tile{Terrain: Forest, TreeSize: 5}
-	w.Tiles[5][3] = Tile{Terrain: Forest, TreeSize: 5}
-	w.Tiles[5][4] = Tile{Terrain: Forest, TreeSize: 5}
+	w := game.NewWorld(10, 10)
+	w.Tiles[5][2] = game.Tile{Terrain: game.Forest, TreeSize: 5}
+	w.Tiles[5][3] = game.Tile{Terrain: game.Forest, TreeSize: 5}
+	w.Tiles[5][4] = game.Tile{Terrain: game.Forest, TreeSize: 5}
 
-	path := findPath(w, 0, 5, 6, 5)
+	path := geom.FindPath(w, 0, 5, 6, 5)
 	if path == nil {
-		t.Fatal("findPath returned nil")
+		t.Fatal("geom.FindPath returned nil")
 	}
 	// Count forest tiles traversed.
 	forestHits := 0
 	for _, p := range path {
 		tile := w.TileAt(p.X, p.Y)
-		if tile != nil && tile.Terrain == Forest && tile.TreeSize > 0 {
+		if tile != nil && tile.Terrain == game.Forest && tile.TreeSize > 0 {
 			forestHits++
 		}
 	}
@@ -76,38 +82,38 @@ func TestFindPath_PrefersGrassOverForest(t *testing.T) {
 
 // TestFindPath_Unreachable verifies nil is returned when the goal is enclosed.
 func TestFindPath_Unreachable(t *testing.T) {
-	w := NewWorld(20, 20)
+	w := game.NewWorld(20, 20)
 	// Full vertical wall at X=10, blocking the entire height.
-	w.PlaceBuilt(10, 0, testWallDef{1, 20})
+	w.PlaceBuilt(10, 0, gametest.WallDef{Width: 1, Height: 20})
 
-	path := findPath(w, 5, 5, 15, 5)
+	path := geom.FindPath(w, 5, 5, 15, 5)
 	if path != nil {
-		t.Errorf("findPath returned non-nil path through impassable wall")
+		t.Errorf("geom.FindPath returned non-nil path through impassable wall")
 	}
 }
 
 // TestFindPath_OutOfBoundsOrBlockedEndpoints verifies fast-fail for invalid endpoints.
 func TestFindPath_OutOfBoundsOrBlockedEndpoints(t *testing.T) {
-	w := NewWorld(10, 10)
-	w.PlaceBuilt(5, 5, testLogStorageDef{})
+	w := game.NewWorld(10, 10)
+	w.PlaceBuilt(5, 5, gametest.LogStorageDef{})
 
-	if findPath(w, -1, 0, 5, 5) != nil {
+	if geom.FindPath(w, -1, 0, 5, 5) != nil {
 		t.Error("out-of-bounds start should return nil")
 	}
-	if findPath(w, 0, 0, 20, 20) != nil {
+	if geom.FindPath(w, 0, 0, 20, 20) != nil {
 		t.Error("out-of-bounds goal should return nil")
 	}
-	if findPath(w, 0, 0, 5, 5) != nil {
+	if geom.FindPath(w, 0, 0, 5, 5) != nil {
 		t.Error("blocked goal should return nil")
 	}
 }
 
 // TestFindPath_StartEqualsGoal verifies an empty path is returned when start == goal.
 func TestFindPath_StartEqualsGoal(t *testing.T) {
-	w := NewWorld(10, 10)
-	path := findPath(w, 5, 5, 5, 5)
+	w := game.NewWorld(10, 10)
+	path := geom.FindPath(w, 5, 5, 5, 5)
 	if path == nil {
-		t.Fatal("findPath returned nil for start==goal, want empty slice")
+		t.Fatal("geom.FindPath returned nil for start==goal, want empty slice")
 	}
 	if len(path) != 0 {
 		t.Errorf("path length = %d, want 0 for start==goal", len(path))

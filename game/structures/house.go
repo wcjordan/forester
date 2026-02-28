@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"forester/game"
+	"forester/game/geom"
 )
 
 const houseBuildCost = 50
@@ -40,11 +41,11 @@ func (houseDef) UseSpawnAnchoredPlacement() bool { return true }
 
 // OnBuilt is called when a House is completed. It spawns a villager at the
 // first clear tile on the full Chebyshev border around the house footprint.
-func (d houseDef) OnBuilt(env *game.Env, origin game.Point) {
+func (d houseDef) OnBuilt(env *game.Env, origin geom.Point) {
 	fw, fh := d.Footprint()
 	px, py := env.State.Player.X, env.State.Player.Y
 	spawned := false
-	game.FootprintBorderDo(origin.X, origin.Y, fw, fh, func(bx, by int) {
+	geom.FootprintBorderDo(origin.X, origin.Y, fw, fh, func(bx, by int) {
 		if spawned || bx == px && by == py {
 			return
 		}
@@ -60,7 +61,7 @@ func (d houseDef) OnBuilt(env *game.Env, origin game.Point) {
 // OnPlayerInteraction handles adjacent-player interaction.
 // When adjacent to a foundation, deposits one wood toward the build cost each cooldown tick.
 // When adjacent to a built house, nothing happens (no storage).
-func (d houseDef) OnPlayerInteraction(env *game.Env, origin game.Point, now time.Time) {
+func (d houseDef) OnPlayerInteraction(env *game.Env, origin geom.Point, now time.Time) {
 	tile := env.State.World.TileAt(origin.X, origin.Y)
 	if tile == nil || tile.Structure != game.FoundationHouse {
 		return

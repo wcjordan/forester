@@ -54,6 +54,7 @@ func withTestResources(t *testing.T) {
 // It mimics just enough of logStorageDef (now in game/structures) to exercise
 // spawnFoundationAt and placement helpers without importing the structures subpackage.
 // ShouldSpawn returns false: initial log storage spawning is owned by story beats.
+// The canonical version for external test packages lives in game/internal/gametest.
 type testLogStorageDef struct{}
 
 func (testLogStorageDef) FoundationType() StructureType                    { return FoundationLogStorage }
@@ -61,12 +62,11 @@ func (testLogStorageDef) BuiltType() StructureType                         { ret
 func (testLogStorageDef) Footprint() (w, h int)                            { return 4, 4 }
 func (testLogStorageDef) BuildCost() int                                   { return 20 }
 func (testLogStorageDef) ShouldSpawn(_ *Env) bool                          { return false }
-func (testLogStorageDef) OnPlayerInteraction(_ *Env, _ Point, _ time.Time) {}
-func (testLogStorageDef) OnBuilt(_ *Env, _ Point)                          {}
+func (testLogStorageDef) OnPlayerInteraction(_ *Env, _ point, _ time.Time) {}
+func (testLogStorageDef) OnBuilt(_ *Env, _ point)                          {}
 
 // testWallDef is a minimal StructureDef for pathfinding/routing obstacle tests.
-// The width and height fields let callers specify arbitrary rectangular walls
-// (e.g. 1×15) without accessing the unexported addStructure.
+// The canonical version for external test packages lives in game/internal/gametest.
 type testWallDef struct{ width, height int }
 
 func (d testWallDef) FoundationType() StructureType                    { return LogStorage }
@@ -74,8 +74,8 @@ func (d testWallDef) BuiltType() StructureType                         { return 
 func (d testWallDef) Footprint() (w, h int)                            { return d.width, d.height }
 func (d testWallDef) BuildCost() int                                   { return 0 }
 func (d testWallDef) ShouldSpawn(_ *Env) bool                          { return false }
-func (d testWallDef) OnPlayerInteraction(_ *Env, _ Point, _ time.Time) {}
-func (d testWallDef) OnBuilt(_ *Env, _ Point)                          {}
+func (d testWallDef) OnPlayerInteraction(_ *Env, _ point, _ time.Time) {}
+func (d testWallDef) OnBuilt(_ *Env, _ point)                          {}
 
 // withTestStructures registers testLogStorageDef for the duration of t and
 // restores the original registry on cleanup.
@@ -108,7 +108,7 @@ func TestFoundationSpawnsWhenInventoryFull(t *testing.T) {
 	// Player at (5, 5) facing north; forest tile at (5, 4) with enough wood.
 	w.Tiles[4][5] = Tile{Terrain: Forest, TreeSize: InitialCarryingCapacity}
 	p := NewPlayer(5, 5)
-	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int), completedBeats: make(map[string]bool)}
+	s := &State{Player: p, World: w, FoundationDeposited: make(map[point]int), completedBeats: make(map[string]bool)}
 	stores := NewStorageManager()
 	env := &Env{State: s, Stores: stores}
 
@@ -142,7 +142,7 @@ func TestStoryBeatFiresOnce(t *testing.T) {
 	}
 	p := NewPlayer(5, 5)
 	p.Inventory[Wood] = InitialCarryingCapacity
-	s := &State{Player: p, World: w, FoundationDeposited: make(map[Point]int), completedBeats: make(map[string]bool)}
+	s := &State{Player: p, World: w, FoundationDeposited: make(map[point]int), completedBeats: make(map[string]bool)}
 	stores := NewStorageManager()
 	env := &Env{State: s, Stores: stores}
 

@@ -89,9 +89,9 @@ func (g *Game) CurrentOffer() []UpgradeDef {
 func (g *Game) TickAdjacentStructures(now time.Time) {
 	env := g.env()
 	s := g.State
-	seen := make(map[Point]bool)
+	seen := make(map[point]bool)
 	for _, d := range [4][2]int{{0, -1}, {0, 1}, {-1, 0}, {1, 0}} {
-		p := Point{s.Player.X + d[0], s.Player.Y + d[1]}
+		p := point{X: s.Player.X + d[0], Y: s.Player.Y + d[1]}
 		entry, ok := s.World.structureIndex[p]
 		if !ok || seen[entry.Origin] {
 			continue

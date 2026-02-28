@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"forester/game"
+	"forester/game/geom"
 )
 
 func TestFoundationBuildMechanic(t *testing.T) {
@@ -17,7 +18,7 @@ func TestFoundationBuildMechanic(t *testing.T) {
 		s := &game.State{
 			Player:              p,
 			World:               w,
-			FoundationDeposited: make(map[game.Point]int),
+			FoundationDeposited: make(map[geom.Point]int),
 		}
 		return s, game.NewStorageManager()
 	}
@@ -37,7 +38,7 @@ func TestFoundationBuildMechanic(t *testing.T) {
 		if s.Player.Inventory[game.Wood] != 4 {
 			t.Errorf("Inventory[Wood] = %d, want 4 after one deposit", s.Player.Inventory[game.Wood])
 		}
-		origin := game.Point{X: 5, Y: 5}
+		origin := geom.Point{X: 5, Y: 5}
 		if s.FoundationDeposited[origin] != 1 {
 			t.Errorf("FoundationDeposited = %d, want 1", s.FoundationDeposited[origin])
 		}
@@ -49,7 +50,7 @@ func TestFoundationBuildMechanic(t *testing.T) {
 		t0 := time.Now()
 		g.TickAdjacentStructures(t0)
 		g.TickAdjacentStructures(t0) // same timestamp — cooldown blocks
-		origin := game.Point{X: 5, Y: 5}
+		origin := geom.Point{X: 5, Y: 5}
 		if s.FoundationDeposited[origin] != 1 {
 			t.Errorf("FoundationDeposited = %d, want 1 (second tick should be blocked by cooldown)", s.FoundationDeposited[origin])
 		}
@@ -78,11 +79,11 @@ func TestTickAdjacentStructures(t *testing.T) {
 	// makeDepositState creates a state with one LogStorage at (5,0); player at (5,4) is adjacent below.
 	makeDepositState := func(wood int) (*game.State, *game.StorageManager) {
 		w := game.NewWorld(10, 10)
-		origin := game.Point{X: 5, Y: 0}
+		origin := geom.Point{X: 5, Y: 0}
 		w.PlaceBuilt(origin.X, origin.Y, logStorageDef{})
 		p := game.NewPlayer(5, 4)
 		p.Inventory[game.Wood] = wood
-		s := &game.State{Player: p, World: w, FoundationDeposited: make(map[game.Point]int)}
+		s := &game.State{Player: p, World: w, FoundationDeposited: make(map[geom.Point]int)}
 		stores := game.NewStorageManager()
 		stores.Register(origin, game.Wood, logStorageCapacity)
 		return s, stores
@@ -101,7 +102,7 @@ func TestTickAdjacentStructures(t *testing.T) {
 		w := game.NewWorld(10, 10)
 		p := game.NewPlayer(5, 5)
 		p.Inventory[game.Wood] = 5
-		s := &game.State{Player: p, World: w, FoundationDeposited: make(map[game.Point]int)}
+		s := &game.State{Player: p, World: w, FoundationDeposited: make(map[geom.Point]int)}
 		stores := game.NewStorageManager()
 		g := &game.Game{State: s, Stores: stores}
 		g.TickAdjacentStructures(time.Now())
@@ -144,13 +145,13 @@ func TestTickAdjacentStructures(t *testing.T) {
 		// processed, so both instances fire within the same tick.
 		// Each instance has its own StorageByOrigin entry so deposits route correctly.
 		w := game.NewWorld(20, 20)
-		originA := game.Point{X: 5, Y: 0}
-		originB := game.Point{X: 5, Y: 5}
+		originA := geom.Point{X: 5, Y: 0}
+		originB := geom.Point{X: 5, Y: 5}
 		w.PlaceBuilt(originA.X, originA.Y, logStorageDef{})
 		w.PlaceBuilt(originB.X, originB.Y, logStorageDef{})
 		p := game.NewPlayer(5, 4)
 		p.Inventory[game.Wood] = 5
-		s := &game.State{Player: p, World: w, FoundationDeposited: make(map[game.Point]int)}
+		s := &game.State{Player: p, World: w, FoundationDeposited: make(map[geom.Point]int)}
 		stores := game.NewStorageManager()
 		stores.Register(originA, game.Wood, logStorageCapacity)
 		stores.Register(originB, game.Wood, logStorageCapacity)
@@ -179,13 +180,13 @@ func TestDepositRoutesToSpecificInstance(t *testing.T) {
 	// 4×4 footprints: A covers (2,0)–(5,3), B covers (8,0)–(11,3). No overlap.
 	// Deposit should go into A, not B.
 	w := game.NewWorld(15, 10)
-	originA := game.Point{X: 2, Y: 0}
-	originB := game.Point{X: 8, Y: 0}
+	originA := geom.Point{X: 2, Y: 0}
+	originB := geom.Point{X: 8, Y: 0}
 	w.PlaceBuilt(originA.X, originA.Y, logStorageDef{})
 	w.PlaceBuilt(originB.X, originB.Y, logStorageDef{})
 	p := game.NewPlayer(2, 4)
 	p.Inventory[game.Wood] = 3
-	s := &game.State{Player: p, World: w, FoundationDeposited: make(map[game.Point]int)}
+	s := &game.State{Player: p, World: w, FoundationDeposited: make(map[geom.Point]int)}
 	stores := game.NewStorageManager()
 	stores.Register(originA, game.Wood, logStorageCapacity)
 	stores.Register(originB, game.Wood, logStorageCapacity)
@@ -206,11 +207,11 @@ func TestDepositRoutesToSpecificInstance(t *testing.T) {
 func TestDepositRespectsInstanceCapacity(t *testing.T) {
 	// Storage at capacity — deposit should be refused and no cooldown queued.
 	w := game.NewWorld(10, 10)
-	origin := game.Point{X: 5, Y: 0}
+	origin := geom.Point{X: 5, Y: 0}
 	w.PlaceBuilt(origin.X, origin.Y, logStorageDef{})
 	p := game.NewPlayer(5, 4)
 	p.Inventory[game.Wood] = 5
-	s := &game.State{Player: p, World: w, FoundationDeposited: make(map[game.Point]int)}
+	s := &game.State{Player: p, World: w, FoundationDeposited: make(map[geom.Point]int)}
 	stores := game.NewStorageManager()
 	stores.Register(origin, game.Wood, 2)
 	stores.DepositAt(origin, 2) // fill to capacity via the proper API
@@ -230,8 +231,8 @@ func TestDepositRespectsInstanceCapacity(t *testing.T) {
 func TestStorageManagerRoundTrip(t *testing.T) {
 	// Build a world with two LogStorage instances at distinct origins.
 	w := game.NewWorld(20, 20)
-	originA := game.Point{X: 2, Y: 2}
-	originB := game.Point{X: 10, Y: 10}
+	originA := geom.Point{X: 2, Y: 2}
+	originB := geom.Point{X: 10, Y: 10}
 	w.PlaceBuilt(originA.X, originA.Y, logStorageDef{})
 	w.PlaceBuilt(originB.X, originB.Y, logStorageDef{})
 
@@ -280,11 +281,11 @@ func TestStorageManagerRoundTrip(t *testing.T) {
 func TestDepositCooldown(t *testing.T) {
 	makeDepositState := func(wood int) (*game.State, *game.StorageManager) {
 		w := game.NewWorld(10, 10)
-		origin := game.Point{X: 5, Y: 0}
+		origin := geom.Point{X: 5, Y: 0}
 		w.PlaceBuilt(origin.X, origin.Y, logStorageDef{}) // storage above player
 		p := game.NewPlayer(5, 4)
 		p.Inventory[game.Wood] = wood
-		s := &game.State{Player: p, World: w, FoundationDeposited: make(map[game.Point]int)}
+		s := &game.State{Player: p, World: w, FoundationDeposited: make(map[geom.Point]int)}
 		stores := game.NewStorageManager()
 		stores.Register(origin, game.Wood, logStorageCapacity)
 		return s, stores

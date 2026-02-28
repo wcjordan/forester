@@ -1,5 +1,7 @@
 package game
 
+import "forester/game/geom"
+
 // spawnAnchoredPlacer is an optional interface for StructureDef implementations
 // that want to be placed as close as possible to the world spawn point rather
 // than on the path from the player toward the center.
@@ -49,6 +51,14 @@ func maybeSpawnFoundation(env *Env) {
 	})
 }
 
+// abs returns the absolute value of n.
+func abs(n int) int {
+	if n < 0 {
+		return -n
+	}
+	return n
+}
+
 // findValidLocationNearPlayer walks from the player position toward the world center,
 // returning the top-left corner of the first valid area of the given dimensions.
 // Returns (-1, -1) if no valid location is found.
@@ -87,7 +97,7 @@ func findValidLocationNearSpawn(world *World, playerX, playerY, footW, footH int
 	anchorY := spawnY - footH/2
 	maxR := world.Width + world.Height
 
-	x, y, found := spiralSearchDo(anchorX, anchorY, maxR, func(px, py int) bool {
+	x, y, found := geom.SpiralSearchDo(anchorX, anchorY, maxR, func(px, py int) bool {
 		return isValidArea(world, playerX, playerY, px, py, footW, footH)
 	})
 	if found {

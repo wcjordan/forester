@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"forester/game"
+	"forester/game/geom"
 )
 
 func init() { game.RegisterResource(woodDef{}) }
@@ -76,7 +77,7 @@ func (woodDef) Regrow(env *game.Env, rng *rand.Rand, now time.Time) {
 			if tile.Terrain != game.Forest || tile.TreeSize >= woodMaxTreeSize {
 				continue
 			}
-			if _, blocked := w.NoGrowTiles[game.Point{X: x, Y: y}]; blocked {
+			if _, blocked := w.NoGrowTiles[geom.Point{X: x, Y: y}]; blocked {
 				// Cut trees (TreeSize=0) in no-grow zones convert to Grassland
 				// so the cleared area stays open for village growth.
 				if tile.TreeSize == 0 {

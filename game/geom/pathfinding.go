@@ -1,21 +1,30 @@
-package game
+package geom
 
 import "container/heap"
 
-// findPath returns a path from (fromX,fromY) to (toX,toY), exclusive of start,
-// inclusive of goal, using A* with Manhattan heuristic and terrain costs.
-// Returns nil if the goal is unreachable, or []Point{} if start == goal.
-func findPath(w *World, fromX, fromY, toX, toY int) []Point {
+// Grid is the minimal interface that FindPath requires from a tile map.
+// InBounds reports whether (x, y) is within the grid.
+// IsBlocked reports whether the tile at (x, y) cannot be traversed
+// (returns true for out-of-bounds coordinates as well).
+// MoveCost returns the movement cost to enter (x, y); only called for
+// non-blocked tiles.
+type Grid interface {
+	InBounds(x, y int) bool
+	IsBlocked(x, y int) bool
+	MoveCost(x, y int) int
+}
+
+// FindPath returns a path from (fromX,fromY) to (toX,toY), exclusive of
+// start, inclusive of goal, using A* with Manhattan heuristic and terrain
+// costs from g. Returns nil if the goal is unreachable, or []Point{} if
+// start == goal.
+func FindPath(g Grid, fromX, fromY, toX, toY int) []Point {
 	if fromX == toX && fromY == toY {
 		return []Point{}
 	}
 
 	// Fast-fail: out-of-bounds or blocked endpoints can never be part of a valid path.
-	if !w.InBounds(fromX, fromY) || !w.InBounds(toX, toY) {
-		return nil
-	}
-	goalTile := w.TileAt(toX, toY)
-	if goalTile == nil || goalTile.Structure != NoStructure {
+	if !g.InBounds(fromX, fromY) || g.IsBlocked(toX, toY) {
 		return nil
 	}
 
@@ -24,15 +33,15 @@ func findPath(w *World, fromX, fromY, toX, toY int) []Point {
 	gCost := make(map[key]int)
 	cameFrom := make(map[key]key)
 
-	start := Point{fromX, fromY}
-	goal := Point{toX, toY}
+	start := Point{X: fromX, Y: fromY}
+	goal := Point{X: toX, Y: toY}
 
 	gCost[start] = 0
 
 	pq := &priorityQueue{}
 	heap.Push(pq, &pqNode{pt: start, f: manhattan(start, goal), g: 0})
 
-	dirs := [4]Point{{0, -1}, {0, 1}, {-1, 0}, {1, 0}}
+	dirs := [4]Point{{X: 0, Y: -1}, {X: 0, Y: 1}, {X: -1, Y: 0}, {X: 1, Y: 0}}
 
 	for pq.Len() > 0 {
 		cur := heap.Pop(pq).(*pqNode)
@@ -47,12 +56,11 @@ func findPath(w *World, fromX, fromY, toX, toY int) []Point {
 		}
 
 		for _, d := range dirs {
-			nb := Point{cur.pt.X + d.X, cur.pt.Y + d.Y}
-			tile := w.TileAt(nb.X, nb.Y)
-			if tile == nil || tile.Structure != NoStructure {
+			nb := Point{X: cur.pt.X + d.X, Y: cur.pt.Y + d.Y}
+			if g.IsBlocked(nb.X, nb.Y) {
 				continue
 			}
-			tentativeG := cur.g + tileCost(tile)
+			tentativeG := cur.g + g.MoveCost(nb.X, nb.Y)
 			if best, ok := gCost[nb]; !ok || tentativeG < best {
 				gCost[nb] = tentativeG
 				cameFrom[nb] = cur.pt
@@ -63,15 +71,6 @@ func findPath(w *World, fromX, fromY, toX, toY int) []Point {
 	}
 
 	return nil // unreachable
-}
-
-// tileCost returns the movement cost to enter a tile.
-// Forest tiles with trees cost 2; everything else costs 1.
-func tileCost(t *Tile) int {
-	if t.Terrain == Forest && t.TreeSize > 0 {
-		return 2
-	}
-	return 1
 }
 
 // reconstructPath walks cameFrom backwards from goal to start and returns the
@@ -100,10 +99,8 @@ type pqNode struct {
 
 type priorityQueue []*pqNode
 
-func (pq priorityQueue) Len() int { return len(pq) }
-func (pq priorityQueue) Less(i, j int) bool {
-	return pq[i].f < pq[j].f
-}
+func (pq priorityQueue) Len() int           { return len(pq) }
+func (pq priorityQueue) Less(i, j int) bool { return pq[i].f < pq[j].f }
 func (pq priorityQueue) Swap(i, j int) {
 	pq[i], pq[j] = pq[j], pq[i]
 	pq[i].index = i
