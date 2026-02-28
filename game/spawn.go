@@ -1,7 +1,5 @@
 package game
 
-import "sort"
-
 // spawnAnchoredPlacer is an optional interface for StructureDef implementations
 // that want to be placed as close as possible to the world spawn point rather
 // than on the path from the player toward the center.
@@ -79,49 +77,21 @@ func findValidLocationNearPlayer(world *World, playerX, playerY, footW, footH in
 }
 
 // findValidLocationNearSpawn searches outward from the world spawn point in
-// expanding Chebyshev rings, returning the top-left corner of the closest valid
-// footW×footH area by Euclidean distance from footprint center to spawn.
-// Stops as soon as the first valid location is found. Returns (-1, -1) if none found.
+// expanding Chebyshev rings, returning the top-left corner of the first valid
+// footW×footH area found. Returns (-1, -1) if none found.
 func findValidLocationNearSpawn(world *World, playerX, playerY, footW, footH int) (x, y int) {
 	spawnX := world.Width / 2
 	spawnY := world.Height / 2
 	// anchorX/anchorY is the top-left that would center the footprint on spawn.
 	anchorX := spawnX - footW/2
 	anchorY := spawnY - footH/2
-
-	footprintDist2 := func(px, py int) float64 {
-		cx := float64(px) + float64(footW)/2 - float64(spawnX)
-		cy := float64(py) + float64(footH)/2 - float64(spawnY)
-		return cx*cx + cy*cy
-	}
-
-	type pos struct{ x, y int }
 	maxR := world.Width + world.Height
 
-	for r := 0; r <= maxR; r++ {
-		var ring []pos
-		chebyshevRingDo(anchorX, anchorY, r, func(px, py int) {
-			ring = append(ring, pos{px, py})
-		})
-
-		// Sort this ring by Euclidean distance so we check the closest positions first.
-		sort.Slice(ring, func(i, j int) bool {
-			di := footprintDist2(ring[i].x, ring[i].y)
-			dj := footprintDist2(ring[j].x, ring[j].y)
-			if di != dj {
-				return di < dj
-			}
-			if ring[i].y != ring[j].y {
-				return ring[i].y < ring[j].y
-			}
-			return ring[i].x < ring[j].x
-		})
-
-		for _, p := range ring {
-			if isValidArea(world, playerX, playerY, p.x, p.y, footW, footH) {
-				return p.x, p.y
-			}
-		}
+	x, y, found := spiralSearchDo(anchorX, anchorY, maxR, func(px, py int) bool {
+		return isValidArea(world, playerX, playerY, px, py, footW, footH)
+	})
+	if found {
+		return x, y
 	}
 	return -1, -1
 }

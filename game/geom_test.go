@@ -114,6 +114,49 @@ func TestFootprintBorderDo_2x2(t *testing.T) {
 	}
 }
 
+// TestSpiralSearchDo_FindsCenter verifies a match at r=0 is returned immediately.
+func TestSpiralSearchDo_FindsCenter(t *testing.T) {
+	x, y, found := spiralSearchDo(5, 5, 10, func(px, py int) bool {
+		return px == 5 && py == 5
+	})
+	if !found || x != 5 || y != 5 {
+		t.Errorf("got (%d,%d,%v), want (5,5,true)", x, y, found)
+	}
+}
+
+// TestSpiralSearchDo_ReturnsFalseWhenNotFound verifies (-1,-1,false) when predicate never fires.
+func TestSpiralSearchDo_ReturnsFalseWhenNotFound(t *testing.T) {
+	x, y, found := spiralSearchDo(5, 5, 3, func(_, _ int) bool { return false })
+	if found || x != -1 || y != -1 {
+		t.Errorf("got (%d,%d,%v), want (-1,-1,false)", x, y, found)
+	}
+}
+
+// TestSpiralSearchDo_ReturnsFirstInRingOrder verifies tiles within a ring are returned
+// in chebyshevRingDo traversal order (top row left-to-right first).
+func TestSpiralSearchDo_ReturnsFirstInRingOrder(t *testing.T) {
+	// Both (3,4) and (5,4) are at Chebyshev r=1 from (4,5).
+	// chebyshevRingDo top row visits dx=-1 before dx=+1, so (3,4) comes first.
+	x, y, found := spiralSearchDo(4, 5, 10, func(px, py int) bool {
+		return (px == 3 && py == 4) || (px == 5 && py == 4)
+	})
+	if !found || x != 3 || y != 4 {
+		t.Errorf("got (%d,%d,%v), want (3,4,true)", x, y, found)
+	}
+}
+
+// TestSpiralSearchDo_ExpandsOutward verifies that a target in ring 2 is found
+// only after rings 0 and 1 are exhausted.
+func TestSpiralSearchDo_ExpandsOutward(t *testing.T) {
+	// (7,5) is at Chebyshev r=2 from (5,5).
+	x, y, found := spiralSearchDo(5, 5, 10, func(px, py int) bool {
+		return px == 7 && py == 5
+	})
+	if !found || x != 7 || y != 5 {
+		t.Errorf("got (%d,%d,%v), want (7,5,true)", x, y, found)
+	}
+}
+
 // TestFootprintBorderDo_3x2 verifies a non-square footprint visits the right tiles.
 func TestFootprintBorderDo_3x2(t *testing.T) {
 	// 3 wide, 2 tall at origin (0,0). Border tiles: outer box (5×4=20) minus inner (3×2=6) = 14.

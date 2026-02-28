@@ -44,6 +44,28 @@ func FootprintBorderDo(ox, oy, w, h int, f func(x, y int)) {
 	}
 }
 
+// spiralSearchDo expands Chebyshev rings outward from (cx, cy) up to maxR,
+// calling f(x, y) for each tile in ring order until f returns true.
+// Returns the (x, y) where f first returned true and found=true,
+// or (-1, -1, false) if f never returned true.
+func spiralSearchDo(cx, cy, maxR int, f func(x, y int) bool) (x, y int, found bool) {
+	for r := 0; r <= maxR; r++ {
+		chebyshevRingDo(cx, cy, r, func(rx, ry int) {
+			if found {
+				return
+			}
+			if f(rx, ry) {
+				x, y = rx, ry
+				found = true
+			}
+		})
+		if found {
+			return
+		}
+	}
+	return -1, -1, false
+}
+
 // manhattan returns the Manhattan distance between two points.
 func manhattan(a, b Point) int {
 	return abs(a.X-b.X) + abs(a.Y-b.Y)

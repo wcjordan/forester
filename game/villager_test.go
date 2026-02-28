@@ -117,15 +117,18 @@ func TestFindNearestTree(t *testing.T) {
 		}
 	})
 
-	t.Run("finds the closest tree", func(t *testing.T) {
-		w.Tiles[5][8] = Tile{Terrain: Forest, TreeSize: 5}  // dist^2 = 4+25 = 29
-		w.Tiles[5][10] = Tile{Terrain: Forest, TreeSize: 3} // dist^2 = 0+25 = 25 (closer)
+	t.Run("finds a tree in ring-traversal order", func(t *testing.T) {
+		// Both trees are at Chebyshev ring 5 from (10,10).
+		// chebyshevRingDo visits the top row left-to-right (dx=-5..+5),
+		// so (8,5) at dx=-2 is reached before (10,5) at dx=0.
+		w.Tiles[5][8] = Tile{Terrain: Forest, TreeSize: 5}
+		w.Tiles[5][10] = Tile{Terrain: Forest, TreeSize: 3}
 		tx, ty, ok := findNearestTree(w, 10, 10)
 		if !ok {
 			t.Fatal("findNearestTree returned false, want true")
 		}
-		if tx != 10 || ty != 5 {
-			t.Errorf("nearest tree = (%d,%d), want (10,5)", tx, ty)
+		if tx != 8 || ty != 5 {
+			t.Errorf("first tree in ring order = (%d,%d), want (8,5)", tx, ty)
 		}
 	})
 
