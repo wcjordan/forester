@@ -1,4 +1,4 @@
-package game
+package geom
 
 import (
 	"sort"
@@ -116,7 +116,7 @@ func TestFootprintBorderDo_2x2(t *testing.T) {
 
 // TestSpiralSearchDo_FindsCenter verifies a match at r=0 is returned immediately.
 func TestSpiralSearchDo_FindsCenter(t *testing.T) {
-	x, y, found := spiralSearchDo(5, 5, 10, func(px, py int) bool {
+	x, y, found := SpiralSearchDo(5, 5, 10, func(px, py int) bool {
 		return px == 5 && py == 5
 	})
 	if !found || x != 5 || y != 5 {
@@ -126,7 +126,7 @@ func TestSpiralSearchDo_FindsCenter(t *testing.T) {
 
 // TestSpiralSearchDo_ReturnsFalseWhenNotFound verifies (-1,-1,false) when predicate never fires.
 func TestSpiralSearchDo_ReturnsFalseWhenNotFound(t *testing.T) {
-	x, y, found := spiralSearchDo(5, 5, 3, func(_, _ int) bool { return false })
+	x, y, found := SpiralSearchDo(5, 5, 3, func(_, _ int) bool { return false })
 	if found || x != -1 || y != -1 {
 		t.Errorf("got (%d,%d,%v), want (-1,-1,false)", x, y, found)
 	}
@@ -138,7 +138,7 @@ func TestSpiralSearchDo_ReturnsFalseWhenNotFound(t *testing.T) {
 func TestSpiralSearchDo_ReturnsFirstInRingOrder(t *testing.T) {
 	// Both (3,4) and (5,4) are at Chebyshev r=1 from (4,5), in the top row (cy−1=4).
 	// The loop runs dx=−1 first, so the top tile at dx=−1 is (3,4), reached before (5,4).
-	x, y, found := spiralSearchDo(4, 5, 10, func(px, py int) bool {
+	x, y, found := SpiralSearchDo(4, 5, 10, func(px, py int) bool {
 		return (px == 3 && py == 4) || (px == 5 && py == 4)
 	})
 	if !found || x != 3 || y != 4 {
@@ -150,7 +150,7 @@ func TestSpiralSearchDo_ReturnsFirstInRingOrder(t *testing.T) {
 // only after rings 0 and 1 are exhausted.
 func TestSpiralSearchDo_ExpandsOutward(t *testing.T) {
 	// (7,5) is at Chebyshev r=2 from (5,5).
-	x, y, found := spiralSearchDo(5, 5, 10, func(px, py int) bool {
+	x, y, found := SpiralSearchDo(5, 5, 10, func(px, py int) bool {
 		return px == 7 && py == 5
 	})
 	if !found || x != 7 || y != 5 {

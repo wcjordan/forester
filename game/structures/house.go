@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"forester/game"
+	"forester/game/geom"
 )
 
 const houseBuildCost = 50
@@ -44,7 +45,7 @@ func (d houseDef) OnBuilt(env *game.Env, origin game.Point) {
 	fw, fh := d.Footprint()
 	px, py := env.State.Player.X, env.State.Player.Y
 	spawned := false
-	game.FootprintBorderDo(origin.X, origin.Y, fw, fh, func(bx, by int) {
+	geom.FootprintBorderDo(origin.X, origin.Y, fw, fh, func(bx, by int) {
 		if spawned || bx == px && by == py {
 			return
 		}

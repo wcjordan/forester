@@ -24,15 +24,15 @@ func findPath(w *World, fromX, fromY, toX, toY int) []Point {
 	gCost := make(map[key]int)
 	cameFrom := make(map[key]key)
 
-	start := Point{fromX, fromY}
-	goal := Point{toX, toY}
+	start := Point{X: fromX, Y: fromY}
+	goal := Point{X: toX, Y: toY}
 
 	gCost[start] = 0
 
 	pq := &priorityQueue{}
 	heap.Push(pq, &pqNode{pt: start, f: manhattan(start, goal), g: 0})
 
-	dirs := [4]Point{{0, -1}, {0, 1}, {-1, 0}, {1, 0}}
+	dirs := [4]Point{{X: 0, Y: -1}, {X: 0, Y: 1}, {X: -1, Y: 0}, {X: 1, Y: 0}}
 
 	for pq.Len() > 0 {
 		cur := heap.Pop(pq).(*pqNode)
@@ -47,7 +47,7 @@ func findPath(w *World, fromX, fromY, toX, toY int) []Point {
 		}
 
 		for _, d := range dirs {
-			nb := Point{cur.pt.X + d.X, cur.pt.Y + d.Y}
+			nb := Point{X: cur.pt.X + d.X, Y: cur.pt.Y + d.Y}
 			tile := w.TileAt(nb.X, nb.Y)
 			if tile == nil || tile.Structure != NoStructure {
 				continue
@@ -63,6 +63,19 @@ func findPath(w *World, fromX, fromY, toX, toY int) []Point {
 	}
 
 	return nil // unreachable
+}
+
+// manhattan returns the Manhattan distance between two points.
+func manhattan(a, b Point) int {
+	d := a.X - b.X
+	if d < 0 {
+		d = -d
+	}
+	dy := a.Y - b.Y
+	if dy < 0 {
+		dy = -dy
+	}
+	return d + dy
 }
 
 // tileCost returns the movement cost to enter a tile.

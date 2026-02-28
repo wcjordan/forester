@@ -91,7 +91,7 @@ func (g *Game) TickAdjacentStructures(now time.Time) {
 	s := g.State
 	seen := make(map[Point]bool)
 	for _, d := range [4][2]int{{0, -1}, {0, 1}, {-1, 0}, {1, 0}} {
-		p := Point{s.Player.X + d[0], s.Player.Y + d[1]}
+		p := Point{X: s.Player.X + d[0], Y: s.Player.Y + d[1]}
 		entry, ok := s.World.structureIndex[p]
 		if !ok || seen[entry.Origin] {
 			continue

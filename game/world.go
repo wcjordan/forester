@@ -1,9 +1,13 @@
 package game
 
-import "time"
+import (
+	"time"
+
+	"forester/game/geom"
+)
 
 // Point is a 2D coordinate used as a map key for spatial indexes.
-type Point struct{ X, Y int }
+type Point = geom.Point
 
 // World represents the game map as a 2D grid of tiles.
 type World struct {
@@ -73,7 +77,7 @@ func (w *World) markNoGrowZoneRect(fx, fy, fw, fh int) {
 			dx, dy := tx-nx, ty-ny
 			if dx*dx+dy*dy <= noGrowRadius*noGrowRadius {
 				if w.InBounds(tx, ty) {
-					w.NoGrowTiles[Point{tx, ty}] = struct{}{}
+					w.NoGrowTiles[Point{X: tx, Y: ty}] = struct{}{}
 				}
 			}
 		}
@@ -126,12 +130,12 @@ func (w *World) clearStructure(x, y int, def StructureDef) {
 // Callers outside this file should use PlaceFoundation or PlaceBuilt instead.
 // Pass stype=NoStructure and def=nil only when clearing (via clearStructure).
 func (w *World) addStructure(x, y, width, height int, stype StructureType, def StructureDef) {
-	origin := Point{x, y}
+	origin := Point{X: x, Y: y}
 
 	// Stamp tiles and maintain StructureTypeIndex.
 	for dy := 0; dy < height; dy++ {
 		for dx := 0; dx < width; dx++ {
-			pt := Point{x + dx, y + dy}
+			pt := Point{X: x + dx, Y: y + dy}
 			tile := w.TileAt(pt.X, pt.Y)
 			if tile == nil {
 				continue
@@ -179,7 +183,7 @@ func (w *World) addStructure(x, y, width, height int, stype StructureType, def S
 		w.structureInstanceIndex[stype][origin] = struct{}{}
 		for dy := 0; dy < height; dy++ {
 			for dx := 0; dx < width; dx++ {
-				pt := Point{x + dx, y + dy}
+				pt := Point{X: x + dx, Y: y + dy}
 				if w.TileAt(pt.X, pt.Y) == nil {
 					continue
 				}
@@ -189,7 +193,7 @@ func (w *World) addStructure(x, y, width, height int, stype StructureType, def S
 	} else {
 		for dy := 0; dy < height; dy++ {
 			for dx := 0; dx < width; dx++ {
-				pt := Point{x + dx, y + dy}
+				pt := Point{X: x + dx, Y: y + dy}
 				if w.TileAt(pt.X, pt.Y) != nil {
 					delete(w.structureIndex, pt)
 				}

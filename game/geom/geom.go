@@ -1,12 +1,7 @@
-package game
+package geom
 
-// abs returns the absolute value of n.
-func abs(n int) int {
-	if n < 0 {
-		return -n
-	}
-	return n
-}
+// Point is a 2D coordinate used as a map key for spatial indexes.
+type Point struct{ X, Y int }
 
 // chebyshevRingDo calls f(x, y) for every tile on the Chebyshev ring at
 // distance r from (cx, cy). Ring 0 is just the center point.
@@ -44,7 +39,7 @@ func FootprintBorderDo(ox, oy, w, h int, f func(x, y int)) {
 	}
 }
 
-// spiralSearchDo expands Chebyshev rings outward from (cx, cy) up to maxR,
+// SpiralSearchDo expands Chebyshev rings outward from (cx, cy) up to maxR,
 // calling f(x, y) for each tile in ring order until f returns true.
 // Returns the (x, y) where f first returned true and found=true,
 // or (-1, -1, false) if f never returned true.
@@ -52,7 +47,7 @@ func FootprintBorderDo(ox, oy, w, h int, f func(x, y int)) {
 // The traversal order mirrors chebyshevRingDo: for each dx (−r to +r) the top
 // tile (cy−r) is checked then the bottom tile (cy+r), followed by the left and
 // right column tiles (dy from −r+1 to r−1).
-func spiralSearchDo(cx, cy, maxR int, f func(x, y int) bool) (x, y int, found bool) {
+func SpiralSearchDo(cx, cy, maxR int, f func(x, y int) bool) (x, y int, found bool) {
 	for r := 0; r <= maxR; r++ {
 		if r == 0 {
 			if f(cx, cy) {
@@ -80,11 +75,11 @@ func spiralSearchDo(cx, cy, maxR int, f func(x, y int) bool) (x, y int, found bo
 	return -1, -1, false
 }
 
-// forFootprintCardinalNeighbors calls f for each tile that is cardinally
+// ForFootprintCardinalNeighbors calls f for each tile that is cardinally
 // (orthogonally) adjacent to the w×h footprint with top-left at (fx, fy).
 // Corner tiles of the Chebyshev border are excluded (they are only diagonally
 // adjacent). Each neighbor tile is visited exactly once.
-func forFootprintCardinalNeighbors(fx, fy, fw, fh int, f func(x, y int)) {
+func ForFootprintCardinalNeighbors(fx, fy, fw, fh int, f func(x, y int)) {
 	// Top and bottom edges (no corners).
 	for x := fx; x < fx+fw; x++ {
 		f(x, fy-1)
@@ -95,9 +90,4 @@ func forFootprintCardinalNeighbors(fx, fy, fw, fh int, f func(x, y int)) {
 		f(fx-1, y)
 		f(fx+fw, y)
 	}
-}
-
-// manhattan returns the Manhattan distance between two points.
-func manhattan(a, b Point) int {
-	return abs(a.X-b.X) + abs(a.Y-b.Y)
 }

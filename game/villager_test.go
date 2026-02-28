@@ -69,7 +69,7 @@ func TestWithdrawFrom(t *testing.T) {
 	})
 
 	t.Run("withdraw from unknown origin returns 0", func(t *testing.T) {
-		n := m.WithdrawFrom(Point{99, 99}, 10)
+		n := m.WithdrawFrom(Point{X: 99, Y: 99}, 10)
 		if n != 0 {
 			t.Errorf("WithdrawFrom unknown = %d, want 0", n)
 		}
@@ -77,12 +77,12 @@ func TestWithdrawFrom(t *testing.T) {
 
 	t.Run("non-positive amount returns 0", func(t *testing.T) {
 		m2 := NewStorageManager()
-		m2.Register(Point{1, 1}, Wood, 100)
-		m2.DepositAt(Point{1, 1}, 10)
-		if m2.WithdrawFrom(Point{1, 1}, 0) != 0 {
+		m2.Register(Point{X: 1, Y: 1}, Wood, 100)
+		m2.DepositAt(Point{X: 1, Y: 1}, 10)
+		if m2.WithdrawFrom(Point{X: 1, Y: 1}, 0) != 0 {
 			t.Error("WithdrawFrom(0) should return 0")
 		}
-		if m2.WithdrawFrom(Point{1, 1}, -5) != 0 {
+		if m2.WithdrawFrom(Point{X: 1, Y: 1}, -5) != 0 {
 			t.Error("WithdrawFrom(-5) should return 0")
 		}
 		if m2.Total(Wood) != 10 {
@@ -98,8 +98,8 @@ func TestTotalCapacity(t *testing.T) {
 	if m.TotalCapacity(Wood) != 0 {
 		t.Error("TotalCapacity should be 0 when no storage registered")
 	}
-	m.Register(Point{1, 1}, Wood, 200)
-	m.Register(Point{2, 2}, Wood, 300)
+	m.Register(Point{X: 1, Y: 1}, Wood, 200)
+	m.Register(Point{X: 2, Y: 2}, Wood, 300)
 	if m.TotalCapacity(Wood) != 500 {
 		t.Errorf("TotalCapacity(Wood) = %d, want 500", m.TotalCapacity(Wood))
 	}
