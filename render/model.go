@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"forester/game"
+	"forester/game/geom"
 )
 
 // TickMsg is sent each tick interval to drive the game loop.
@@ -137,9 +138,9 @@ func (m Model) View() string {
 	vpY := clamp(player.Y-mapHeight/2, 0, max(0, world.Height-mapHeight))
 
 	// Build a position set for O(1) villager lookup during rendering.
-	villagerPos := make(map[game.Point]struct{}, m.game.Villagers.Count())
+	villagerPos := make(map[geom.Point]struct{}, m.game.Villagers.Count())
 	for _, v := range m.game.Villagers.Villagers {
-		villagerPos[game.Point{X: v.X, Y: v.Y}] = struct{}{}
+		villagerPos[geom.Point{X: v.X, Y: v.Y}] = struct{}{}
 	}
 
 	var sb strings.Builder
@@ -153,7 +154,7 @@ func (m Model) View() string {
 				continue
 			}
 
-			if _, isVillager := villagerPos[game.Point{X: worldX, Y: worldY}]; isVillager {
+			if _, isVillager := villagerPos[geom.Point{X: worldX, Y: worldY}]; isVillager {
 				sb.WriteString(villagerStyle.Render("v"))
 				continue
 			}

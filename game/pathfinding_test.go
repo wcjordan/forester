@@ -14,7 +14,7 @@ func TestFindPath_DirectPath(t *testing.T) {
 		t.Fatal("geom.FindPath returned nil, want a valid path")
 	}
 	last := path[len(path)-1]
-	if last != (Point{X: 5, Y: 0}) {
+	if last != (point{X: 5, Y: 0}) {
 		t.Errorf("last point = %v, want {5,0}", last)
 	}
 	// 5 steps in X direction.
@@ -35,7 +35,7 @@ func TestFindPath_RouteAroundWall(t *testing.T) {
 		t.Fatal("geom.FindPath returned nil, want a path around the wall")
 	}
 	last := path[len(path)-1]
-	if last != (Point{X: 10, Y: 7}) {
+	if last != (point{X: 10, Y: 7}) {
 		t.Errorf("goal = %v, want {10,7}", last)
 	}
 	// No path point should be inside the wall (X=5, Y=0..14).

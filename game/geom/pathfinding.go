@@ -89,19 +89,6 @@ func reconstructPath(cameFrom map[Point]Point, start, goal Point) []Point {
 	return path
 }
 
-// manhattan returns the Manhattan distance between two points.
-func manhattan(a, b Point) int {
-	dx := a.X - b.X
-	if dx < 0 {
-		dx = -dx
-	}
-	dy := a.Y - b.Y
-	if dy < 0 {
-		dy = -dy
-	}
-	return dx + dy
-}
-
 // --- Priority queue (min-heap on f) ---
 
 type pqNode struct {

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"forester/game"
+	"forester/game/geom"
 )
 
 // nopDef is a minimal StructureDef for tests that only need a structure to
@@ -17,8 +18,8 @@ func (nopDef) BuiltType() game.StructureType                              { retu
 func (nopDef) Footprint() (w, h int)                                      { return 1, 1 }
 func (nopDef) BuildCost() int                                             { return 0 }
 func (nopDef) ShouldSpawn(_ *game.Env) bool                               { return false }
-func (nopDef) OnPlayerInteraction(_ *game.Env, _ game.Point, _ time.Time) {}
-func (nopDef) OnBuilt(_ *game.Env, _ game.Point)                          {}
+func (nopDef) OnPlayerInteraction(_ *game.Env, _ geom.Point, _ time.Time) {}
+func (nopDef) OnBuilt(_ *game.Env, _ geom.Point)                          {}
 
 // regrowTick calls woodDef.Regrow with a timestamp far enough ahead to fire
 // the regrowth logic regardless of the current cooldown state.
@@ -144,7 +145,7 @@ func makeEnv(w *game.World, px, py int) (*game.Env, *game.Player) {
 	s := &game.State{
 		Player:              p,
 		World:               w,
-		FoundationDeposited: make(map[game.Point]int),
+		FoundationDeposited: make(map[geom.Point]int),
 	}
 	return &game.Env{State: s, Stores: game.NewStorageManager()}, p
 }

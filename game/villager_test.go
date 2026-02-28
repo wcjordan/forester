@@ -13,11 +13,11 @@ func makeVillagerEnv(t *testing.T) (*State, *Env) {
 	w := NewWorld(40, 40)
 
 	// Log storage at (5, 5) — 4×4
-	lsOrigin := Point{X: 5, Y: 5}
+	lsOrigin := point{X: 5, Y: 5}
 	w.PlaceBuilt(lsOrigin.X, lsOrigin.Y, testLogStorageDef{})
 
 	// House at (20, 20) — 2×2
-	hOrigin := Point{X: 20, Y: 20}
+	hOrigin := point{X: 20, Y: 20}
 	w.PlaceBuilt(hOrigin.X, hOrigin.Y, testHouseDef{})
 
 	stores := NewStorageManager()
@@ -26,7 +26,7 @@ func makeVillagerEnv(t *testing.T) (*State, *Env) {
 	s := &State{
 		Player:              NewPlayer(10, 30),
 		World:               w,
-		FoundationDeposited: make(map[Point]int),
+		FoundationDeposited: make(map[point]int),
 		completedBeats:      make(map[string]bool),
 	}
 	env := &Env{State: s, Stores: stores, Villagers: NewVillagerManager()}
@@ -44,7 +44,7 @@ func advanceVillager(v *Villager, env *Env, rng *rand.Rand, steps int) {
 
 func TestWithdrawFrom(t *testing.T) {
 	m := NewStorageManager()
-	origin := Point{X: 1, Y: 1}
+	origin := point{X: 1, Y: 1}
 	m.Register(origin, Wood, 100)
 	m.DepositAt(origin, 10)
 
@@ -69,7 +69,7 @@ func TestWithdrawFrom(t *testing.T) {
 	})
 
 	t.Run("withdraw from unknown origin returns 0", func(t *testing.T) {
-		n := m.WithdrawFrom(Point{X: 99, Y: 99}, 10)
+		n := m.WithdrawFrom(point{X: 99, Y: 99}, 10)
 		if n != 0 {
 			t.Errorf("WithdrawFrom unknown = %d, want 0", n)
 		}
@@ -77,12 +77,12 @@ func TestWithdrawFrom(t *testing.T) {
 
 	t.Run("non-positive amount returns 0", func(t *testing.T) {
 		m2 := NewStorageManager()
-		m2.Register(Point{X: 1, Y: 1}, Wood, 100)
-		m2.DepositAt(Point{X: 1, Y: 1}, 10)
-		if m2.WithdrawFrom(Point{X: 1, Y: 1}, 0) != 0 {
+		m2.Register(point{X: 1, Y: 1}, Wood, 100)
+		m2.DepositAt(point{X: 1, Y: 1}, 10)
+		if m2.WithdrawFrom(point{X: 1, Y: 1}, 0) != 0 {
 			t.Error("WithdrawFrom(0) should return 0")
 		}
-		if m2.WithdrawFrom(Point{X: 1, Y: 1}, -5) != 0 {
+		if m2.WithdrawFrom(point{X: 1, Y: 1}, -5) != 0 {
 			t.Error("WithdrawFrom(-5) should return 0")
 		}
 		if m2.Total(Wood) != 10 {
@@ -98,8 +98,8 @@ func TestTotalCapacity(t *testing.T) {
 	if m.TotalCapacity(Wood) != 0 {
 		t.Error("TotalCapacity should be 0 when no storage registered")
 	}
-	m.Register(Point{X: 1, Y: 1}, Wood, 200)
-	m.Register(Point{X: 2, Y: 2}, Wood, 300)
+	m.Register(point{X: 1, Y: 1}, Wood, 200)
+	m.Register(point{X: 2, Y: 2}, Wood, 300)
 	if m.TotalCapacity(Wood) != 500 {
 		t.Errorf("TotalCapacity(Wood) = %d, want 500", m.TotalCapacity(Wood))
 	}
@@ -182,10 +182,10 @@ func TestVillagerChopsAndCarries(t *testing.T) {
 
 func TestVillagerFetchesAndDelivers(t *testing.T) {
 	s, env := makeVillagerEnv(t)
-	lsOrigin := Point{X: 5, Y: 5}
+	lsOrigin := point{X: 5, Y: 5}
 
 	// Add a FoundationHouse so tryAssignDeliverTask succeeds.
-	fhOrigin := Point{X: 30, Y: 30}
+	fhOrigin := point{X: 30, Y: 30}
 	s.World.PlaceFoundation(fhOrigin.X, fhOrigin.Y, testHouseDef{})
 
 	// Pre-fill storage so fillRatio=1 → villager always wants to deliver.

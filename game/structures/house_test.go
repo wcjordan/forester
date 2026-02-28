@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"forester/game"
+	"forester/game/geom"
 )
 
 func makeHouseEnv() (*game.State, *game.StorageManager, *game.VillagerManager) {
@@ -13,7 +14,7 @@ func makeHouseEnv() (*game.State, *game.StorageManager, *game.VillagerManager) {
 	s := &game.State{
 		Player:              p,
 		World:               w,
-		FoundationDeposited: make(map[game.Point]int),
+		FoundationDeposited: make(map[geom.Point]int),
 	}
 	return s, game.NewStorageManager(), game.NewVillagerManager()
 }
@@ -23,7 +24,7 @@ func TestVillagerSpawnsOnHouseBuilt(t *testing.T) {
 	g := &game.Game{State: s, Stores: stores, Villagers: vm}
 
 	// Place a house foundation adjacent to the player and build it.
-	origin := game.Point{X: 10, Y: 10}
+	origin := geom.Point{X: 10, Y: 10}
 	s.World.PlaceFoundation(origin.X, origin.Y, houseDef{})
 
 	// Player adjacent to the foundation; give enough wood to build.
@@ -48,7 +49,7 @@ func TestVillagerSpawnsAdjacentToHouse(t *testing.T) {
 	s, stores, vm := makeHouseEnv()
 	g := &game.Game{State: s, Stores: stores, Villagers: vm}
 
-	origin := game.Point{X: 10, Y: 10}
+	origin := geom.Point{X: 10, Y: 10}
 	s.World.PlaceFoundation(origin.X, origin.Y, houseDef{})
 
 	s.Player.X = 9

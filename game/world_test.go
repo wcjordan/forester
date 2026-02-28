@@ -87,10 +87,10 @@ func TestAddStructure(t *testing.T) {
 		// Nearest footprint point to (15,27) is (15,18): distance 9 > 8 → must NOT be in NoGrowTiles.
 		w := NewWorld(30, 30)
 		w.PlaceBuilt(15, 15, def)
-		if _, ok := w.NoGrowTiles[Point{X: 15, Y: 20}]; !ok {
+		if _, ok := w.NoGrowTiles[point{X: 15, Y: 20}]; !ok {
 			t.Error("tile at distance 2 from structure should be in NoGrowTiles")
 		}
-		if _, ok := w.NoGrowTiles[Point{X: 15, Y: 27}]; ok {
+		if _, ok := w.NoGrowTiles[point{X: 15, Y: 27}]; ok {
 			t.Error("tile at distance 9 from structure should not be in NoGrowTiles")
 		}
 	})
@@ -114,7 +114,7 @@ func TestAddStructure(t *testing.T) {
 		}
 		for dy := 0; dy < 4; dy++ {
 			for dx := 0; dx < 4; dx++ {
-				p := Point{X: 2 + dx, Y: 3 + dy}
+				p := point{X: 2 + dx, Y: 3 + dy}
 				if _, ok := pts[p]; !ok {
 					t.Errorf("expected point %v in type index", p)
 				}
@@ -155,11 +155,11 @@ func TestAddStructure(t *testing.T) {
 	t.Run("origin tile has correct structureIndex entry", func(t *testing.T) {
 		w := NewWorld(10, 10)
 		w.PlaceBuilt(3, 4, def)
-		entry, ok := w.structureIndex[Point{X: 3, Y: 4}]
+		entry, ok := w.structureIndex[point{X: 3, Y: 4}]
 		if !ok {
 			t.Fatal("expected entry at (3,4)")
 		}
-		if entry.Origin != (Point{X: 3, Y: 4}) {
+		if entry.Origin != (point{X: 3, Y: 4}) {
 			t.Errorf("Origin = %v, want {3,4}", entry.Origin)
 		}
 	})
@@ -167,10 +167,10 @@ func TestAddStructure(t *testing.T) {
 	t.Run("all footprint tiles indexed with same origin", func(t *testing.T) {
 		w := NewWorld(20, 20)
 		w.PlaceBuilt(2, 3, def)
-		origin := Point{X: 2, Y: 3}
+		origin := point{X: 2, Y: 3}
 		for dy := 0; dy < 4; dy++ {
 			for dx := 0; dx < 4; dx++ {
-				p := Point{X: 2 + dx, Y: 3 + dy}
+				p := point{X: 2 + dx, Y: 3 + dy}
 				entry, ok := w.structureIndex[p]
 				if !ok {
 					t.Errorf("missing entry at %v", p)

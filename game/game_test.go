@@ -50,7 +50,7 @@ func TestAddOfferAndSelectCard(t *testing.T) {
 	g := NewWithClockAndRNG(RealClock{}, rand.New(rand.NewSource(1)))
 	g.State.Player = NewPlayer(5, 5)
 	g.State.World = NewWorld(10, 10)
-	g.State.FoundationDeposited = make(map[Point]int)
+	g.State.FoundationDeposited = make(map[point]int)
 	g.State.completedBeats = make(map[string]bool)
 	p := g.State.Player
 

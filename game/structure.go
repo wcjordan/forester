@@ -18,23 +18,23 @@ type StructureDef interface {
 	// OnPlayerInteraction is called each tick the player is adjacent to this structure instance.
 	// origin is the top-left corner of the specific instance being interacted with.
 	// now is the current clock time; implementations use it to check and set cooldowns.
-	OnPlayerInteraction(env *Env, origin Point, now time.Time)
+	OnPlayerInteraction(env *Env, origin point, now time.Time)
 	// OnBuilt is called once when the structure is completed.
 	// origin is the top-left corner of the specific instance that was just built.
-	OnBuilt(env *Env, origin Point)
+	OnBuilt(env *Env, origin point)
 }
 
 // structureEntry pairs a StructureDef with the origin (top-left corner) of the
 // specific instance it belongs to.  Used as values in World.structureIndex.
 type structureEntry struct {
 	Def    StructureDef
-	Origin Point
+	Origin point
 }
 
 // FinalizeFoundation converts a completed foundation into its built structure type,
 // updates the world index, clears the deposit record, and calls OnBuilt.
 // Call this once the deposited amount has reached or exceeded BuildCost.
-func FinalizeFoundation(env *Env, def StructureDef, origin Point) {
+func FinalizeFoundation(env *Env, def StructureDef, origin point) {
 	env.State.World.PlaceBuilt(origin.X, origin.Y, def)
 	delete(env.State.FoundationDeposited, origin)
 	def.OnBuilt(env, origin)

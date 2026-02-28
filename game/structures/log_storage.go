@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"forester/game"
+	"forester/game/geom"
 )
 
 const logStorageBuildCost = 20
@@ -36,14 +37,14 @@ func (logStorageDef) StorageCapacity() int { return logStorageCapacity }
 func (logStorageDef) ShouldSpawn(_ *game.Env) bool { return false }
 
 // OnBuilt registers a new storage instance when a Log Storage is completed.
-func (logStorageDef) OnBuilt(env *game.Env, origin game.Point) {
+func (logStorageDef) OnBuilt(env *game.Env, origin geom.Point) {
 	env.Stores.Register(origin, game.Wood, logStorageCapacity)
 }
 
 // OnPlayerInteraction handles adjacent-player interaction for both foundation and built states.
 // When adjacent to a foundation, deposits one wood toward the build cost each cooldown tick.
 // When adjacent to a built storage, deposits one wood into the storage instance.
-func (d logStorageDef) OnPlayerInteraction(env *game.Env, origin game.Point, now time.Time) {
+func (d logStorageDef) OnPlayerInteraction(env *game.Env, origin geom.Point, now time.Time) {
 	p := env.State.Player
 	tile := env.State.World.TileAt(origin.X, origin.Y)
 	if tile != nil && tile.Structure == game.FoundationLogStorage {

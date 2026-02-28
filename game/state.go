@@ -5,7 +5,7 @@ package game
 type State struct {
 	Player              *Player
 	World               *World
-	FoundationDeposited map[Point]int
+	FoundationDeposited map[point]int
 	// pendingOfferIDs stores each queued offer as a slice of upgrade IDs (strings),
 	// keeping State serializable without embedding interface values.
 	pendingOfferIDs [][]string
@@ -46,7 +46,7 @@ func newState() *State {
 	return &State{
 		Player:              player,
 		World:               world,
-		FoundationDeposited: make(map[Point]int),
+		FoundationDeposited: make(map[point]int),
 		completedBeats:      make(map[string]bool),
 	}
 }

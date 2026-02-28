@@ -6,24 +6,24 @@ import (
 	"forester/game/geom"
 )
 
-// Point is a 2D coordinate used as a map key for spatial indexes.
-type Point = geom.Point
+// point is an internal alias for geom.Point, used as a map key for spatial indexes.
+type point = geom.Point
 
 // World represents the game map as a 2D grid of tiles.
 type World struct {
 	Width              int
 	Height             int
 	Tiles              [][]Tile
-	structureIndex     map[Point]structureEntry
-	StructureTypeIndex map[StructureType]map[Point]struct{}
+	structureIndex     map[point]structureEntry
+	StructureTypeIndex map[StructureType]map[point]struct{}
 	// structureInstanceIndex maps each StructureType to the set of origin Points
 	// for all instances of that type. Maintained by PlaceFoundation/PlaceBuilt
 	// so that CountStructureInstances is O(1).
-	structureInstanceIndex map[StructureType]map[Point]struct{}
+	structureInstanceIndex map[StructureType]map[point]struct{}
 	// NoGrowTiles is the set of tiles suppressed from tree regrowth because
 	// they are within noGrowRadius of the spawn point or any structure.
 	// Populated by NewWorld (spawn zone) and PlaceFoundation/PlaceBuilt (structures).
-	NoGrowTiles    map[Point]struct{}
+	NoGrowTiles    map[point]struct{}
 	regrowCooldown time.Time
 }
 
@@ -46,10 +46,10 @@ func NewWorld(width, height int) *World {
 		Width:                  width,
 		Height:                 height,
 		Tiles:                  tiles,
-		structureIndex:         make(map[Point]structureEntry),
-		StructureTypeIndex:     make(map[StructureType]map[Point]struct{}),
-		structureInstanceIndex: make(map[StructureType]map[Point]struct{}),
-		NoGrowTiles:            make(map[Point]struct{}),
+		structureIndex:         make(map[point]structureEntry),
+		StructureTypeIndex:     make(map[StructureType]map[point]struct{}),
+		structureInstanceIndex: make(map[StructureType]map[point]struct{}),
+		NoGrowTiles:            make(map[point]struct{}),
 	}
 	w.markNoGrowZoneRect(width/2, height/2, 1, 1)
 	return w
@@ -94,7 +94,7 @@ func (w *World) markNoGrowZoneRect(fx, fy, fw, fh int) {
 			dx, dy := tx-nx, ty-ny
 			if dx*dx+dy*dy <= noGrowRadius*noGrowRadius {
 				if w.InBounds(tx, ty) {
-					w.NoGrowTiles[Point{X: tx, Y: ty}] = struct{}{}
+					w.NoGrowTiles[point{X: tx, Y: ty}] = struct{}{}
 				}
 			}
 		}
@@ -147,12 +147,12 @@ func (w *World) clearStructure(x, y int, def StructureDef) {
 // Callers outside this file should use PlaceFoundation or PlaceBuilt instead.
 // Pass stype=NoStructure and def=nil only when clearing (via clearStructure).
 func (w *World) addStructure(x, y, width, height int, stype StructureType, def StructureDef) {
-	origin := Point{X: x, Y: y}
+	origin := point{X: x, Y: y}
 
 	// Stamp tiles and maintain StructureTypeIndex.
 	for dy := 0; dy < height; dy++ {
 		for dx := 0; dx < width; dx++ {
-			pt := Point{X: x + dx, Y: y + dy}
+			pt := point{X: x + dx, Y: y + dy}
 			tile := w.TileAt(pt.X, pt.Y)
 			if tile == nil {
 				continue
@@ -167,7 +167,7 @@ func (w *World) addStructure(x, y, width, height int, stype StructureType, def S
 			tile.Structure = stype
 			if stype != NoStructure {
 				if w.StructureTypeIndex[stype] == nil {
-					w.StructureTypeIndex[stype] = make(map[Point]struct{})
+					w.StructureTypeIndex[stype] = make(map[point]struct{})
 				}
 				w.StructureTypeIndex[stype][pt] = struct{}{}
 			}
@@ -195,12 +195,12 @@ func (w *World) addStructure(x, y, width, height int, stype StructureType, def S
 	// stale structureIndex entries when clearing.
 	if stype != NoStructure {
 		if w.structureInstanceIndex[stype] == nil {
-			w.structureInstanceIndex[stype] = make(map[Point]struct{})
+			w.structureInstanceIndex[stype] = make(map[point]struct{})
 		}
 		w.structureInstanceIndex[stype][origin] = struct{}{}
 		for dy := 0; dy < height; dy++ {
 			for dx := 0; dx < width; dx++ {
-				pt := Point{X: x + dx, Y: y + dy}
+				pt := point{X: x + dx, Y: y + dy}
 				if w.TileAt(pt.X, pt.Y) == nil {
 					continue
 				}
@@ -210,7 +210,7 @@ func (w *World) addStructure(x, y, width, height int, stype StructureType, def S
 	} else {
 		for dy := 0; dy < height; dy++ {
 			for dx := 0; dx < width; dx++ {
-				pt := Point{X: x + dx, Y: y + dy}
+				pt := point{X: x + dx, Y: y + dy}
 				if w.TileAt(pt.X, pt.Y) != nil {
 					delete(w.structureIndex, pt)
 				}

@@ -91,3 +91,16 @@ func ForFootprintCardinalNeighbors(fx, fy, fw, fh int, f func(x, y int)) {
 		f(fx+fw, y)
 	}
 }
+
+// manhattan returns the Manhattan distance between two points.
+func manhattan(a, b Point) int {
+	dx := a.X - b.X
+	if dx < 0 {
+		dx = -dx
+	}
+	dy := a.Y - b.Y
+	if dy < 0 {
+		dy = -dy
+	}
+	return dx + dy
+}
