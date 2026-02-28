@@ -7,11 +7,12 @@ import "container/heap"
 // IsBlocked reports whether the tile at (x, y) cannot be traversed
 // (returns true for out-of-bounds coordinates as well).
 // MoveCost returns the movement cost to enter (x, y); only called for
-// non-blocked tiles.
+// non-blocked tiles. Must return a value >= 1.0 so the Manhattan heuristic
+// remains admissible.
 type Grid interface {
 	InBounds(x, y int) bool
 	IsBlocked(x, y int) bool
-	MoveCost(x, y int) int
+	MoveCost(x, y int) float64
 }
 
 // FindPath returns a path from (fromX,fromY) to (toX,toY), exclusive of
@@ -30,7 +31,7 @@ func FindPath(g Grid, fromX, fromY, toX, toY int) []Point {
 
 	type key = Point
 
-	gCost := make(map[key]int)
+	gCost := make(map[key]float64)
 	cameFrom := make(map[key]key)
 
 	start := Point{X: fromX, Y: fromY}
@@ -39,7 +40,7 @@ func FindPath(g Grid, fromX, fromY, toX, toY int) []Point {
 	gCost[start] = 0
 
 	pq := &priorityQueue{}
-	heap.Push(pq, &pqNode{pt: start, f: manhattan(start, goal), g: 0})
+	heap.Push(pq, &pqNode{pt: start, f: float64(manhattan(start, goal)), g: 0})
 
 	dirs := [4]Point{{X: 0, Y: -1}, {X: 0, Y: 1}, {X: -1, Y: 0}, {X: 1, Y: 0}}
 
@@ -64,7 +65,7 @@ func FindPath(g Grid, fromX, fromY, toX, toY int) []Point {
 			if best, ok := gCost[nb]; !ok || tentativeG < best {
 				gCost[nb] = tentativeG
 				cameFrom[nb] = cur.pt
-				f := tentativeG + manhattan(nb, goal)
+				f := tentativeG + float64(manhattan(nb, goal))
 				heap.Push(pq, &pqNode{pt: nb, f: f, g: tentativeG})
 			}
 		}
@@ -93,7 +94,7 @@ func reconstructPath(cameFrom map[Point]Point, start, goal Point) []Point {
 
 type pqNode struct {
 	pt    Point
-	f, g  int
+	f, g  float64
 	index int
 }
 

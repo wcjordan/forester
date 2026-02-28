@@ -110,6 +110,9 @@ const defaultMoveCooldown = 150 * time.Millisecond
 
 // moveCooldowns defines the minimum time between moves per terrain type.
 // Terrain types not present use defaultMoveCooldown.
+// All values must be >= defaultMoveCooldown so that MoveCost (which divides by
+// defaultMoveCooldown) never returns a value < 1.0 — a requirement for the A*
+// heuristic in geom.FindPath to remain admissible.
 var moveCooldowns = map[TerrainType]time.Duration{
 	Grassland: 150 * time.Millisecond,
 	Forest:    300 * time.Millisecond,
