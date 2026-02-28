@@ -14,11 +14,11 @@ func makeVillagerEnv(t *testing.T) (*State, *Env) {
 
 	// Log storage at (5, 5) — 4×4
 	lsOrigin := Point{X: 5, Y: 5}
-	w.AddStructure(lsOrigin.X, lsOrigin.Y, 4, 4, LogStorage, testLogStorageDef{})
+	w.PlaceBuilt(lsOrigin.X, lsOrigin.Y, testLogStorageDef{})
 
 	// House at (20, 20) — 2×2
 	hOrigin := Point{X: 20, Y: 20}
-	w.AddStructure(hOrigin.X, hOrigin.Y, 2, 2, House, testHouseDef{})
+	w.PlaceBuilt(hOrigin.X, hOrigin.Y, testHouseDef{})
 
 	stores := NewStorageManager()
 	stores.Register(lsOrigin, Wood, 500)
@@ -183,7 +183,7 @@ func TestVillagerFetchesAndDelivers(t *testing.T) {
 
 	// Add a FoundationHouse so tryAssignDeliverTask succeeds.
 	fhOrigin := Point{X: 30, Y: 30}
-	s.World.AddStructure(fhOrigin.X, fhOrigin.Y, 2, 2, FoundationHouse, testHouseDef{})
+	s.World.PlaceFoundation(fhOrigin.X, fhOrigin.Y, testHouseDef{})
 
 	// Pre-fill storage so fillRatio=1 → villager always wants to deliver.
 	env.Stores.DepositAt(lsOrigin, 500)
@@ -216,7 +216,7 @@ func TestVillagerFetchesAndDelivers(t *testing.T) {
 
 func TestNearestClearTileAdjacent(t *testing.T) {
 	w := NewWorld(20, 20)
-	w.AddStructure(5, 5, 4, 4, LogStorage, testLogStorageDef{})
+	w.PlaceBuilt(5, 5, testLogStorageDef{})
 
 	tx, ty, ok := nearestClearTileAdjacent(w, LogStorage, 5, 4)
 	if !ok {
@@ -245,7 +245,7 @@ func TestNearestClearTileAdjacentExcludesCorners(t *testing.T) {
 	//                     left x=4 y∈[5,8], right x=9 y∈[5,8].
 	// Chebyshev corners (excluded): (4,4), (9,4), (4,9), (9,9).
 	w := NewWorld(20, 20)
-	w.AddStructure(5, 5, 4, 4, LogStorage, testLogStorageDef{})
+	w.PlaceBuilt(5, 5, testLogStorageDef{})
 
 	// Block all cardinal neighbors with House tiles (not indexed as LogStorage).
 	for x := 5; x < 9; x++ {
@@ -269,7 +269,7 @@ func TestNearestClearTileAdjacentReturnedTileIsCardinallyAdjacent(t *testing.T) 
 	// 4×4 LogStorage at (5,5) — footprint matches testLogStorageDef.Footprint().
 	// Chebyshev corners: (4,4), (9,4), (4,9), (9,9) — must never be returned.
 	w := NewWorld(20, 20)
-	w.AddStructure(5, 5, 4, 4, LogStorage, testLogStorageDef{})
+	w.PlaceBuilt(5, 5, testLogStorageDef{})
 
 	corners := map[[2]int]bool{
 		{4, 4}: true, {9, 4}: true,
@@ -294,7 +294,7 @@ func TestNearestClearTileAdjacentReturnedTileIsCardinallyAdjacent(t *testing.T) 
 func TestVillagerRoutesAroundObstacle(t *testing.T) {
 	w := NewWorld(20, 20)
 	// Vertical wall at X=10, Y=0..14 (width=1, height=15).
-	w.AddStructure(10, 0, 1, 15, LogStorage, testLogStorageDef{})
+	w.addStructure(10, 0, 1, 15, LogStorage, testLogStorageDef{})
 
 	// Villager at (5,7), target at (15,7). Direct route blocked by wall.
 	v := &Villager{X: 5, Y: 7, TargetX: 15, TargetY: 7}
@@ -315,11 +315,11 @@ func TestCountStructureInstances(t *testing.T) {
 	if w.CountStructureInstances(House) != 0 {
 		t.Error("want 0 initially")
 	}
-	w.AddStructure(2, 2, 2, 2, House, testHouseDef{})
+	w.PlaceBuilt(2, 2, testHouseDef{})
 	if w.CountStructureInstances(House) != 1 {
 		t.Errorf("want 1 after placing one house, got %d", w.CountStructureInstances(House))
 	}
-	w.AddStructure(10, 10, 2, 2, House, testHouseDef{})
+	w.PlaceBuilt(10, 10, testHouseDef{})
 	if w.CountStructureInstances(House) != 2 {
 		t.Errorf("want 2 after placing two houses, got %d", w.CountStructureInstances(House))
 	}

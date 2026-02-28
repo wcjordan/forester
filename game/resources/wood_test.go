@@ -13,7 +13,7 @@ import (
 type nopDef struct{}
 
 func (nopDef) FoundationType() game.StructureType                         { return game.NoStructure }
-func (nopDef) BuiltType() game.StructureType                              { return game.NoStructure }
+func (nopDef) BuiltType() game.StructureType                              { return game.LogStorage }
 func (nopDef) Footprint() (w, h int)                                      { return 1, 1 }
 func (nopDef) BuildCost() int                                             { return 0 }
 func (nopDef) ShouldSpawn(_ *game.Env) bool                               { return false }
@@ -128,7 +128,7 @@ func TestRegrowWood(t *testing.T) {
 		// tile at (5,10) — distance 5 ≤ 8 from the structure, and distance
 		// sqrt(225+100)=~18 from spawn (safely outside the spawn zone).
 		w := game.NewWorld(40, 40)
-		w.AddStructure(5, 5, 1, 1, game.LogStorage, nopDef{})
+		w.PlaceBuilt(5, 5, nopDef{})
 		w.Tiles[10][5] = game.Tile{Terrain: game.Forest, TreeSize: 0}
 		env := &game.Env{State: &game.State{World: w}, Stores: game.NewStorageManager()}
 		regrowTick(env, rng, 0)

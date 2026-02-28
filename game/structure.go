@@ -35,8 +35,7 @@ type structureEntry struct {
 // updates the world index, clears the deposit record, and calls OnBuilt.
 // Call this once the deposited amount has reached or exceeded BuildCost.
 func FinalizeFoundation(env *Env, def StructureDef, origin Point) {
-	w, h := def.Footprint()
-	env.State.World.AddStructure(origin.X, origin.Y, w, h, def.BuiltType(), def)
+	env.State.World.PlaceBuilt(origin.X, origin.Y, def)
 	delete(env.State.FoundationDeposited, origin)
 	def.OnBuilt(env, origin)
 }

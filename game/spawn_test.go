@@ -83,7 +83,7 @@ func TestHouseWorldConditionSpawnsAfterBuild(t *testing.T) {
 	}
 
 	// Place a built house to satisfy the world condition.
-	w.AddStructure(10, 10, 2, 2, House, testHouseDef{})
+	w.PlaceBuilt(10, 10, testHouseDef{})
 
 	// World condition now satisfied: built house exists, no pending foundation.
 	maybeSpawnFoundation(env)

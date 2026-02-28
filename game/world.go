@@ -13,12 +13,12 @@ type World struct {
 	structureIndex     map[Point]structureEntry
 	StructureTypeIndex map[StructureType]map[Point]struct{}
 	// structureInstanceIndex maps each StructureType to the set of origin Points
-	// for all instances of that type. Maintained by AddStructure so that
-	// CountStructureInstances is O(1).
+	// for all instances of that type. Maintained by PlaceFoundation/PlaceBuilt
+	// so that CountStructureInstances is O(1).
 	structureInstanceIndex map[StructureType]map[Point]struct{}
 	// NoGrowTiles is the set of tiles suppressed from tree regrowth because
 	// they are within noGrowRadius of the spawn point or any structure.
-	// Populated by NewWorld (spawn zone) and AddStructure (structure zones).
+	// Populated by NewWorld (spawn zone) and PlaceFoundation/PlaceBuilt (structures).
 	NoGrowTiles    map[Point]struct{}
 	regrowCooldown time.Time
 }
@@ -63,7 +63,7 @@ const noGrowRadius = 8
 // markNoGrowZoneRect adds all in-bounds tiles within noGrowRadius of the
 // rectangle (fx, fy)–(fx+fw-1, fy+fh-1) to w.NoGrowTiles. Distance is
 // measured from each candidate tile to the nearest point inside the rectangle.
-// Called by NewWorld (spawn zone) and AddStructure (structure footprint).
+// Called by NewWorld (spawn zone) and addStructure (structure footprint).
 func (w *World) markNoGrowZoneRect(fx, fy, fw, fh int) {
 	for ty := fy - noGrowRadius; ty <= fy+fh-1+noGrowRadius; ty++ {
 		for tx := fx - noGrowRadius; tx <= fx+fw-1+noGrowRadius; tx++ {
@@ -99,11 +99,33 @@ func (w *World) TileAt(x, y int) *Tile {
 	return &w.Tiles[y][x]
 }
 
-// AddStructure stamps stype onto the tile grid, maintains all three structure
-// indexes (StructureTypeIndex, structureInstanceIndex, structureIndex), and
-// expands the NoGrowTiles zone. Pass stype=NoStructure and def=nil to clear a
-// previously placed structure.
-func (w *World) AddStructure(x, y, width, height int, stype StructureType, def StructureDef) {
+// PlaceFoundation places def as a foundation at (x, y), deriving the tile
+// type from def.FoundationType() and the footprint from def.Footprint().
+func (w *World) PlaceFoundation(x, y int, def StructureDef) {
+	fw, fh := def.Footprint()
+	w.addStructure(x, y, fw, fh, def.FoundationType(), def)
+}
+
+// PlaceBuilt places def as a completed structure at (x, y), deriving the tile
+// type from def.BuiltType() and the footprint from def.Footprint().
+func (w *World) PlaceBuilt(x, y int, def StructureDef) {
+	fw, fh := def.Footprint()
+	w.addStructure(x, y, fw, fh, def.BuiltType(), def)
+}
+
+// clearStructure removes the structure placed at (x, y), using def.Footprint()
+// to determine which tiles to clear. Only used in tests.
+func (w *World) clearStructure(x, y int, def StructureDef) {
+	fw, fh := def.Footprint()
+	w.addStructure(x, y, fw, fh, NoStructure, nil)
+}
+
+// addStructure is the underlying implementation used by PlaceFoundation,
+// PlaceBuilt, and clearStructure. It stamps stype onto the tile grid, maintains
+// all three structure indexes, and expands the NoGrowTiles zone.
+// Callers outside this file should use PlaceFoundation or PlaceBuilt instead.
+// Pass stype=NoStructure and def=nil only when clearing (via clearStructure).
+func (w *World) addStructure(x, y, width, height int, stype StructureType, def StructureDef) {
 	origin := Point{x, y}
 
 	// Stamp tiles and maintain StructureTypeIndex.
@@ -163,7 +185,7 @@ func (w *World) AddStructure(x, y, width, height int, stype StructureType, def S
 }
 
 // CountStructureInstances returns the number of distinct instances of stype.
-// O(1) — maintained by AddStructure.
+// O(1) — maintained by PlaceFoundation and PlaceBuilt.
 func (w *World) CountStructureInstances(stype StructureType) int {
 	return len(w.structureInstanceIndex[stype])
 }

@@ -26,15 +26,15 @@ func findStructureDefByFoundationType(ft StructureType) StructureDef {
 // otherwise near the player. Returns true if a foundation was placed, false if no
 // valid location was found (caller may retry on the next tick).
 func spawnFoundationAt(world *World, playerX, playerY int, def StructureDef) bool {
-	w, h := def.Footprint()
+	fw, fh := def.Footprint()
 	var cx, cy int
 	if sa, ok := def.(spawnAnchoredPlacer); ok && sa.UseSpawnAnchoredPlacement() {
-		cx, cy = findValidLocationNearSpawn(world, playerX, playerY, w, h)
+		cx, cy = findValidLocationNearSpawn(world, playerX, playerY, fw, fh)
 	} else {
-		cx, cy = findValidLocationNearPlayer(world, playerX, playerY, w, h)
+		cx, cy = findValidLocationNearPlayer(world, playerX, playerY, fw, fh)
 	}
 	if cx >= 0 {
-		world.AddStructure(cx, cy, w, h, def.FoundationType(), def)
+		world.PlaceFoundation(cx, cy, def)
 		return true
 	}
 	return false
