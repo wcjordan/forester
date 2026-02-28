@@ -182,7 +182,7 @@ func TestHouseWorkflow(t *testing.T) {
 	// Route: west×2 to (46,45), south×6 to (46,51).
 	// At (46,51) the player is adjacent east to (47,51) [house foundation] but
 	// is NOT adjacent to the log storage (nearest log storage tile (48,49) is
-	// 3 tiles east). This ensures Phase 7 ticks deposit only into the house
+	// 2 tiles east and 2 tiles north). This ensures Phase 7 ticks deposit only into the house
 	// foundation. moveSafe handles any terrain cooldown transitions.
 	// No ticks during navigation: player.Wood stays at woodForHouse.
 	announcePhase(m, "Phase 6: Navigate to (46,51)")

@@ -133,10 +133,11 @@ func TestSpiralSearchDo_ReturnsFalseWhenNotFound(t *testing.T) {
 }
 
 // TestSpiralSearchDo_ReturnsFirstInRingOrder verifies tiles within a ring are returned
-// in chebyshevRingDo traversal order (top row left-to-right first).
+// in chebyshevRingDo traversal order: for each dx (−r to +r), the top tile is
+// checked then the bottom tile.
 func TestSpiralSearchDo_ReturnsFirstInRingOrder(t *testing.T) {
-	// Both (3,4) and (5,4) are at Chebyshev r=1 from (4,5).
-	// chebyshevRingDo top row visits dx=-1 before dx=+1, so (3,4) comes first.
+	// Both (3,4) and (5,4) are at Chebyshev r=1 from (4,5), in the top row (cy−1=4).
+	// The loop runs dx=−1 first, so the top tile at dx=−1 is (3,4), reached before (5,4).
 	x, y, found := spiralSearchDo(4, 5, 10, func(px, py int) bool {
 		return (px == 3 && py == 4) || (px == 5 && py == 4)
 	})

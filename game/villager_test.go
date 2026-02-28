@@ -105,15 +105,15 @@ func TestTotalCapacity(t *testing.T) {
 	}
 }
 
-// --- findNearestTree tests ---
+// --- findNearbyTree tests ---
 
 func TestFindNearestTree(t *testing.T) {
 	w := NewWorld(20, 20)
 
 	t.Run("returns false when no trees", func(t *testing.T) {
-		_, _, ok := findNearestTree(w, 10, 10)
+		_, _, ok := findNearbyTree(w, 10, 10)
 		if ok {
-			t.Error("findNearestTree should return false on a world with no trees")
+			t.Error("findNearbyTree should return false on a world with no trees")
 		}
 	})
 
@@ -123,9 +123,9 @@ func TestFindNearestTree(t *testing.T) {
 		// so (8,5) at dx=-2 is reached before (10,5) at dx=0.
 		w.Tiles[5][8] = Tile{Terrain: Forest, TreeSize: 5}
 		w.Tiles[5][10] = Tile{Terrain: Forest, TreeSize: 3}
-		tx, ty, ok := findNearestTree(w, 10, 10)
+		tx, ty, ok := findNearbyTree(w, 10, 10)
 		if !ok {
-			t.Fatal("findNearestTree returned false, want true")
+			t.Fatal("findNearbyTree returned false, want true")
 		}
 		if tx != 8 || ty != 5 {
 			t.Errorf("first tree in ring order = (%d,%d), want (8,5)", tx, ty)
@@ -136,9 +136,9 @@ func TestFindNearestTree(t *testing.T) {
 		w2 := NewWorld(10, 10)
 		w2.Tiles[5][5] = Tile{Terrain: Forest, TreeSize: 0} // stump — skip
 		w2.Tiles[8][5] = Tile{Terrain: Forest, TreeSize: 2} // live
-		tx, ty, ok := findNearestTree(w2, 5, 5)
+		tx, ty, ok := findNearbyTree(w2, 5, 5)
 		if !ok {
-			t.Fatal("findNearestTree returned false")
+			t.Fatal("findNearbyTree returned false")
 		}
 		if tx != 5 || ty != 8 {
 			t.Errorf("nearest live tree = (%d,%d), want (5,8)", tx, ty)

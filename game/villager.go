@@ -204,7 +204,7 @@ func (v *Villager) pickTask(env *Env, rng *rand.Rand) {
 }
 
 func (v *Villager) tryAssignChopTask(env *Env) bool {
-	tx, ty, ok := findNearestTree(env.State.World, v.X, v.Y)
+	tx, ty, ok := findNearbyTree(env.State.World, v.X, v.Y)
 	if !ok {
 		return false
 	}
@@ -279,10 +279,10 @@ func (v *Villager) move(world *World) {
 	v.path = v.path[1:]
 }
 
-// findNearestTree returns the world coordinates of the first Forest tile with
+// findNearbyTree returns the world coordinates of the first Forest tile with
 // TreeSize > 0 found by expanding Chebyshev rings outward from (fromX, fromY).
 // Returns ok=false if none found.
-func findNearestTree(world *World, fromX, fromY int) (x, y int, ok bool) {
+func findNearbyTree(world *World, fromX, fromY int) (x, y int, ok bool) {
 	maxR := world.Width + world.Height
 	return spiralSearchDo(fromX, fromY, maxR, func(tx, ty int) bool {
 		if !world.InBounds(tx, ty) {
