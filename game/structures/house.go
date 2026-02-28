@@ -43,24 +43,18 @@ func (houseDef) UseSpawnAnchoredPlacement() bool { return true }
 func (d houseDef) OnBuilt(env *game.Env, origin game.Point) {
 	fw, fh := d.Footprint()
 	px, py := env.State.Player.X, env.State.Player.Y
-	// Iterate the complete 1-tile Chebyshev border (all sides including corners).
-	for bx := origin.X - 1; bx <= origin.X+fw; bx++ {
-		for by := origin.Y - 1; by <= origin.Y+fh; by++ {
-			// Skip the footprint itself.
-			if bx >= origin.X && bx < origin.X+fw && by >= origin.Y && by < origin.Y+fh {
-				continue
-			}
-			if bx == px && by == py {
-				continue
-			}
-			tile := env.State.World.TileAt(bx, by)
-			if tile == nil || tile.Structure != game.NoStructure {
-				continue
-			}
-			env.Villagers.Spawn(bx, by)
+	spawned := false
+	game.FootprintBorderDo(origin.X, origin.Y, fw, fh, func(bx, by int) {
+		if spawned || bx == px && by == py {
 			return
 		}
-	}
+		tile := env.State.World.TileAt(bx, by)
+		if tile == nil || tile.Structure != game.NoStructure {
+			return
+		}
+		env.Villagers.Spawn(bx, by)
+		spawned = true
+	})
 }
 
 // OnPlayerInteraction handles adjacent-player interaction.
