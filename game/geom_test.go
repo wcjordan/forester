@@ -120,7 +120,6 @@ func TestFootprintBorderDo_3x2(t *testing.T) {
 	got := collectBorder(0, 0, 3, 2)
 	// No duplicates.
 	seen := map[[2]int]int{}
-	seen := map[[2]int]int{}
 	for _, p := range got {
 		seen[p]++
 	}
