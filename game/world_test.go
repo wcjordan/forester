@@ -55,10 +55,12 @@ func TestInBounds(t *testing.T) {
 	}
 }
 
-func TestSetStructure(t *testing.T) {
+func TestAddStructure(t *testing.T) {
+	def := testLogStorageDef{} // 4×4, BuiltType=LogStorage, FoundationType=FoundationLogStorage
+
 	t.Run("stamps correct tiles", func(t *testing.T) {
 		w := NewWorld(10, 10)
-		w.SetStructure(2, 3, 4, 4, LogStorage)
+		w.PlaceBuilt(2, 3, def)
 		for dy := 0; dy < 4; dy++ {
 			for dx := 0; dx < 4; dx++ {
 				tile := w.TileAt(2+dx, 3+dy)
@@ -76,43 +78,42 @@ func TestSetStructure(t *testing.T) {
 	t.Run("clips out-of-bounds tiles gracefully", func(t *testing.T) {
 		w := NewWorld(5, 5)
 		// Should not panic even if rect extends outside world.
-		w.SetStructure(3, 3, 4, 4, FoundationLogStorage)
+		w.PlaceFoundation(3, 3, def)
 	})
 
 	t.Run("populates NoGrowTiles within noGrowRadius", func(t *testing.T) {
-		// 30×30 world. Place a 1×1 structure at (15,15).
-		// Tile at (15,20) is distance 5 ≤ 8: must be in NoGrowTiles.
-		// Tile at (15,24) is distance 9 > 8: must NOT be in NoGrowTiles.
+		// 30×30 world. Place a 4×4 structure at (15,15); footprint covers (15,15)–(18,18).
+		// Nearest footprint point to (15,20) is (15,18): distance 2 ≤ 8 → must be in NoGrowTiles.
+		// Nearest footprint point to (15,27) is (15,18): distance 9 > 8 → must NOT be in NoGrowTiles.
 		w := NewWorld(30, 30)
-		w.SetStructure(15, 15, 1, 1, LogStorage)
+		w.PlaceBuilt(15, 15, def)
 		if _, ok := w.NoGrowTiles[Point{15, 20}]; !ok {
-			t.Error("tile at distance 5 from structure should be in NoGrowTiles")
+			t.Error("tile at distance 2 from structure should be in NoGrowTiles")
 		}
-		if _, ok := w.NoGrowTiles[Point{15, 24}]; ok {
+		if _, ok := w.NoGrowTiles[Point{15, 27}]; ok {
 			t.Error("tile at distance 9 from structure should not be in NoGrowTiles")
 		}
 	})
 
-	t.Run("NoStructure stamp does not add to NoGrowTiles", func(t *testing.T) {
+	t.Run("clearing a structure does not add to NoGrowTiles", func(t *testing.T) {
 		w := NewWorld(30, 30)
-		before := len(w.NoGrowTiles)
-		w.SetStructure(1, 1, 1, 1, NoStructure) // outside spawn zone
-		if len(w.NoGrowTiles) != before {
-			t.Errorf("NoGrowTiles grew by %d entries after NoStructure stamp, want 0", len(w.NoGrowTiles)-before)
+		w.PlaceBuilt(1, 1, def)
+		after := len(w.NoGrowTiles)
+		w.clearStructure(1, 1, def)
+		if len(w.NoGrowTiles) != after {
+			t.Errorf("NoGrowTiles grew by %d entries after clearing, want 0", len(w.NoGrowTiles)-after)
 		}
 	})
-}
 
-func TestSetStructureTypeIndex(t *testing.T) {
 	t.Run("stamps populate type index", func(t *testing.T) {
 		w := NewWorld(10, 10)
-		w.SetStructure(2, 3, 2, 2, LogStorage)
+		w.PlaceBuilt(2, 3, def)
 		pts := w.StructureTypeIndex[LogStorage]
-		if len(pts) != 4 {
-			t.Fatalf("type index has %d points, want 4", len(pts))
+		if len(pts) != 16 {
+			t.Fatalf("type index has %d points, want 16 (4×4)", len(pts))
 		}
-		for dy := 0; dy < 2; dy++ {
-			for dx := 0; dx < 2; dx++ {
+		for dy := 0; dy < 4; dy++ {
+			for dx := 0; dx < 4; dx++ {
 				p := Point{2 + dx, 3 + dy}
 				if _, ok := pts[p]; !ok {
 					t.Errorf("expected point %v in type index", p)
@@ -123,26 +124,26 @@ func TestSetStructureTypeIndex(t *testing.T) {
 
 	t.Run("foundation to built transition removes foundation entries", func(t *testing.T) {
 		w := NewWorld(10, 10)
-		w.SetStructure(1, 1, 2, 2, FoundationLogStorage)
-		if len(w.StructureTypeIndex[FoundationLogStorage]) != 4 {
-			t.Fatalf("expected 4 foundation entries after placement")
+		w.PlaceFoundation(1, 1, def)
+		if len(w.StructureTypeIndex[FoundationLogStorage]) != 16 {
+			t.Fatalf("expected 16 foundation entries after placement (4×4)")
 		}
-		w.SetStructure(1, 1, 2, 2, LogStorage)
+		w.PlaceBuilt(1, 1, def)
 		if len(w.StructureTypeIndex[FoundationLogStorage]) != 0 {
 			t.Errorf("foundation entries should be gone after overwrite, got %d", len(w.StructureTypeIndex[FoundationLogStorage]))
 		}
 		if _, exists := w.StructureTypeIndex[FoundationLogStorage]; exists {
 			t.Error("foundation key should be removed from index when empty")
 		}
-		if len(w.StructureTypeIndex[LogStorage]) != 4 {
-			t.Errorf("expected 4 built entries, got %d", len(w.StructureTypeIndex[LogStorage]))
+		if len(w.StructureTypeIndex[LogStorage]) != 16 {
+			t.Errorf("expected 16 built entries (4×4), got %d", len(w.StructureTypeIndex[LogStorage]))
 		}
 	})
 
-	t.Run("clearing tiles removes entries", func(t *testing.T) {
+	t.Run("clearing tiles removes type index entries", func(t *testing.T) {
 		w := NewWorld(10, 10)
-		w.SetStructure(0, 0, 3, 3, LogStorage)
-		w.SetStructure(0, 0, 3, 3, NoStructure)
+		w.PlaceBuilt(0, 0, def)
+		w.clearStructure(0, 0, def)
 		if len(w.StructureTypeIndex[LogStorage]) != 0 {
 			t.Errorf("expected no entries after clear, got %d", len(w.StructureTypeIndex[LogStorage]))
 		}
@@ -150,12 +151,10 @@ func TestSetStructureTypeIndex(t *testing.T) {
 			t.Error("key should be removed from index when empty")
 		}
 	})
-}
 
-func TestIndexStructure(t *testing.T) {
-	t.Run("single tile entry has correct origin", func(t *testing.T) {
+	t.Run("origin tile has correct structureIndex entry", func(t *testing.T) {
 		w := NewWorld(10, 10)
-		w.IndexStructure(3, 4, 1, 1, testLogStorageDef{})
+		w.PlaceBuilt(3, 4, def)
 		entry, ok := w.structureIndex[Point{3, 4}]
 		if !ok {
 			t.Fatal("expected entry at (3,4)")
@@ -165,9 +164,9 @@ func TestIndexStructure(t *testing.T) {
 		}
 	})
 
-	t.Run("4x4 footprint: all 16 tiles indexed with same origin", func(t *testing.T) {
+	t.Run("all footprint tiles indexed with same origin", func(t *testing.T) {
 		w := NewWorld(20, 20)
-		w.IndexStructure(2, 3, 4, 4, testLogStorageDef{})
+		w.PlaceBuilt(2, 3, def)
 		origin := Point{2, 3}
 		for dy := 0; dy < 4; dy++ {
 			for dx := 0; dx < 4; dx++ {
@@ -186,10 +185,14 @@ func TestIndexStructure(t *testing.T) {
 
 	t.Run("second call with same origin is idempotent", func(t *testing.T) {
 		w := NewWorld(10, 10)
-		w.IndexStructure(1, 1, 1, 1, testLogStorageDef{})
-		w.IndexStructure(1, 1, 1, 1, testLogStorageDef{})
-		if len(w.structureIndex) != 1 {
-			t.Errorf("index len = %d, want 1", len(w.structureIndex))
+		fw, fh := def.Footprint()
+		w.PlaceBuilt(1, 1, def)
+		w.PlaceBuilt(1, 1, def)
+		if got := len(w.structureIndex); got != fw*fh {
+			t.Errorf("structureIndex len = %d, want %d (one entry per tile, not duplicated)", got, fw*fh)
+		}
+		if w.CountStructureInstances(LogStorage) != 1 {
+			t.Errorf("CountStructureInstances = %d, want 1 (idempotent)", w.CountStructureInstances(LogStorage))
 		}
 	})
 }
@@ -200,9 +203,9 @@ func TestHasStructureOfType(t *testing.T) {
 	if w.HasStructureOfType(LogStorage) {
 		t.Error("should have no LogStorage initially")
 	}
-	w.SetStructure(1, 1, 2, 2, LogStorage)
+	w.PlaceBuilt(1, 1, testLogStorageDef{})
 	if !w.HasStructureOfType(LogStorage) {
-		t.Error("should detect LogStorage after SetStructure")
+		t.Error("should detect LogStorage after PlaceBuilt")
 	}
 	if w.HasStructureOfType(FoundationLogStorage) {
 		t.Error("should not detect FoundationLogStorage when none placed")
