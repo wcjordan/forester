@@ -243,7 +243,7 @@ func TestNearestClearTileAdjacent(t *testing.T) {
 }
 
 func TestNearestClearTileAdjacentExcludesCorners(t *testing.T) {
-	// 4×4 LogStorage at (5,5) — footprint matches testLogStorageDef.Footprint().
+	// 4×4 LogStorage at (5,5) — footprint matches testLogStorageDef{}.Footprint().
 	// Cardinal neighbors: top y=4 x∈[5,8], bottom y=9 x∈[5,8],
 	//                     left x=4 y∈[5,8], right x=9 y∈[5,8].
 	// Chebyshev corners (excluded): (4,4), (9,4), (4,9), (9,9).
@@ -269,7 +269,7 @@ func TestNearestClearTileAdjacentExcludesCorners(t *testing.T) {
 }
 
 func TestNearestClearTileAdjacentReturnedTileIsCardinallyAdjacent(t *testing.T) {
-	// 4×4 LogStorage at (5,5) — footprint matches testLogStorageDef.Footprint().
+	// 4×4 LogStorage at (5,5) — footprint matches testLogStorageDef{}.Footprint().
 	// Chebyshev corners: (4,4), (9,4), (4,9), (9,9) — must never be returned.
 	w := NewWorld(20, 20)
 	w.PlaceBuilt(5, 5, testLogStorageDef{})

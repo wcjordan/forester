@@ -54,6 +54,7 @@ func withTestResources(t *testing.T) {
 // It mimics just enough of logStorageDef (now in game/structures) to exercise
 // spawnFoundationAt and placement helpers without importing the structures subpackage.
 // ShouldSpawn returns false: initial log storage spawning is owned by story beats.
+// The canonical version for external test packages lives in game/internal/gametest.
 type testLogStorageDef struct{}
 
 func (testLogStorageDef) FoundationType() StructureType                    { return FoundationLogStorage }
@@ -65,8 +66,7 @@ func (testLogStorageDef) OnPlayerInteraction(_ *Env, _ point, _ time.Time) {}
 func (testLogStorageDef) OnBuilt(_ *Env, _ point)                          {}
 
 // testWallDef is a minimal StructureDef for pathfinding/routing obstacle tests.
-// The width and height fields let callers specify arbitrary rectangular walls
-// (e.g. 1×15) without accessing the unexported addStructure.
+// The canonical version for external test packages lives in game/internal/gametest.
 type testWallDef struct{ width, height int }
 
 func (d testWallDef) FoundationType() StructureType                    { return LogStorage }
