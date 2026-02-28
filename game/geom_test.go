@@ -116,10 +116,10 @@ func TestFootprintBorderDo_2x2(t *testing.T) {
 
 // TestFootprintBorderDo_3x2 verifies a non-square footprint visits the right tiles.
 func TestFootprintBorderDo_3x2(t *testing.T) {
-	// 3 wide, 2 tall at origin (0,0). Border has (3+2)*2 + (2-2)*2 + (2-2)*2...
-	// easier: outer box is 5×4 = 20 tiles, inner is 3×2 = 6, border = 14.
+	// 3 wide, 2 tall at origin (0,0). Border tiles: outer box (5×4=20) minus inner (3×2=6) = 14.
 	got := collectBorder(0, 0, 3, 2)
 	// No duplicates.
+	seen := map[[2]int]int{}
 	seen := map[[2]int]int{}
 	for _, p := range got {
 		seen[p]++
