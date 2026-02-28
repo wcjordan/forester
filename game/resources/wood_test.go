@@ -8,6 +8,18 @@ import (
 	"forester/game"
 )
 
+// nopDef is a minimal StructureDef for tests that only need a structure to
+// occupy tiles (e.g. for NoGrowTiles suppression) without any behaviour.
+type nopDef struct{}
+
+func (nopDef) FoundationType() game.StructureType                         { return game.NoStructure }
+func (nopDef) BuiltType() game.StructureType                              { return game.NoStructure }
+func (nopDef) Footprint() (w, h int)                                      { return 1, 1 }
+func (nopDef) BuildCost() int                                             { return 0 }
+func (nopDef) ShouldSpawn(_ *game.Env) bool                               { return false }
+func (nopDef) OnPlayerInteraction(_ *game.Env, _ game.Point, _ time.Time) {}
+func (nopDef) OnBuilt(_ *game.Env, _ game.Point)                          {}
+
 // regrowTick calls woodDef.Regrow with a timestamp far enough ahead to fire
 // the regrowth logic regardless of the current cooldown state.
 func regrowTick(env *game.Env, rng *rand.Rand, i int) {
@@ -116,7 +128,7 @@ func TestRegrowWood(t *testing.T) {
 		// tile at (5,10) — distance 5 ≤ 8 from the structure, and distance
 		// sqrt(225+100)=~18 from spawn (safely outside the spawn zone).
 		w := game.NewWorld(40, 40)
-		w.SetStructure(5, 5, 1, 1, game.LogStorage)
+		w.AddStructure(5, 5, 1, 1, game.LogStorage, nopDef{})
 		w.Tiles[10][5] = game.Tile{Terrain: game.Forest, TreeSize: 0}
 		env := &game.Env{State: &game.State{World: w}, Stores: game.NewStorageManager()}
 		regrowTick(env, rng, 0)

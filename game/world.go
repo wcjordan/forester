@@ -13,12 +13,12 @@ type World struct {
 	structureIndex     map[Point]structureEntry
 	StructureTypeIndex map[StructureType]map[Point]struct{}
 	// structureInstanceIndex maps each StructureType to the set of origin Points
-	// for all instances of that type. Maintained by IndexStructure so that
+	// for all instances of that type. Maintained by AddStructure so that
 	// CountStructureInstances is O(1).
 	structureInstanceIndex map[StructureType]map[Point]struct{}
 	// NoGrowTiles is the set of tiles suppressed from tree regrowth because
 	// they are within noGrowRadius of the spawn point or any structure.
-	// Populated by NewWorld (spawn zone) and SetStructure (structure zones).
+	// Populated by NewWorld (spawn zone) and AddStructure (structure zones).
 	NoGrowTiles    map[Point]struct{}
 	regrowCooldown time.Time
 }
@@ -63,7 +63,7 @@ const noGrowRadius = 8
 // markNoGrowZoneRect adds all in-bounds tiles within noGrowRadius of the
 // rectangle (fx, fy)–(fx+fw-1, fy+fh-1) to w.NoGrowTiles. Distance is
 // measured from each candidate tile to the nearest point inside the rectangle.
-// Called by NewWorld (spawn zone) and SetStructure (structure footprint).
+// Called by NewWorld (spawn zone) and AddStructure (structure footprint).
 func (w *World) markNoGrowZoneRect(fx, fy, fw, fh int) {
 	for ty := fy - noGrowRadius; ty <= fy+fh-1+noGrowRadius; ty++ {
 		for tx := fx - noGrowRadius; tx <= fx+fw-1+noGrowRadius; tx++ {
@@ -99,11 +99,14 @@ func (w *World) TileAt(x, y int) *Tile {
 	return &w.Tiles[y][x]
 }
 
-// SetStructure stamps a rectangle of tiles (x, y) to (x+width-1, y+height-1)
-// with the given structure type. Out-of-bounds tiles are skipped.
-// It also maintains StructureTypeIndex and expands the NoGrowTiles zone once
-// for the entire footprint.
-func (w *World) SetStructure(x, y, width, height int, stype StructureType) {
+// AddStructure stamps stype onto the tile grid, maintains all three structure
+// indexes (StructureTypeIndex, structureInstanceIndex, structureIndex), and
+// expands the NoGrowTiles zone. Pass stype=NoStructure and def=nil to clear a
+// previously placed structure.
+func (w *World) AddStructure(x, y, width, height int, stype StructureType, def StructureDef) {
+	origin := Point{x, y}
+
+	// Stamp tiles and maintain StructureTypeIndex.
 	for dy := 0; dy < height; dy++ {
 		for dx := 0; dx < width; dx++ {
 			pt := Point{x + dx, y + dy}
@@ -111,7 +114,6 @@ func (w *World) SetStructure(x, y, width, height int, stype StructureType) {
 			if tile == nil {
 				continue
 			}
-			// Remove old entry from type index.
 			if old := tile.Structure; old != NoStructure {
 				inner := w.StructureTypeIndex[old]
 				delete(inner, pt)
@@ -120,7 +122,6 @@ func (w *World) SetStructure(x, y, width, height int, stype StructureType) {
 				}
 			}
 			tile.Structure = stype
-			// Add new entry to type index.
 			if stype != NoStructure {
 				if w.StructureTypeIndex[stype] == nil {
 					w.StructureTypeIndex[stype] = make(map[Point]struct{})
@@ -129,57 +130,40 @@ func (w *World) SetStructure(x, y, width, height int, stype StructureType) {
 			}
 		}
 	}
+
 	// Expand the no-grow zone once for the entire footprint.
 	if stype != NoStructure {
 		w.markNoGrowZoneRect(x, y, width, height)
 	}
-}
 
-// AddStructure stamps stype onto the tile grid and records the def in the
-// structure index. It is the combined form of SetStructure + IndexStructure
-// and should be used whenever both need to be called together.
-func (w *World) AddStructure(x, y, width, height int, stype StructureType, def StructureDef) {
-	w.SetStructure(x, y, width, height, stype)
-	w.IndexStructure(x, y, width, height, def)
-}
-
-// CountStructureInstances returns the number of distinct instances of stype.
-// O(1) — maintained by IndexStructure.
-func (w *World) CountStructureInstances(stype StructureType) int {
-	return len(w.structureInstanceIndex[stype])
-}
-
-// IndexStructure records every tile in the w×h footprint at (x, y) in the
-// structureIndex, all sharing the same Origin so multi-tile instances can be
-// deduplicated by callers. Also maintains structureInstanceIndex.
-func (w *World) IndexStructure(x, y, width, height int, def StructureDef) {
-	origin := Point{x, y}
-
-	// If this origin was previously indexed under a different type, remove it.
-	for stype, origins := range w.structureInstanceIndex {
+	// Remove old instance index entry for this origin (handles type transitions
+	// and clearing).
+	for st, origins := range w.structureInstanceIndex {
 		if _, ok := origins[origin]; ok {
 			delete(origins, origin)
 			if len(origins) == 0 {
-				delete(w.structureInstanceIndex, stype)
+				delete(w.structureInstanceIndex, st)
 			}
 			break
 		}
 	}
 
-	// Add origin to the new type bucket (determined from the tile, which
-	// SetStructure has already updated before IndexStructure is called).
-	tile := w.TileAt(x, y)
-	if tile != nil && tile.Structure != NoStructure {
-		stype := tile.Structure
+	// Record per-tile and per-instance entries for the new type.
+	if stype != NoStructure {
 		if w.structureInstanceIndex[stype] == nil {
 			w.structureInstanceIndex[stype] = make(map[Point]struct{})
 		}
 		w.structureInstanceIndex[stype][origin] = struct{}{}
-	}
-
-	for dy := 0; dy < height; dy++ {
-		for dx := 0; dx < width; dx++ {
-			w.structureIndex[Point{x + dx, y + dy}] = structureEntry{Def: def, Origin: origin}
+		for dy := 0; dy < height; dy++ {
+			for dx := 0; dx < width; dx++ {
+				w.structureIndex[Point{x + dx, y + dy}] = structureEntry{Def: def, Origin: origin}
+			}
 		}
 	}
+}
+
+// CountStructureInstances returns the number of distinct instances of stype.
+// O(1) — maintained by AddStructure.
+func (w *World) CountStructureInstances(stype StructureType) int {
+	return len(w.structureInstanceIndex[stype])
 }
