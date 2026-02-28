@@ -60,6 +60,23 @@ func (w *World) InBounds(x, y int) bool {
 	return x >= 0 && x < w.Width && y >= 0 && y < w.Height
 }
 
+// IsBlocked returns true if the tile at (x, y) cannot be traversed.
+// Returns true for out-of-bounds coordinates and tiles with a structure.
+func (w *World) IsBlocked(x, y int) bool {
+	t := w.TileAt(x, y)
+	return t == nil || t.Structure != NoStructure
+}
+
+// MoveCost returns the movement cost to enter the tile at (x, y).
+// Forest tiles with trees cost 2; everything else costs 1.
+func (w *World) MoveCost(x, y int) int {
+	t := w.TileAt(x, y)
+	if t != nil && t.Terrain == Forest && t.TreeSize > 0 {
+		return 2
+	}
+	return 1
+}
+
 // noGrowRadius is the Euclidean radius around the spawn point and any structure
 // within which Forest tiles are suppressed from regrowing.
 const noGrowRadius = 8

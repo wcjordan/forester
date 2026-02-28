@@ -263,7 +263,7 @@ func (v *Villager) headToHouse(env *Env) bool {
 // Recomputes the path if nil (new target) or if the next step becomes blocked.
 func (v *Villager) move(world *World) {
 	if v.path == nil {
-		v.path = findPath(world, v.X, v.Y, v.TargetX, v.TargetY)
+		v.path = geom.FindPath(world, v.X, v.Y, v.TargetX, v.TargetY)
 		if v.path == nil {
 			return // unreachable; try again next tick
 		}
