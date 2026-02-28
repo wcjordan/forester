@@ -29,7 +29,11 @@ func chebyshevRingDo(cx, cy, r int, f func(x, y int)) {
 // around a w×h footprint whose top-left tile is at (ox, oy). The footprint tiles
 // themselves are never visited; each border tile is visited exactly once.
 // This is the rectangular generalisation of chebyshevRingDo.
+// Precondition: w >= 1 and h >= 1.
 func FootprintBorderDo(ox, oy, w, h int, f func(x, y int)) {
+	if w < 1 || h < 1 {
+		panic("FootprintBorderDo: w and h must be >= 1")
+	}
 	for x := ox - 1; x <= ox+w; x++ {
 		f(x, oy-1) // top row
 		f(x, oy+h) // bottom row
