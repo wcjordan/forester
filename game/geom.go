@@ -80,6 +80,23 @@ func spiralSearchDo(cx, cy, maxR int, f func(x, y int) bool) (x, y int, found bo
 	return -1, -1, false
 }
 
+// forFootprintCardinalNeighbors calls f for each tile that is cardinally
+// (orthogonally) adjacent to the w×h footprint with top-left at (fx, fy).
+// Corner tiles of the Chebyshev border are excluded (they are only diagonally
+// adjacent). Each neighbor tile is visited exactly once.
+func forFootprintCardinalNeighbors(fx, fy, fw, fh int, f func(x, y int)) {
+	// Top and bottom edges (no corners).
+	for x := fx; x < fx+fw; x++ {
+		f(x, fy-1)
+		f(x, fy+fh)
+	}
+	// Left and right edges.
+	for y := fy; y < fy+fh; y++ {
+		f(fx-1, y)
+		f(fx+fw, y)
+	}
+}
+
 // manhattan returns the Manhattan distance between two points.
 func manhattan(a, b Point) int {
 	return abs(a.X-b.X) + abs(a.Y-b.Y)
