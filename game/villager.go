@@ -177,6 +177,7 @@ func (v *Villager) Tick(env *Env, rng *rand.Rand, now time.Time) {
 						env.State.FoundationDeposited[foundOrigin] += deposit
 						v.Wood -= deposit
 						if env.State.FoundationDeposited[foundOrigin] >= buildCost {
+							AwardXP(env, XPBuildCompleteVillager)
 							FinalizeFoundation(env, entry.Def, foundOrigin)
 						}
 					}

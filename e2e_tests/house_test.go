@@ -123,7 +123,7 @@ func TestHouseWorkflow(t *testing.T) {
 	for range stepsNorth {
 		moveSafe(&m, clock, g, "w") // north
 		for range ticksPerStep {
-			tick(&m, clock)
+			tickDraining(&m, clock, g) // auto-drain any XP milestone offers
 			if g.State.Player.Inventory[game.Wood] >= g.State.Player.MaxCarry {
 				break
 			}
@@ -159,7 +159,7 @@ func TestHouseWorkflow(t *testing.T) {
 	announcePhase(m, "Phase 5: Deposit 50 wood to trigger house foundation")
 	const maxDepositTicks = 200
 	for i := range maxDepositTicks {
-		tick(&m, clock)
+		tickDraining(&m, clock, g) // auto-drain any XP milestone offers
 		if g.Stores.Total(game.Wood) >= houseSpawnThreshold {
 			break
 		}
@@ -209,7 +209,7 @@ func TestHouseWorkflow(t *testing.T) {
 	announcePhase(m, "Phase 7: Build house (50 wood deposits)")
 	const maxHouseBuildTicks = 150
 	for i := range maxHouseBuildTicks {
-		tick(&m, clock)
+		tickDraining(&m, clock, g) // auto-drain any XP milestone offers
 		if g.State.World.HasStructureOfType(game.House) {
 			break
 		}
@@ -283,12 +283,12 @@ func TestHouseWorkflow(t *testing.T) {
 	// Harvest at (53,44) then sweep 3 more positions north; 15 ticks each position.
 	const woodFor2ndHouse = houseBuildCost*9/10 + 1 // 46 (>90% of 50)
 	for range 15 {
-		tick(&m, clock)
+		tickDraining(&m, clock, g) // auto-drain any XP milestone offers
 	}
 	for range 3 {
 		moveSafe(&m, clock, g, "w") // north to next fresh arc
 		for range 15 {
-			tick(&m, clock)
+			tickDraining(&m, clock, g) // auto-drain any XP milestone offers
 		}
 	}
 	// Player is now at (53,41) after 3 north moves from (53,44).
@@ -333,7 +333,7 @@ func TestHouseWorkflow(t *testing.T) {
 	announcePhase(m, "Phase 11: Player deposits >90% into 2nd foundation, then stops")
 	const maxBuild2Ticks = 120
 	for i := range maxBuild2Ticks {
-		tick(&m, clock)
+		tickDraining(&m, clock, g) // auto-drain any XP milestone offers
 		// Check whether the foundation is still in progress and past the 90% threshold.
 		// Note: FoundationProgress returns (0, false) before the first deposit; isBuilt
 		// guards against that case so we never break prematurely on an untouched foundation.
@@ -361,7 +361,7 @@ func TestHouseWorkflow(t *testing.T) {
 		}
 		const maxVillagerBuildTicks = 500 // villager chops until full before depositing, so cycles are longer
 		for i := range maxVillagerBuildTicks {
-			tick(&m, clock)
+			tickDraining(&m, clock, g) // auto-drain any XP milestone offers
 			if g.State.World.CountStructureInstances(game.House) >= 2 {
 				break
 			}

@@ -59,6 +59,21 @@ func tick(m *render.Model, clock *game.FakeClock) {
 	renderFrame(*m, "")
 }
 
+// drainOffers accepts card 0 for every pending offer, unpausing the game.
+// Use this inside tick loops that should not be interrupted by XP milestone cards.
+func drainOffers(g *game.Game) {
+	for g.HasPendingOffer() {
+		g.SelectCard(0)
+	}
+}
+
+// tickDraining ticks once then auto-accepts all pending card offers.
+// Use inside harvest/deposit/build loops to skip XP milestone interruptions.
+func tickDraining(m *render.Model, clock *game.FakeClock, g *game.Game) {
+	tick(m, clock)
+	drainOffers(g)
+}
+
 // moveDir advances the clock by the current tile's move cooldown, then sends the key.
 // It reads the player's current tile cooldown from the game state directly.
 func moveDir(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) {

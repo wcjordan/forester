@@ -102,6 +102,11 @@ func (g *Game) TickAdjacentStructures(now time.Time) {
 	s.Player.commitCooldowns()
 }
 
+// XPInfo returns the player's current XP and the threshold for the next milestone.
+func (g *Game) XPInfo() (xp, nextMilestone int) {
+	return g.State.XP, xpMilestoneAt(g.State.XPMilestoneIdx)
+}
+
 // SelectCard applies the card at idx from the front offer and pops it from the queue.
 func (g *Game) SelectCard(idx int) {
 	offer := g.CurrentOffer()
