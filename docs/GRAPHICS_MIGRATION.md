@@ -300,6 +300,27 @@ The options below were explored during planning. Each has real value — they we
 
 ---
 
+### Gemini 2.5 Flash Image ("Nano Banana")
+
+**What it is**: Google's native multimodal image generation model (released August 2025, codename "Nano Banana"), available via Google AI Studio and the Gemini API. Unlike diffusion models bolted onto a language model, image generation runs natively within the same model as text reasoning.
+
+**Value**:
+- **Multi-turn iterative editing** — describe changes conversationally ("make the tree darker, add a shadow on the right") rather than re-prompting from scratch; particularly good for refining sprites to exact spec
+- **Character consistency** — explicitly designed to maintain the same character's appearance across multiple generated images, which is a known weak point of Midjourney for animation frames
+- **Image blending** — combine multiple reference images into a single output; useful for mixing LPC base sprites with a custom aesthetic
+- **API-first** — clean REST API and Python SDK; straightforward to build batch asset generation pipelines
+- **Low latency and low cost** — Flash-class model; fast iteration cycles without burning budget
+- **World knowledge in the loop** — reasoning capabilities help it understand game-specific concepts ("isometric top-down tile, 2:1 diamond ratio") more reliably than pure diffusion models
+
+**Comparison to Midjourney**:
+- Midjourney produces higher raw aesthetic quality and has stronger community-tuned style prompts
+- Gemini 2.5 Flash Image is more controllable for iteration and consistency — better for a systematic asset pipeline, worse for one-shot hero art
+- For game sprites specifically, the character consistency and API access make it a strong complement: use Midjourney for initial style exploration, Gemini for generating consistent animation frames and tileset variants
+
+**Limitations**: Pixel art output quality is less proven than Midjourney; community prompt recipes are less mature. Not ideal as a sole tool for final production assets yet, but the API-driven iteration loop is genuinely faster for systematic work.
+
+---
+
 ### Summary Table
 
 | Option | Best For | Key Trade-off | Status |
@@ -310,4 +331,5 @@ The options below were explored during planning. Each has real value — they we
 | **Phaser.js** | Pure-browser, no WASM overhead | Go↔JS interop or full JS rewrite | Revisit for browser-only product |
 | **Midjourney** | Concept art, character refs, hero assets | Animation consistency; tileset seams | Use now for concepts |
 | **Stable Diffusion** | Bulk tilesets, isometric LoRAs, seamless textures | GPU required; setup overhead | Use for systematic tileset gen |
+| **Gemini 2.5 Flash Image** | Iterative editing, character consistency, API pipelines | Pixel art quality less proven than MJ | Strong supplemental |
 | **DALL-E 3 / Firefly** | One-off assets, prompt-precise sprites | Less consistent across asset sets | Supplemental |
