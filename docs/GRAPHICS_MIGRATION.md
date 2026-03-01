@@ -333,3 +333,31 @@ The options below were explored during planning. Each has real value — they we
 | **Stable Diffusion** | Bulk tilesets, isometric LoRAs, seamless textures | GPU required; setup overhead | Use for systematic tileset gen |
 | **Gemini 2.5 Flash Image** | Iterative editing, character consistency, API pipelines | Pixel art quality less proven than MJ | Strong supplemental |
 | **DALL-E 3 / Firefly** | One-off assets, prompt-precise sprites | Less consistent across asset sets | Supplemental |
+
+---
+
+### Recommended Split: Midjourney + Gemini 2.5 Flash Image
+
+These two tools are complementary rather than competing, covering opposite ends of the asset production pipeline:
+
+**Phase 1 — Style definition (Midjourney)**
+
+Use Midjourney to establish the visual language before producing any final assets:
+1. Generate 10–20 mood board images with prompts like `"pixel art village tileset, top-down view, warm palette, Warcraft 2 style, 32x32 tiles"`
+2. Pick the 2–3 results that feel right and save them as style references (`--sref`)
+3. Generate key hero assets — player character, a tree, a house — to lock in proportions and color palette
+4. Export the approved references; these become the aesthetic contract for everything that follows
+
+Midjourney's strength here is aesthetic judgment and creative range across many options quickly. Its weakness is reproducibility — getting the *same* character twice is hard.
+
+**Phase 2 — Systematic asset production (Gemini 2.5 Flash Image)**
+
+Use Gemini with the Midjourney references as input images to generate the full asset set:
+1. Upload the approved hero sprite and ask for directional variants: `"same character, facing left, same pixel art style"`
+2. Generate animation frames conversationally: `"now the same character mid-stride, left foot forward"`
+3. Build tileset variants: `"same grass tile but with a dirt path crossing it horizontally"`
+4. Iterate in-place: `"the tree canopy reads too dark against the grass — lighten it two shades"`
+
+Gemini's multi-turn editing and character consistency are well-suited to this systematic work. The API access also makes it practical to script batch generation (e.g. all 4 directional frames × all terrain types in one run).
+
+**In practice**: expect to spend ~20% of art time in Midjourney defining the style, ~70% in Gemini producing and refining the full asset catalog, and ~10% in Aseprite for final pixel cleanup and animation timing.
