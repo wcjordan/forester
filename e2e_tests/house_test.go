@@ -16,25 +16,6 @@ import (
 	"forester/render"
 )
 
-// moveSafe advances the clock by the greater of the current tile's move cooldown
-// or the remaining move cooldown, then sends the directional key. This correctly
-// handles Forest→Grassland transitions: after moving off a Forest tile (300ms
-// cooldown set), the subsequent Grassland move (only 150ms) would fail with
-// moveDir because the previous 300ms cooldown hasn't expired.
-func moveSafe(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) {
-	p := g.State.Player
-	tile := g.State.World.TileAt(p.X, p.Y)
-	needed := game.MoveCooldownFor(tile)
-	remaining := p.Cooldowns[game.Move].Sub(clock.Now())
-	if remaining > needed {
-		clock.Advance(remaining)
-	} else {
-		clock.Advance(needed)
-	}
-	sendKey(m, dir)
-	renderFrame(*m, fmt.Sprintf("moveSafe %s → (%d,%d)", dir, g.State.Player.X, g.State.Player.Y))
-}
-
 // TestHouseWorkflow is a full end-to-end scenario for the house building path:
 //
 //  1. Navigate to harvest position (48,45) adjacent to forest.

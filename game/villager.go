@@ -86,8 +86,7 @@ func SpawnVillagerAtHouse(env *Env, origin geom.Point) bool {
 		if spawned {
 			return
 		}
-		tile := env.State.World.TileAt(bx, by)
-		if tile == nil || tile.Structure != NoStructure {
+		if env.State.World.IsBlocked(bx, by) {
 			return
 		}
 		env.Villagers.Spawn(bx, by)
