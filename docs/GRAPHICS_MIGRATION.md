@@ -91,7 +91,7 @@ Suggested first assets to source/generate:
 **What changes**:
 - Add `ebitengine` dependency (`go get github.com/hajimehoshi/ebiten/v2`)
 - Create `render/ebiten_model.go` implementing `ebiten.Game`:
-  - `Update() error` — drive `game.Tick()` at 100ms intervals (same as current bubbletea loop)
+  - `Update() error` — drive `game.Tick()` at `game.GameTickInterval` (currently 100ms, same as current bubbletea loop)
   - `Draw(*ebiten.Image)` — draw one colored rectangle per visible tile
   - `Layout(w, h int) (int, int)` — return logical resolution (e.g. 1280×720)
 - Update `main.go` to use `ebiten.RunGame()` instead of bubbletea
@@ -129,7 +129,7 @@ Villager       → #40C0C0 (cyan)
 
 **What changes**:
 - Add `assets/sprites/` directory with PNG files (sourced from LPC or generated)
-- Load spritesheets via `ebiten.NewImageFromFile` or embedded via `go:embed`
+- Load spritesheets via `ebitenutil.NewImageFromFile` or embed via `go:embed`, decode with `image/png`, then wrap with `ebiten.NewImageFromImage`
 - Map `TerrainType` + `TreeSize` + `StructureType` → sprite frame
 - Player and villager rendered as sprites (static for now)
 
