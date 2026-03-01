@@ -359,7 +359,7 @@ func TestHouseWorkflow(t *testing.T) {
 			t.Fatalf("phase 12: expected player at (49,50), got (%d,%d)",
 				g.State.Player.X, g.State.Player.Y)
 		}
-		const maxVillagerBuildTicks = 200
+		const maxVillagerBuildTicks = 500 // villager chops until full before depositing, so cycles are longer
 		for i := range maxVillagerBuildTicks {
 			tick(&m, clock)
 			if g.State.World.CountStructureInstances(game.House) >= 2 {

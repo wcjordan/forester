@@ -225,3 +225,10 @@ func (w *World) addStructure(x, y, width, height int, stype StructureType, def S
 func (w *World) CountStructureInstances(stype StructureType) int {
 	return len(w.structureInstanceIndex[stype])
 }
+
+// isHarvestable returns true if the tile at (x, y) can be harvested for wood.
+// Returns false for Forest tiles w/ TreeSize > 0
+func (w *World) isHarvestable(x, y int) bool {
+	t := w.TileAt(x, y)
+	return t != nil && t.Terrain == Forest && t.TreeSize > 0
+}
