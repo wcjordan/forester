@@ -221,7 +221,7 @@ func TestNearestClearTileAdjacent(t *testing.T) {
 	w := NewWorld(20, 20)
 	w.PlaceBuilt(5, 5, testLogStorageDef{})
 
-	tx, ty, ok := nearestClearTileAdjacent(w, LogStorage, 5, 4)
+	tx, ty, ok := nearestClearTileAdjacent(w, LogStorage, 5, 4, nil)
 	if !ok {
 		t.Fatal("nearestClearTileAdjacent returned false, want true")
 	}
@@ -235,7 +235,7 @@ func TestNearestClearTileAdjacent(t *testing.T) {
 	}
 
 	t.Run("returns false when type not present", func(t *testing.T) {
-		_, _, ok := nearestClearTileAdjacent(w, House, 10, 10)
+		_, _, ok := nearestClearTileAdjacent(w, House, 10, 10, nil)
 		if ok {
 			t.Error("should return false when no House exists")
 		}
@@ -262,7 +262,7 @@ func TestNearestClearTileAdjacentExcludesCorners(t *testing.T) {
 
 	// All cardinal neighbors are blocked; only diagonal corners remain open.
 	// The function must treat corners as non-adjacent and return ok=false.
-	_, _, ok := nearestClearTileAdjacent(w, LogStorage, 7, 7)
+	_, _, ok := nearestClearTileAdjacent(w, LogStorage, 7, 7, nil)
 	if ok {
 		t.Error("nearestClearTileAdjacent returned ok=true when only diagonal corners are free; corners must not be considered adjacent")
 	}
@@ -281,7 +281,7 @@ func TestNearestClearTileAdjacentReturnedTileIsCardinallyAdjacent(t *testing.T) 
 
 	// Run from several positions and confirm no corner is ever returned.
 	for _, from := range [][2]int{{0, 0}, {4, 4}, {9, 9}, {10, 10}} {
-		tx, ty, ok := nearestClearTileAdjacent(w, LogStorage, from[0], from[1])
+		tx, ty, ok := nearestClearTileAdjacent(w, LogStorage, from[0], from[1], nil)
 		if !ok {
 			t.Errorf("from (%d,%d): expected ok=true", from[0], from[1])
 			continue

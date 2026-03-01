@@ -223,7 +223,7 @@ func (v *Villager) tryAssignDeliverTask(env *Env) bool {
 	if len(env.State.World.StructureTypeIndex[FoundationHouse]) == 0 {
 		return false
 	}
-	tx, ty, ok := nearestClearTileAdjacent(env.State.World, LogStorage, v.X, v.Y)
+	tx, ty, ok := nearestClearTileAdjacent(env.State.World, LogStorage, v.X, v.Y, nil)
 	if !ok {
 		return false
 	}
@@ -233,10 +233,14 @@ func (v *Villager) tryAssignDeliverTask(env *Env) bool {
 	return true
 }
 
-// headToStorage transitions the villager to CarryingToStorage toward the nearest storage.
-// If no storage is found, drops wood and goes idle.
+// headToStorage transitions the villager to CarryingToStorage toward the nearest non-full storage.
+// If no storage with space is found, drops wood and goes idle.
 func (v *Villager) headToStorage(env *Env) {
-	tx, ty, ok := nearestClearTileAdjacent(env.State.World, LogStorage, v.X, v.Y)
+	isFull := func(origin point) bool {
+		inst := env.Stores.FindByOrigin(origin)
+		return inst == nil || inst.Stored >= inst.Capacity
+	}
+	tx, ty, ok := nearestClearTileAdjacent(env.State.World, LogStorage, v.X, v.Y, isFull)
 	if !ok {
 		v.Task = VillagerIdle
 		return
@@ -249,7 +253,7 @@ func (v *Villager) headToStorage(env *Env) {
 // headToHouse transitions the villager to DeliveringToHouse toward the nearest house foundation.
 // Returns false if no house foundation is found.
 func (v *Villager) headToHouse(env *Env) bool {
-	tx, ty, ok := nearestClearTileAdjacent(env.State.World, FoundationHouse, v.X, v.Y)
+	tx, ty, ok := nearestClearTileAdjacent(env.State.World, FoundationHouse, v.X, v.Y, nil)
 	if !ok {
 		return false
 	}
@@ -298,11 +302,15 @@ func findNearbyTree(world *World, fromX, fromY int) (x, y int, ok bool) {
 // nearestClearTileAdjacent returns the clear tile (no structure, in-bounds) on the
 // perimeter of the nearest instance of stype to (fromX, fromY).
 // Uses structureInstanceIndex for O(instances) iteration over the footprint perimeter.
+// skip, if non-nil, is called with the structure origin; returning true skips that instance.
 // Returns ok=false if no such tile exists.
-func nearestClearTileAdjacent(world *World, stype StructureType, fromX, fromY int) (tx, ty int, ok bool) {
+func nearestClearTileAdjacent(world *World, stype StructureType, fromX, fromY int, skip func(point) bool) (tx, ty int, ok bool) {
 	bestDist2 := 0
 	found := false
 	for origin := range world.structureInstanceIndex[stype] {
+		if skip != nil && skip(origin) {
+			continue
+		}
 		entry, hasEntry := world.structureIndex[origin]
 		if !hasEntry {
 			continue
