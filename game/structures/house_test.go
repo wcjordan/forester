@@ -46,7 +46,7 @@ func TestHouseBuiltMarkedUnoccupied(t *testing.T) {
 	origin := geom.Point{X: 10, Y: 10}
 	buildHouseAt(g, origin.X, origin.Y, 9, 10)
 
-	if !g.State.World.HasStructureOfType(game.House) {
+	if !g.State.World.HasStructureOfType(House) {
 		t.Fatal("house was not built after depositing build cost")
 	}
 	// No villager should be auto-spawned.

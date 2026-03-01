@@ -55,10 +55,10 @@ func RegisterStructure(d StructureDef) {
 		panic("RegisterStructure: def is nil")
 	}
 	if _, exists := structures[d.FoundationType()]; exists {
-		panic(fmt.Sprintf("RegisterStructure: FoundationType %d already registered", d.FoundationType()))
+		panic(fmt.Sprintf("RegisterStructure: FoundationType %q already registered", d.FoundationType()))
 	}
 	if _, exists := structures[d.BuiltType()]; exists {
-		panic(fmt.Sprintf("RegisterStructure: BuiltType %d already registered", d.BuiltType()))
+		panic(fmt.Sprintf("RegisterStructure: BuiltType %q already registered", d.BuiltType()))
 	}
 	structures[d.FoundationType()] = d
 	structures[d.BuiltType()] = d

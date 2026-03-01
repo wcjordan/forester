@@ -11,7 +11,7 @@ import (
 
 	"forester/game"
 	_ "forester/game/resources"
-	_ "forester/game/structures"
+	"forester/game/structures"
 	_ "forester/game/upgrades"
 	"forester/render"
 )
@@ -75,7 +75,7 @@ func TestHouseWorkflow(t *testing.T) {
 	const maxLogStorageTicks = 200
 	for i := range maxLogStorageTicks {
 		tick(&m, clock)
-		if g.State.World.HasStructureOfType(game.LogStorage) {
+		if g.State.World.HasStructureOfType(structures.LogStorage) {
 			break
 		}
 		if i == maxLogStorageTicks-1 {
@@ -155,7 +155,7 @@ func TestHouseWorkflow(t *testing.T) {
 			houseBuildCost, woodForHouse, g.Stores.Total(game.Wood))
 	}
 	// House foundation should NOT have spawned yet (spawns on Phase 7 tick 1).
-	if g.State.World.HasStructureOfType(game.FoundationHouse) {
+	if g.State.World.HasStructureOfType(structures.FoundationHouse) {
 		t.Error("phase 5: house foundation appeared before navigation; expected it to spawn on Phase 7 tick 1")
 	}
 
@@ -191,13 +191,13 @@ func TestHouseWorkflow(t *testing.T) {
 	const maxHouseBuildTicks = 150
 	for i := range maxHouseBuildTicks {
 		tickDraining(&m, clock, g) // auto-drain any XP milestone offers
-		if g.State.World.HasStructureOfType(game.House) {
+		if g.State.World.HasStructureOfType(structures.House) {
 			break
 		}
 		if i == maxHouseBuildTicks-1 {
 			t.Fatalf("phase 7: house not built after %d ticks; Wood=%d foundationDeposited=%v hasFoundation=%v",
 				maxHouseBuildTicks, g.State.Player.Inventory[game.Wood],
-				g.State.FoundationDeposited, g.State.World.HasStructureOfType(game.FoundationHouse))
+				g.State.FoundationDeposited, g.State.World.HasStructureOfType(structures.FoundationHouse))
 		}
 	}
 	// Extra tick: first_house_built story beat fires → 2-card offer queued.
@@ -209,13 +209,13 @@ func TestHouseWorkflow(t *testing.T) {
 	announcePhase(m, "Phase 8: Accept house upgrade card")
 
 	// House must be built.
-	if !g.State.World.HasStructureOfType(game.House) {
+	if !g.State.World.HasStructureOfType(structures.House) {
 		t.Fatal("phase 8: House structure not found after build loop")
 	}
 
 	// House tile at (47,51) (origin of the foundation) must show House structure.
 	houseTile := g.State.World.TileAt(47, 51)
-	if houseTile == nil || houseTile.Structure != game.House {
+	if houseTile == nil || houseTile.Structure != structures.House {
 		t.Errorf("phase 8: expected House at (47,51), got %v", houseTile)
 	}
 
@@ -306,7 +306,7 @@ func TestHouseWorkflow(t *testing.T) {
 			g.State.Player.X, g.State.Player.Y)
 	}
 	// Verify the 2nd foundation is directly east of the player at (50,51).
-	if tile := g.State.World.TileAt(50, 51); tile == nil || tile.Structure != game.FoundationHouse {
+	if tile := g.State.World.TileAt(50, 51); tile == nil || tile.Structure != structures.FoundationHouse {
 		t.Fatalf("phase 10: expected FoundationHouse at (50,51), got %v", tile)
 	}
 
@@ -322,7 +322,7 @@ func TestHouseWorkflow(t *testing.T) {
 		// Check whether the foundation is still in progress and past the 90% threshold.
 		// Note: FoundationProgress returns (0, false) before the first deposit; isBuilt
 		// guards against that case so we never break prematurely on an untouched foundation.
-		isBuilt := g.State.World.CountStructureInstances(game.House) >= 2
+		isBuilt := g.State.World.CountStructureInstances(structures.House) >= 2
 		progress, hasPending := g.State.FoundationProgress()
 		if isBuilt || (hasPending && progress > 0.9) {
 			break
@@ -337,7 +337,7 @@ func TestHouseWorkflow(t *testing.T) {
 	// If the 2nd house isn't fully built yet (player stopped after >90%), move the player
 	// north to (49,50) — no longer adjacent to the foundation — and let the villager fetch
 	// the remaining wood from the log storage to complete the build.
-	if g.State.World.CountStructureInstances(game.House) < 2 {
+	if g.State.World.CountStructureInstances(structures.House) < 2 {
 		announcePhase(m, "Phase 12: Player steps back to (49,50); villager completes the 2nd house")
 		moveSafe(&m, clock, g, "w") // north → (49,50); adjacent to log storage, not foundation
 		if g.State.Player.X != 49 || g.State.Player.Y != 50 {
@@ -347,7 +347,7 @@ func TestHouseWorkflow(t *testing.T) {
 		const maxVillagerBuildTicks = 500 // villager chops until full before depositing, so cycles are longer
 		for i := range maxVillagerBuildTicks {
 			tickDraining(&m, clock, g) // auto-drain any XP milestone offers
-			if g.State.World.CountStructureInstances(game.House) >= 2 {
+			if g.State.World.CountStructureInstances(structures.House) >= 2 {
 				break
 			}
 			if i == maxVillagerBuildTicks-1 {
@@ -359,7 +359,7 @@ func TestHouseWorkflow(t *testing.T) {
 	// ── Phase 13: Verify 2nd house built ───────────────────────────────────────
 	// Villager spawning for the 2nd house is card-gated; we only verify the house was built.
 	announcePhase(m, "Phase 13: Verify 2nd house built")
-	if g.State.World.CountStructureInstances(game.House) < 2 {
+	if g.State.World.CountStructureInstances(structures.House) < 2 {
 		t.Fatal("phase 13: 2nd house not built")
 	}
 	// 2nd house must be registered as unoccupied (awaiting a spawn_villager card pick).

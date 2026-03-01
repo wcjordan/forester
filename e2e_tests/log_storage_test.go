@@ -12,7 +12,7 @@ import (
 
 	"forester/game"
 	_ "forester/game/resources"
-	_ "forester/game/structures"
+	"forester/game/structures"
 	_ "forester/game/upgrades"
 	"forester/render"
 )
@@ -62,7 +62,7 @@ func TestLogStorageWorkflow(t *testing.T) {
 	const maxHarvestTicks = 30
 	for i := range maxHarvestTicks {
 		tick(&m, clock)
-		if g.State.World.HasStructureOfType(game.FoundationLogStorage) || g.State.World.HasStructureOfType(game.LogStorage) {
+		if g.State.World.HasStructureOfType(structures.FoundationLogStorage) || g.State.World.HasStructureOfType(structures.LogStorage) {
 			break
 		}
 		if i == maxHarvestTicks-1 {
@@ -87,7 +87,7 @@ func TestLogStorageWorkflow(t *testing.T) {
 	const maxBuildTicks = 120
 	for i := range maxBuildTicks {
 		tick(&m, clock)
-		if g.State.World.HasStructureOfType(game.LogStorage) {
+		if g.State.World.HasStructureOfType(structures.LogStorage) {
 			break
 		}
 		if i == maxBuildTicks-1 {
@@ -96,11 +96,11 @@ func TestLogStorageWorkflow(t *testing.T) {
 	}
 
 	// Foundation tiles should be gone; LogStorage should exist.
-	if g.State.World.HasStructureOfType(game.FoundationLogStorage) {
+	if g.State.World.HasStructureOfType(structures.FoundationLogStorage) {
 		t.Error("phase 4: FoundationLogStorage tiles should be gone after build completes")
 	}
 	lsTile := g.State.World.TileAt(49, 48)
-	if lsTile == nil || lsTile.Structure != game.LogStorage {
+	if lsTile == nil || lsTile.Structure != structures.LogStorage {
 		t.Fatalf("phase 4: expected LogStorage at (49,48), got %v", lsTile)
 	}
 

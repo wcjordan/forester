@@ -9,16 +9,51 @@ import (
 
 const houseBuildCost = 50
 
-func init() { game.RegisterStructure(houseDef{}) }
+// FoundationHouse and House are the StructureType values for the two stages of
+// this structure. Defined here so external packages can reference them without
+// importing all of game/ or editing a central enum.
+const (
+	FoundationHouse game.StructureType = "foundation_house"
+	House           game.StructureType = "house"
+)
+
+func init() {
+	game.RegisterStructure(houseDef{})
+	game.RegisterVillagerDeliveryType(FoundationHouse)
+
+	// Order 300: spawn the first house foundation once enough wood has been deposited.
+	// NOTE: The threshold uses houseBuildCost so the player has enough wood on hand after
+	// depositing to immediately build the house; it stays in sync automatically if
+	// houseBuildCost changes.
+	game.RegisterStoryBeat(300, "initial_house",
+		func(env *game.Env) bool {
+			return env.Stores.Total(game.Wood) >= houseBuildCost
+		},
+		func(env *game.Env) bool {
+			return game.SpawnFoundationByType(env, FoundationHouse)
+		},
+	)
+
+	// Order 400: queue the build/deposit speed upgrade offer when the first house is completed.
+	game.RegisterStoryBeat(400, "first_house_built",
+		func(env *game.Env) bool {
+			return env.State.World.HasStructureOfType(House)
+		},
+		func(env *game.Env) bool {
+			env.State.AddOffer([]string{"build_speed", "deposit_speed"})
+			return true
+		},
+	)
+}
 
 // houseDef implements game.StructureDef for the House structure.
 type houseDef struct{}
 
 // FoundationType returns the foundation tile type for House.
-func (houseDef) FoundationType() game.StructureType { return game.FoundationHouse }
+func (houseDef) FoundationType() game.StructureType { return FoundationHouse }
 
 // BuiltType returns the built tile type for House.
-func (houseDef) BuiltType() game.StructureType { return game.House }
+func (houseDef) BuiltType() game.StructureType { return House }
 
 // Footprint returns the 2×2 dimensions of a House.
 func (houseDef) Footprint() (w, h int) { return 2, 2 }
@@ -30,8 +65,8 @@ func (houseDef) BuildCost() int { return houseBuildCost }
 // Returns true when at least one house has been built and no house foundation is pending.
 // The first house is handled by the story beat system; this drives all subsequent spawns.
 func (houseDef) ShouldSpawn(env *game.Env) bool {
-	built := len(env.State.World.StructureTypeIndex[game.House])
-	pending := len(env.State.World.StructureTypeIndex[game.FoundationHouse])
+	built := len(env.State.World.StructureTypeIndex[House])
+	pending := len(env.State.World.StructureTypeIndex[FoundationHouse])
 	return built >= 1 && pending == 0
 }
 
@@ -50,7 +85,7 @@ func (d houseDef) OnBuilt(env *game.Env, origin geom.Point) {
 // When adjacent to a built house, nothing happens (no storage).
 func (d houseDef) OnPlayerInteraction(env *game.Env, origin geom.Point, now time.Time) {
 	tile := env.State.World.TileAt(origin.X, origin.Y)
-	if tile == nil || tile.Structure != game.FoundationHouse {
+	if tile == nil || tile.Structure != FoundationHouse {
 		return
 	}
 	p := env.State.Player

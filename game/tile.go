@@ -10,16 +10,12 @@ const (
 )
 
 // StructureType represents a structure placed on top of terrain.
-type StructureType int
+// It is a string so that external packages (e.g. game/structures) can define
+// new types without editing this file.
+type StructureType string
 
-// Structure types.
-const (
-	NoStructure          StructureType = iota
-	FoundationLogStorage               // Log Storage foundation (blocks movement, accepts resource deposits)
-	LogStorage                         // built Log Storage (blocks movement)
-	FoundationHouse                    // House foundation (blocks movement, accepts resource deposits)
-	House                              // built House (blocks movement)
-)
+// NoStructure is the zero value for StructureType, representing an empty tile.
+const NoStructure StructureType = ""
 
 // Tile represents a single cell in the world grid.
 type Tile struct {

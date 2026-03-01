@@ -1,5 +1,10 @@
 package game
 
+import (
+	"fmt"
+	"sort"
+)
+
 // storyBeat is a one-shot trigger that fires exactly once when its condition is
 // met. At most one beat fires per call to maybeAdvanceStory; beats are evaluated
 // in strict order — if an incomplete beat's condition is not yet true, evaluation
@@ -9,74 +14,36 @@ package game
 // Returning false (e.g. when spawnFoundationAt finds no valid location) causes
 // the beat to retry on the next tick.
 type storyBeat struct {
+	Order     int
 	ID        string
 	Condition func(env *Env) bool
 	Action    func(env *Env) bool
 }
 
-// storyBeats is the ordered list of early-game story triggers.
-// It is a package-level variable so tests can swap it out if needed.
-//
-// Beat ordering mirrors the intended narrative:
-//  1. Spawn log storage foundation (player inventory full)
-//  2. Reward first log storage completion (carry upgrade)
-//  3. Spawn first house foundation (enough wood in storage)
-//  4. Reward first house completion (build/deposit speed upgrades)
-var storyBeats = []storyBeat{
-	{
-		// Spawn the first log storage foundation when the player's inventory is full.
-		ID: "initial_log_storage",
-		Condition: func(env *Env) bool {
-			p := env.State.Player
-			return p.Inventory[Wood] >= p.MaxCarry
-		},
-		Action: func(env *Env) bool {
-			def := findStructureDefByFoundationType(FoundationLogStorage)
-			if def == nil {
-				return false
-			}
-			return spawnFoundationAt(env.State.World, env.State.Player.X, env.State.Player.Y, def)
-		},
-	},
-	{
-		// Queue the carry upgrade offer when the first log storage is completed.
-		ID: "first_log_storage_built",
-		Condition: func(env *Env) bool {
-			return env.State.World.HasStructureOfType(LogStorage)
-		},
-		Action: func(env *Env) bool {
-			env.State.AddOffer([]string{"carry_capacity"})
-			return true
-		},
-	},
-	{
-		// Spawn the first house foundation once enough wood has been deposited in storage.
-		// NOTE: 50 matches houseBuildCost in game/structures/house.go so the player has
-		// enough wood on hand after depositing to immediately build the house.
-		// If houseBuildCost changes, update this threshold to match.
-		ID: "initial_house",
-		Condition: func(env *Env) bool {
-			return env.Stores.Total(Wood) >= 50
-		},
-		Action: func(env *Env) bool {
-			def := findStructureDefByFoundationType(FoundationHouse)
-			if def == nil {
-				return false
-			}
-			return spawnFoundationAt(env.State.World, env.State.Player.X, env.State.Player.Y, def)
-		},
-	},
-	{
-		// Queue the build/deposit speed upgrade offer when the first house is completed.
-		ID: "first_house_built",
-		Condition: func(env *Env) bool {
-			return env.State.World.HasStructureOfType(House)
-		},
-		Action: func(env *Env) bool {
-			env.State.AddOffer([]string{"build_speed", "deposit_speed"})
-			return true
-		},
-	},
+// storyBeats is the ordered list of story triggers, sorted by Order.
+// Beats are registered via RegisterStoryBeat, typically from init() functions
+// in game/structures subpackages. It is a package-level variable so tests can
+// swap it out if needed.
+var storyBeats []storyBeat
+
+// RegisterStoryBeat adds a story beat to the ordered sequence. The order field
+// controls narrative sequencing: lower values fire before higher values.
+// Call from an init() function in an external package (e.g. game/structures).
+// The beat is inserted in sorted position so init() call order does not matter.
+// Panics if id is already registered, matching the safety guarantee of RegisterStructure.
+func RegisterStoryBeat(order int, id string, condition, action func(*Env) bool) {
+	for _, b := range storyBeats {
+		if b.ID == id {
+			panic(fmt.Sprintf("RegisterStoryBeat: ID %q already registered", id))
+		}
+	}
+	beat := storyBeat{Order: order, ID: id, Condition: condition, Action: action}
+	i := sort.Search(len(storyBeats), func(i int) bool {
+		return storyBeats[i].Order >= order
+	})
+	storyBeats = append(storyBeats, storyBeat{})
+	copy(storyBeats[i+1:], storyBeats[i:])
+	storyBeats[i] = beat
 }
 
 // maybeAdvanceStory evaluates storyBeats in order and fires the first beat

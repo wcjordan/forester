@@ -6,10 +6,26 @@ import (
 	"time"
 )
 
+// withTestVillagerTypes registers LogStorage as a villager deposit type and
+// FoundationHouse as a delivery type for the duration of t. Normally these are
+// registered by game/structures init(), which does not run in game package tests.
+func withTestVillagerTypes(t *testing.T) {
+	t.Helper()
+	origDeposit := villagerDepositTypes
+	origDelivery := villagerDeliveryTypes
+	villagerDepositTypes = []StructureType{LogStorage}
+	villagerDeliveryTypes = []StructureType{FoundationHouse}
+	t.Cleanup(func() {
+		villagerDepositTypes = origDeposit
+		villagerDeliveryTypes = origDelivery
+	})
+}
+
 // makeVillagerEnv creates a small world with one log storage and one house
 // pre-built and indexed, plus a registered storage manager.
 func makeVillagerEnv(t *testing.T) (*State, *Env) {
 	t.Helper()
+	withTestVillagerTypes(t)
 	w := NewWorld(40, 40)
 
 	// Log storage at (5, 5) — 4×4
@@ -231,7 +247,7 @@ func TestNearestClearTileAdjacent(t *testing.T) {
 		t.Fatal("returned tile is out of bounds")
 	}
 	if tile.Structure != NoStructure {
-		t.Errorf("returned tile (%d,%d) has structure %d, want NoStructure", tx, ty, tile.Structure)
+		t.Errorf("returned tile (%d,%d) has structure %q, want NoStructure", tx, ty, tile.Structure)
 	}
 
 	t.Run("returns false when type not present", func(t *testing.T) {
@@ -295,6 +311,7 @@ func TestNearestClearTileAdjacentReturnedTileIsCardinallyAdjacent(t *testing.T) 
 // --- headToStorage tests ---
 
 func TestHeadToStorage(t *testing.T) {
+	withTestVillagerTypes(t)
 	t.Run("prefers non-full storage over closer full one", func(t *testing.T) {
 		w := NewWorld(40, 40)
 
@@ -394,6 +411,7 @@ func TestVillagerRoutesAroundObstacle(t *testing.T) {
 // TestVillagerChopsMultipleTrees verifies that a villager retargets another tree
 // after exhausting one, rather than heading to storage with a partial carry load.
 func TestVillagerChopsMultipleTrees(t *testing.T) {
+	withTestVillagerTypes(t)
 	// Layout (Tiles[y][x]):
 	//   Tree A at (10,11) TreeSize=2: exhausted before VillagerMaxCarry (5) is reached.
 	//   Tree B at (10,12) TreeSize=3: brings the villager to full capacity.

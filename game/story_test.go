@@ -50,6 +50,16 @@ func withTestResources(t *testing.T) {
 	t.Cleanup(func() { resourceRegistry = orig })
 }
 
+// Test-local StructureType constants. Package game tests cannot import
+// game/structures (cycle), so these replicate the string values defined there.
+// They must stay in sync with game/structures/log_storage.go and house.go.
+const (
+	FoundationLogStorage StructureType = "foundation_log_storage"
+	LogStorage           StructureType = "log_storage"
+	FoundationHouse      StructureType = "foundation_house"
+	House                StructureType = "house"
+)
+
 // testLogStorageDef is a minimal StructureDef for spawning tests in package game.
 // It mimics just enough of logStorageDef (now in game/structures) to exercise
 // spawnFoundationAt and placement helpers without importing the structures subpackage.
@@ -77,14 +87,37 @@ func (d testWallDef) ShouldSpawn(_ *Env) bool                          { return 
 func (d testWallDef) OnPlayerInteraction(_ *Env, _ point, _ time.Time) {}
 func (d testWallDef) OnBuilt(_ *Env, _ point)                          {}
 
-// withTestStructures registers testLogStorageDef for the duration of t and
-// restores the original registry on cleanup.
+// withTestStructures registers testLogStorageDef and the test story beats for the
+// duration of t, then restores the original registries on cleanup. Story beats must
+// be set up here because game package tests do not import game/structures, so its
+// init() functions (which normally register the beats) do not run.
 func withTestStructures(t *testing.T) {
 	t.Helper()
-	orig := structures
+	origStructures := structures
+	origBeats := storyBeats
 	structures = map[StructureType]StructureDef{}
+	storyBeats = nil
 	RegisterStructure(testLogStorageDef{})
-	t.Cleanup(func() { structures = orig })
+	RegisterStoryBeat(100, "initial_log_storage",
+		func(env *Env) bool {
+			p := env.State.Player
+			return p.Inventory[Wood] >= p.MaxCarry
+		},
+		func(env *Env) bool {
+			return SpawnFoundationByType(env, FoundationLogStorage)
+		},
+	)
+	RegisterStoryBeat(200, "first_log_storage_built",
+		func(env *Env) bool { return env.State.World.HasStructureOfType(LogStorage) },
+		func(env *Env) bool {
+			env.State.AddOffer([]string{"carry_capacity"})
+			return true
+		},
+	)
+	t.Cleanup(func() {
+		structures = origStructures
+		storyBeats = origBeats
+	})
 }
 
 // countStructureTiles returns the number of tiles in w that have the given structure type.
