@@ -182,7 +182,7 @@ Villager       → #40C0C0 (cyan)
 - Coordinate transform: `screenX = (x - y) * tileW/2`, `screenY = (x + y) * tileH/2`
 - Swap 32×32 square sprites for 64×32 isometric tile sprites
 - Entities (player, villagers, trees) get isometric-angle sprites
-- Render order: sort tiles by `y` then `x` to get correct depth layering
+- Render order: Research the best way to sort tiles to get correct depth layering
 
 **This does not touch game logic** — only the Draw() path changes.
 
