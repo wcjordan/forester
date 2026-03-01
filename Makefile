@@ -10,6 +10,7 @@ test:
 
 lint:
 	golangci-lint run ./...
+	go vet ./...
 
 run: build
 	./$(BINARY)

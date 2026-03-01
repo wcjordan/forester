@@ -221,7 +221,7 @@ func TestNearestClearTileAdjacent(t *testing.T) {
 	w := NewWorld(20, 20)
 	w.PlaceBuilt(5, 5, testLogStorageDef{})
 
-	tx, ty, ok := nearestClearTileAdjacent(w, LogStorage, 5, 4)
+	tx, ty, ok := nearestClearTileAdjacent(w, LogStorage, 5, 4, nil)
 	if !ok {
 		t.Fatal("nearestClearTileAdjacent returned false, want true")
 	}
@@ -235,7 +235,7 @@ func TestNearestClearTileAdjacent(t *testing.T) {
 	}
 
 	t.Run("returns false when type not present", func(t *testing.T) {
-		_, _, ok := nearestClearTileAdjacent(w, House, 10, 10)
+		_, _, ok := nearestClearTileAdjacent(w, House, 10, 10, nil)
 		if ok {
 			t.Error("should return false when no House exists")
 		}
@@ -262,7 +262,7 @@ func TestNearestClearTileAdjacentExcludesCorners(t *testing.T) {
 
 	// All cardinal neighbors are blocked; only diagonal corners remain open.
 	// The function must treat corners as non-adjacent and return ok=false.
-	_, _, ok := nearestClearTileAdjacent(w, LogStorage, 7, 7)
+	_, _, ok := nearestClearTileAdjacent(w, LogStorage, 7, 7, nil)
 	if ok {
 		t.Error("nearestClearTileAdjacent returned ok=true when only diagonal corners are free; corners must not be considered adjacent")
 	}
@@ -281,7 +281,7 @@ func TestNearestClearTileAdjacentReturnedTileIsCardinallyAdjacent(t *testing.T) 
 
 	// Run from several positions and confirm no corner is ever returned.
 	for _, from := range [][2]int{{0, 0}, {4, 4}, {9, 9}, {10, 10}} {
-		tx, ty, ok := nearestClearTileAdjacent(w, LogStorage, from[0], from[1])
+		tx, ty, ok := nearestClearTileAdjacent(w, LogStorage, from[0], from[1], nil)
 		if !ok {
 			t.Errorf("from (%d,%d): expected ok=true", from[0], from[1])
 			continue
@@ -290,6 +290,84 @@ func TestNearestClearTileAdjacentReturnedTileIsCardinallyAdjacent(t *testing.T) 
 			t.Errorf("from (%d,%d): returned corner tile (%d,%d); corners must be excluded", from[0], from[1], tx, ty)
 		}
 	}
+}
+
+// --- headToStorage tests ---
+
+func TestHeadToStorage(t *testing.T) {
+	t.Run("prefers non-full storage over closer full one", func(t *testing.T) {
+		w := NewWorld(40, 40)
+
+		// Storage A at (5,5) — closer to villager, but full.
+		aOrigin := point{X: 5, Y: 5}
+		w.PlaceBuilt(aOrigin.X, aOrigin.Y, testLogStorageDef{})
+
+		// Storage B at (20,5) — farther, but has space.
+		bOrigin := point{X: 20, Y: 5}
+		w.PlaceBuilt(bOrigin.X, bOrigin.Y, testLogStorageDef{})
+
+		stores := NewStorageManager()
+		stores.Register(aOrigin, Wood, 10)
+		stores.Register(bOrigin, Wood, 10)
+		stores.DepositAt(aOrigin, 10) // fill A to capacity
+
+		s := &State{World: w, FoundationDeposited: make(map[point]int), completedBeats: make(map[string]bool)}
+		env := &Env{State: s, Stores: stores, Villagers: NewVillagerManager()}
+
+		// Villager is at (0,5): A's nearest neighbor (x=4) is closer than B's (x=19).
+		v := &Villager{X: 0, Y: 5, Wood: 3}
+		v.headToStorage(env)
+
+		if v.Task != VillagerCarryingToStorage {
+			t.Fatalf("task = %d, want VillagerCarryingToStorage", v.Task)
+		}
+		// Neighbors of A have x ≤ 9; neighbors of B have x ≥ 19.
+		if v.TargetX < 19 {
+			t.Errorf("target (%d,%d) is adjacent to full storage A; should target non-full storage B", v.TargetX, v.TargetY)
+		}
+	})
+
+	t.Run("goes idle when all storages are full", func(t *testing.T) {
+		w := NewWorld(20, 20)
+
+		origin := point{X: 5, Y: 5}
+		w.PlaceBuilt(origin.X, origin.Y, testLogStorageDef{})
+
+		stores := NewStorageManager()
+		stores.Register(origin, Wood, 10)
+		stores.DepositAt(origin, 10) // fill to capacity
+
+		s := &State{World: w, FoundationDeposited: make(map[point]int), completedBeats: make(map[string]bool)}
+		env := &Env{State: s, Stores: stores, Villagers: NewVillagerManager()}
+
+		v := &Villager{X: 0, Y: 5, Wood: 3}
+		v.headToStorage(env)
+
+		if v.Task != VillagerIdle {
+			t.Errorf("task = %d, want VillagerIdle when all storages full", v.Task)
+		}
+	})
+
+	t.Run("targets storage that has partial space remaining", func(t *testing.T) {
+		w := NewWorld(20, 20)
+
+		origin := point{X: 5, Y: 5}
+		w.PlaceBuilt(origin.X, origin.Y, testLogStorageDef{})
+
+		stores := NewStorageManager()
+		stores.Register(origin, Wood, 10)
+		stores.DepositAt(origin, 7) // 3 units of space remain
+
+		s := &State{World: w, FoundationDeposited: make(map[point]int), completedBeats: make(map[string]bool)}
+		env := &Env{State: s, Stores: stores, Villagers: NewVillagerManager()}
+
+		v := &Villager{X: 0, Y: 5, Wood: 3}
+		v.headToStorage(env)
+
+		if v.Task != VillagerCarryingToStorage {
+			t.Errorf("task = %d, want VillagerCarryingToStorage when storage has space", v.Task)
+		}
+	})
 }
 
 // --- Villager routing around obstacles ---
