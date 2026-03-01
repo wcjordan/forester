@@ -207,3 +207,107 @@ Villager       → #40C0C0 (cyan)
 5. Commit
 
 This is a self-contained change (~200 lines) with no artwork dependency and a clear pass/fail outcome.
+
+---
+
+## Appendix: Alternatives Considered
+
+The options below were explored during planning. Each has real value — they were not dismissed, just deferred or deprioritized relative to the chosen path.
+
+---
+
+### Isometric Grid / View
+
+**What it is**: A 2D rendering projection where the camera sits at roughly a 30° angle, giving a pseudo-3D look. Tiles become diamonds (2:1 aspect ratio). Used by Warcraft 2, Age of Empires, Banner Saga, and the classic Diablo games.
+
+**Value**: Significantly more visual depth and richness than flat top-down. Characters and structures can have front/side faces. Trees read as trees rather than canopy blobs. It is the natural evolution of this game's visual style given the reference aesthetics.
+
+**Why deferred (not rejected)**: Isometric requires two things flat top-down does not — a coordinate transform and correctly depth-sorted draw order (tiles farther from camera must be drawn first). Both are straightforward but add scope to the initial integration. The plan explicitly includes isometric as Phase G4. Starting flat top-down means the sprite pipeline and Ebitengine integration are proven before adding the projection complexity. The game grid and coordinate system need no changes — only the `Draw()` path is affected.
+
+---
+
+### Godot 4
+
+**What it is**: A full-featured, open-source game engine with a built-in editor, scene system, 2D/3D rendering, animation tools, physics, and web/mobile export. Uses GDScript (Python-like) or C# as its primary languages.
+
+**Value**:
+- Best-in-class built-in isometric tilemap editor — you paint tiles visually rather than in code
+- Animation state machines for characters (idle, walk, chop) with visual tooling
+- First-class web (HTML5) and mobile export with better packaging than WASM DIY
+- Large, active community with many 2D city-builder / strategy tutorials
+- Free, no licensing risk
+- AI-assisted asset import works well (drag PNG in, configure atlas, done)
+
+**Why not chosen**: Requires porting all game logic from Go to GDScript or C#. The `game/` package is ~2000 lines of well-tested, evolving Go. At this stage of development, that port would be a large, risky undertaking that duplicates already-working logic and removes the ability to run `make check` as a verification gate. Godot becomes more attractive if and when the game design stabilizes and a more permanent technology commitment makes sense.
+
+---
+
+### Phaser.js (web-first)
+
+**What it is**: A JavaScript/TypeScript 2D game framework that runs natively in the browser via HTML5 canvas/WebGL. Mature, widely used for browser games, with built-in tilemap support (Tiled map format), sprite animation, camera, and input handling.
+
+**Value**:
+- Runs in the browser with zero WASM overhead — native JS performance
+- Excellent Tiled (.tmx) integration for designing maps visually
+- Large tutorial ecosystem for exactly this type of top-down grid game
+- Easy deployment — just static files, no Go runtime or WASM loader
+- TypeScript gives reasonable type safety
+
+**Why not chosen**: Requires maintaining a Go↔browser boundary. Two options exist: (a) compile game logic to WASM and call it from JS — workable but the interop layer (syscall/js, JSON marshalling) is tedious and fragile; (b) move game logic to TypeScript — a full rewrite. Neither is attractive while the Go game logic is actively evolving. Revisit if the game ever becomes a pure browser product with a stable, frozen backend.
+
+---
+
+### Midjourney
+
+**What it is**: An AI image generation service accessed via Discord or web. Produces high-quality, stylistically coherent images from text prompts.
+
+**Value**:
+- Fastest way to generate concept art, mood boards, and reference sheets
+- Pixel art mode (`--style raw`, `--ar 1:1`, pixel art prompting) produces usable 2D sprites
+- Excellent for character concepts and building designs before committing to final sprites
+- Consistency across a session can be improved with `--sref` (style reference) and `--cref` (character reference)
+- No local GPU required
+
+**Limitations / why it's not the only tool**: Output resolution is limited and upscaling degrades pixel art. Individual frames for animation require significant manual work to maintain consistency. Tilesets that need to tile seamlessly are hit-or-miss. Better used for reference and hero assets than for systematic tileset generation.
+
+---
+
+### Stable Diffusion (local / ComfyUI)
+
+**What it is**: Open-source image generation model, runnable locally via ComfyUI or Automatic1111. Community LoRA models exist for pixel art, isometric tiles, and specific game aesthetics.
+
+**Value**:
+- Free, runs locally (no per-image cost)
+- Isometric LoRAs (e.g., `isometric-diffusion`) reliably produce diamond-format tiles
+- Tileable texture workflows produce seamless ground tiles
+- Inpainting allows fixing problem areas of generated sprites
+- Can fine-tune on a small set of reference images to maintain stylistic consistency across an asset set
+
+**Limitations**: Requires a capable GPU (8GB+ VRAM) or cloud instance. Setup is more involved than Midjourney. Pixel art quality varies by model — `pixel-art-xl` and similar LoRAs are needed. Best suited for bulk tileset generation once an aesthetic direction is locked in.
+
+---
+
+### Adobe Firefly / DALL-E 3
+
+**What it is**: Commercial AI image generation APIs with strong prompt-following and safety filtering.
+
+**Value**:
+- DALL-E 3 has excellent prompt adherence for specific requests ("a 32x32 pixel art grass tile, top-down view, bright green, simple")
+- Firefly is integrated into Photoshop, making edit/refine cycles fast
+- Both are accessible via API for batch asset generation workflows
+
+**Limitations**: Less controllable for systematic tileset consistency than fine-tuned SD models. Firefly's pixel art quality is weaker than Midjourney. DALL-E 3 output cannot be used for commercial purposes in all jurisdictions without review. Better for one-off hero assets than bulk tileset work.
+
+---
+
+### Summary Table
+
+| Option | Best For | Key Trade-off | Status |
+|---|---|---|---|
+| **Ebitengine** | Go-native 2D, WASM web export | DIY isometric; smaller community than Unity/Godot | **Chosen** |
+| **Isometric view** | Visual depth matching WC2/Banner Saga | Coordinate transform + draw-order complexity | Phase G4 |
+| **Godot 4** | Polished isometric tooling, visual editor | Full Go→GDScript/C# port required | Revisit if design stabilizes |
+| **Phaser.js** | Pure-browser, no WASM overhead | Go↔JS interop or full JS rewrite | Revisit for browser-only product |
+| **Midjourney** | Concept art, character refs, hero assets | Animation consistency; tileset seams | Use now for concepts |
+| **Stable Diffusion** | Bulk tilesets, isometric LoRAs, seamless textures | GPU required; setup overhead | Use for systematic tileset gen |
+| **DALL-E 3 / Firefly** | One-off assets, prompt-precise sprites | Less consistent across asset sets | Supplemental |
