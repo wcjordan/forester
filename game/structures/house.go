@@ -22,9 +22,9 @@ func init() {
 	game.RegisterVillagerDeliveryType(FoundationHouse)
 
 	// Order 300: spawn the first house foundation once enough wood has been deposited.
-	// NOTE: 50 matches houseBuildCost so the player has enough wood on hand after
-	// depositing to immediately build the house. If houseBuildCost changes, update
-	// this threshold to match.
+	// NOTE: The threshold uses houseBuildCost so the player has enough wood on hand after
+	// depositing to immediately build the house; it stays in sync automatically if
+	// houseBuildCost changes.
 	game.RegisterStoryBeat(300, "initial_house",
 		func(env *game.Env) bool {
 			return env.Stores.Total(game.Wood) >= houseBuildCost
