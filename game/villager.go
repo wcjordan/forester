@@ -105,7 +105,7 @@ func (v *Villager) Tick(env *Env, rng *rand.Rand, now time.Time) {
 		}
 		if v.X == v.TargetX && v.Y == v.TargetY {
 			// On the tree tile: harvest one wood.
-			take := min(1, tile.TreeSize)
+			take := min(1, tile.TreeSize, VillagerMaxCarry-v.Wood)
 			tile.TreeSize -= take
 			v.Wood += take
 			if v.Wood >= VillagerMaxCarry || tile.TreeSize == 0 {
@@ -234,7 +234,7 @@ func (v *Villager) tryAssignDeliverTask(env *Env) bool {
 }
 
 // headToStorage transitions the villager to CarryingToStorage toward the nearest non-full storage.
-// If no storage with space is found, drops wood and goes idle.
+// If no storage with space is found, goes idle.
 func (v *Villager) headToStorage(env *Env) {
 	isFull := func(origin point) bool {
 		inst := env.Stores.FindByOrigin(origin)
