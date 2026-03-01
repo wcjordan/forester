@@ -8,6 +8,12 @@ type State struct {
 	Player              *Player
 	World               *World
 	FoundationDeposited map[geom.Point]int
+	// HouseOccupancy maps each built house origin to whether it has a villager assigned.
+	HouseOccupancy map[geom.Point]bool
+	// XP is the total experience the player has earned.
+	XP int
+	// XPMilestoneIdx is the index of the next XP milestone to award a card offer for.
+	XPMilestoneIdx int
 	// pendingOfferIDs stores each queued offer as a slice of upgrade IDs (strings),
 	// keeping State serializable without embedding interface values.
 	pendingOfferIDs [][]string
@@ -49,6 +55,7 @@ func newState() *State {
 		Player:              player,
 		World:               world,
 		FoundationDeposited: make(map[geom.Point]int),
+		HouseOccupancy:      make(map[geom.Point]bool),
 		completedBeats:      make(map[string]bool),
 	}
 }

@@ -16,25 +16,6 @@ import (
 	"forester/render"
 )
 
-// moveSafe advances the clock by the greater of the current tile's move cooldown
-// or the remaining move cooldown, then sends the directional key. This correctly
-// handles Forest→Grassland transitions: after moving off a Forest tile (300ms
-// cooldown set), the subsequent Grassland move (only 150ms) would fail with
-// moveDir because the previous 300ms cooldown hasn't expired.
-func moveSafe(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) {
-	p := g.State.Player
-	tile := g.State.World.TileAt(p.X, p.Y)
-	needed := game.MoveCooldownFor(tile)
-	remaining := p.Cooldowns[game.Move].Sub(clock.Now())
-	if remaining > needed {
-		clock.Advance(remaining)
-	} else {
-		clock.Advance(needed)
-	}
-	sendKey(m, dir)
-	renderFrame(*m, fmt.Sprintf("moveSafe %s → (%d,%d)", dir, g.State.Player.X, g.State.Player.Y))
-}
-
 // TestHouseWorkflow is a full end-to-end scenario for the house building path:
 //
 //  1. Navigate to harvest position (48,45) adjacent to forest.
@@ -123,7 +104,7 @@ func TestHouseWorkflow(t *testing.T) {
 	for range stepsNorth {
 		moveSafe(&m, clock, g, "w") // north
 		for range ticksPerStep {
-			tick(&m, clock)
+			tickDraining(&m, clock, g) // auto-drain any XP milestone offers
 			if g.State.Player.Inventory[game.Wood] >= g.State.Player.MaxCarry {
 				break
 			}
@@ -159,7 +140,7 @@ func TestHouseWorkflow(t *testing.T) {
 	announcePhase(m, "Phase 5: Deposit 50 wood to trigger house foundation")
 	const maxDepositTicks = 200
 	for i := range maxDepositTicks {
-		tick(&m, clock)
+		tickDraining(&m, clock, g) // auto-drain any XP milestone offers
 		if g.Stores.Total(game.Wood) >= houseSpawnThreshold {
 			break
 		}
@@ -209,7 +190,7 @@ func TestHouseWorkflow(t *testing.T) {
 	announcePhase(m, "Phase 7: Build house (50 wood deposits)")
 	const maxHouseBuildTicks = 150
 	for i := range maxHouseBuildTicks {
-		tick(&m, clock)
+		tickDraining(&m, clock, g) // auto-drain any XP milestone offers
 		if g.State.World.HasStructureOfType(game.House) {
 			break
 		}
@@ -258,15 +239,19 @@ func TestHouseWorkflow(t *testing.T) {
 		t.Error("phase 8: offer should be cleared after SelectCard")
 	}
 
-	// ── Phase 9: Verify 1st villager + harvest wood for 2nd house ────────────
-	// After the 1st house is built, 1 villager must have spawned from OnBuilt.
+	// ── Phase 9: Spawn 1st villager via card + harvest wood for 2nd house ────────────
+	// Villager spawning is now card-gated: we queue a spawn_villager offer explicitly
+	// (the XP milestone system would also produce one in normal play once a house is built).
 	// Harvest from the fresh forest belt at x=53 (completely untouched — Phase 3
 	// only swept x=47–49). Route: north×1→(46,50), east×7→(53,50), north×6→(53,44),
 	// then sweep north 3 more positions ticking 15 times each.
 	// Fresh tile count: 4+3×3=13 tiles × min tree size 4 = 52 wood guaranteed.
-	announcePhase(m, "Phase 9: Verify 1st villager, harvest wood for 2nd house")
+	announcePhase(m, "Phase 9: Spawn 1st villager via card, harvest wood for 2nd house")
+	// Queue and pick a spawn_villager card to get the first villager.
+	g.State.AddOffer([]string{"spawn_villager"})
+	g.SelectCard(0)
 	if g.Villagers.Count() != 1 {
-		t.Errorf("phase 9: expected 1 villager after 1st house built, got %d", g.Villagers.Count())
+		t.Errorf("phase 9: expected 1 villager after picking spawn_villager card, got %d", g.Villagers.Count())
 	}
 
 	moveSafe(&m, clock, g, "w") // north → (46,50): clear of 1st house (y=51+)
@@ -283,12 +268,12 @@ func TestHouseWorkflow(t *testing.T) {
 	// Harvest at (53,44) then sweep 3 more positions north; 15 ticks each position.
 	const woodFor2ndHouse = houseBuildCost*9/10 + 1 // 46 (>90% of 50)
 	for range 15 {
-		tick(&m, clock)
+		tickDraining(&m, clock, g) // auto-drain any XP milestone offers
 	}
 	for range 3 {
 		moveSafe(&m, clock, g, "w") // north to next fresh arc
 		for range 15 {
-			tick(&m, clock)
+			tickDraining(&m, clock, g) // auto-drain any XP milestone offers
 		}
 	}
 	// Player is now at (53,41) after 3 north moves from (53,44).
@@ -333,7 +318,7 @@ func TestHouseWorkflow(t *testing.T) {
 	announcePhase(m, "Phase 11: Player deposits >90% into 2nd foundation, then stops")
 	const maxBuild2Ticks = 120
 	for i := range maxBuild2Ticks {
-		tick(&m, clock)
+		tickDraining(&m, clock, g) // auto-drain any XP milestone offers
 		// Check whether the foundation is still in progress and past the 90% threshold.
 		// Note: FoundationProgress returns (0, false) before the first deposit; isBuilt
 		// guards against that case so we never break prematurely on an untouched foundation.
@@ -361,7 +346,7 @@ func TestHouseWorkflow(t *testing.T) {
 		}
 		const maxVillagerBuildTicks = 500 // villager chops until full before depositing, so cycles are longer
 		for i := range maxVillagerBuildTicks {
-			tick(&m, clock)
+			tickDraining(&m, clock, g) // auto-drain any XP milestone offers
 			if g.State.World.CountStructureInstances(game.House) >= 2 {
 				break
 			}
@@ -371,15 +356,23 @@ func TestHouseWorkflow(t *testing.T) {
 		}
 	}
 
-	// ── Phase 13: Verify 2nd house built + 2nd villager spawned ───────────────
-	announcePhase(m, "Phase 13: Verify 2nd house built and 2nd villager spawned")
+	// ── Phase 13: Verify 2nd house built ───────────────────────────────────────
+	// Villager spawning for the 2nd house is card-gated; we only verify the house was built.
+	announcePhase(m, "Phase 13: Verify 2nd house built")
 	if g.State.World.CountStructureInstances(game.House) < 2 {
 		t.Fatal("phase 13: 2nd house not built")
 	}
-	if g.Villagers.Count() != 2 {
-		t.Errorf("phase 13: expected 2 villagers after 2nd house built, got %d", g.Villagers.Count())
+	// 2nd house must be registered as unoccupied (awaiting a spawn_villager card pick).
+	unoccupied := 0
+	for _, occupied := range g.State.HouseOccupancy {
+		if !occupied {
+			unoccupied++
+		}
+	}
+	if unoccupied == 0 {
+		t.Error("phase 13: expected at least one unoccupied house after 2nd house built")
 	}
 
-	announcePhase(m, fmt.Sprintf("Done — 2 houses built, 2 villagers spawned! BuildInterval: %v",
+	announcePhase(m, fmt.Sprintf("Done — 2 houses built, BuildInterval: %v",
 		g.State.Player.BuildInterval))
 }

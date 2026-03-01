@@ -82,6 +82,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.game.SelectCard(0)
 			case "2":
 				m.game.SelectCard(1)
+			case "3":
+				m.game.SelectCard(2)
 			}
 			return m, nil
 		}
@@ -215,6 +217,9 @@ func (m Model) View() string {
 		status += fmt.Sprintf("  Villagers: %d/%d", villagerCount, houseCount)
 	}
 
+	xp, nextMilestone := m.game.XPInfo()
+	status += fmt.Sprintf("  XP: %d/%d", xp, nextMilestone)
+
 	if progress, ok := m.game.State.FoundationProgress(); ok {
 		status += "  " + buildProgressBar(progress)
 	}
@@ -308,7 +313,25 @@ func (m Model) renderCardScreen() string {
 	var cardLinesList [][]string
 	var innerWidth int
 
-	if len(offer) >= 2 {
+	switch {
+	case len(offer) >= 3:
+		c1 := buildCardLines(offer[0], "1")
+		c2 := buildCardLines(offer[1], "2")
+		c3 := buildCardLines(offer[2], "3")
+		// Normalize all card heights: insert empty lines before the accept line.
+		maxLen := max(len(c1), max(len(c2), len(c3)))
+		for len(c1) < maxLen {
+			c1 = insertEmptyCard(c1, len(c1)-2)
+		}
+		for len(c2) < maxLen {
+			c2 = insertEmptyCard(c2, len(c2)-2)
+		}
+		for len(c3) < maxLen {
+			c3 = insertEmptyCard(c3, len(c3)-2)
+		}
+		cardLinesList = [][]string{c1, c2, c3}
+		innerWidth = cardPad + cardBoxWidth + gap + cardBoxWidth + gap + cardBoxWidth + cardPad
+	case len(offer) >= 2:
 		c1 := buildCardLines(offer[0], "1")
 		c2 := buildCardLines(offer[1], "2")
 		// Normalize card heights: insert empty lines before the accept line.
@@ -320,7 +343,7 @@ func (m Model) renderCardScreen() string {
 		}
 		cardLinesList = [][]string{c1, c2}
 		innerWidth = cardPad + cardBoxWidth + gap + cardBoxWidth + cardPad
-	} else {
+	default:
 		cardLinesList = [][]string{buildCardLines(offer[0], "1")}
 		innerWidth = cardPad + cardBoxWidth + cardPad
 	}
@@ -337,18 +360,24 @@ func (m Model) renderCardScreen() string {
 	numCardLines := len(cardLinesList[0])
 	for i := 0; i < numCardLines; i++ {
 		var row string
-		if len(cardLinesList) >= 2 {
+		switch len(cardLinesList) {
+		case 3:
+			row = strings.Repeat(" ", cardPad) + cardLinesList[0][i] + strings.Repeat(" ", gap) + cardLinesList[1][i] + strings.Repeat(" ", gap) + cardLinesList[2][i] + strings.Repeat(" ", cardPad)
+		case 2:
 			row = strings.Repeat(" ", cardPad) + cardLinesList[0][i] + strings.Repeat(" ", gap) + cardLinesList[1][i] + strings.Repeat(" ", cardPad)
-		} else {
+		default:
 			row = strings.Repeat(" ", cardPad) + cardLinesList[0][i] + strings.Repeat(" ", cardPad)
 		}
 		lines = append(lines, "║"+row+"║")
 	}
 
 	lines = append(lines, "║"+strings.Repeat(" ", innerWidth)+"║")
-	if len(offer) >= 2 {
+	switch len(cardLinesList) {
+	case 3:
+		lines = append(lines, "║"+centerIn("Press 1, 2, or 3 to choose an upgrade", innerWidth)+"║")
+	case 2:
 		lines = append(lines, "║"+centerIn("Press 1 or 2 to choose an upgrade", innerWidth)+"║")
-	} else {
+	default:
 		lines = append(lines, "║"+centerIn("Press 1 or ENTER to accept", innerWidth)+"║")
 	}
 	lines = append(lines, "╚"+outerFill+"╝")

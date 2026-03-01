@@ -5,7 +5,6 @@ package e2e_tests
 import (
 	"fmt"
 	"math/rand"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -17,58 +16,6 @@ import (
 	_ "forester/game/upgrades"
 	"forester/render"
 )
-
-// ansiRE matches ANSI escape sequences (e.g. colour codes from lipgloss).
-var ansiRE = regexp.MustCompile(`\x1b\[[0-9;]*m`)
-
-// stripANSI removes ANSI escape sequences so assertions work on plain text.
-func stripANSI(s string) string { return ansiRE.ReplaceAllString(s, "") }
-
-// viewLines returns the stripped View() output split into lines.
-func viewLines(m render.Model) []string {
-	return strings.Split(stripANSI(m.View()), "\n")
-}
-
-// statusBar returns the last line of the view (the status bar).
-func statusBar(m render.Model) string {
-	lines := viewLines(m)
-	return lines[len(lines)-1]
-}
-
-// charAtScreen returns the single character at (col, row) in the stripped view.
-func charAtScreen(m render.Model, col, row int) string {
-	lines := viewLines(m)
-	if row >= len(lines) || col >= len(lines[row]) {
-		return ""
-	}
-	return string(lines[row][col])
-}
-
-// sendKey fires a direction key ('w','a','s','d') through model.Update.
-func sendKey(m *render.Model, key string) {
-	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(key)}
-	updated, _ := m.Update(msg)
-	*m = updated.(render.Model)
-}
-
-// tick advances the clock by GameTickInterval and fires one TickMsg.
-func tick(m *render.Model, clock *game.FakeClock) {
-	clock.Advance(game.GameTickInterval)
-	updated, _ := m.Update(render.TickMsg(clock.Now()))
-	*m = updated.(render.Model)
-	renderFrame(*m, "")
-}
-
-// moveDir advances the clock by the current tile's move cooldown, then sends the key.
-// It reads the player's current tile cooldown from the game state directly.
-func moveDir(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) {
-	p := g.State.Player
-	tile := g.State.World.TileAt(p.X, p.Y)
-	cooldown := game.MoveCooldownFor(tile)
-	clock.Advance(cooldown)
-	sendKey(m, dir)
-	renderFrame(*m, fmt.Sprintf("move %s → (%d, %d)", dir, g.State.Player.X, g.State.Player.Y))
-}
 
 // TestLogStorageWorkflow is a full end-to-end scenario:
 //

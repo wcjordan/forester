@@ -59,6 +59,9 @@ func (woodDef) Harvest(env *game.Env, now time.Time) {
 		harvest := min(canTake, tile.TreeSize)
 		tile.TreeSize -= harvest
 		p.Inventory[game.Wood] += harvest
+		if harvest > 0 {
+			game.AwardXP(env, game.XPPerWoodChopped*harvest)
+		}
 	}
 }
 

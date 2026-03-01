@@ -26,7 +26,8 @@ func (buildSpeedUpgrade) Description() string {
 }
 
 // Apply reduces the player's foundation deposit interval by 10%.
-func (buildSpeedUpgrade) Apply(p *game.Player) {
+func (buildSpeedUpgrade) Apply(env *game.Env) {
+	p := env.State.Player
 	p.BuildInterval = time.Duration(float64(p.BuildInterval) * 0.9)
 }
 
@@ -45,6 +46,7 @@ func (depositSpeedUpgrade) Description() string {
 }
 
 // Apply reduces the player's storage deposit interval by 10%.
-func (depositSpeedUpgrade) Apply(p *game.Player) {
+func (depositSpeedUpgrade) Apply(env *game.Env) {
+	p := env.State.Player
 	p.DepositInterval = time.Duration(float64(p.DepositInterval) * 0.9)
 }

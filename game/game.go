@@ -39,7 +39,7 @@ func NewWithClockAndRNG(clock Clock, rng *rand.Rand) *Game {
 
 // env returns the runtime context for the current tick.
 func (g *Game) env() *Env {
-	return &Env{State: g.State, Stores: g.Stores, Villagers: g.Villagers}
+	return &Env{State: g.State, Stores: g.Stores, Villagers: g.Villagers, RNG: g.rng}
 }
 
 // Tick advances the game: harvests trees, handles adjacent-structure interactions,
@@ -102,6 +102,11 @@ func (g *Game) TickAdjacentStructures(now time.Time) {
 	s.Player.commitCooldowns()
 }
 
+// XPInfo returns the player's current XP and the threshold for the next milestone.
+func (g *Game) XPInfo() (xp, nextMilestone int) {
+	return g.State.XP, xpMilestoneAt(g.State.XPMilestoneIdx)
+}
+
 // SelectCard applies the card at idx from the front offer and pops it from the queue.
 func (g *Game) SelectCard(idx int) {
 	offer := g.CurrentOffer()
@@ -109,7 +114,7 @@ func (g *Game) SelectCard(idx int) {
 		return
 	}
 	if idx >= 0 && idx < len(offer) {
-		offer[idx].Apply(g.State.Player)
+		offer[idx].Apply(g.env())
 		g.State.pendingOfferIDs = g.State.pendingOfferIDs[1:]
 	}
 }

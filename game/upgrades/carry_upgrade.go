@@ -18,4 +18,4 @@ func (carryCapacityUpgrade) Description() string {
 }
 
 // Apply sets the player's carry capacity to 100.
-func (carryCapacityUpgrade) Apply(p *game.Player) { p.MaxCarry = 100 }
+func (carryCapacityUpgrade) Apply(env *game.Env) { env.State.Player.MaxCarry = 100 }
