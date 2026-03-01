@@ -1,6 +1,9 @@
 package game
 
-import "sort"
+import (
+	"fmt"
+	"sort"
+)
 
 // storyBeat is a one-shot trigger that fires exactly once when its condition is
 // met. At most one beat fires per call to maybeAdvanceStory; beats are evaluated
@@ -27,7 +30,13 @@ var storyBeats []storyBeat
 // controls narrative sequencing: lower values fire before higher values.
 // Call from an init() function in an external package (e.g. game/structures).
 // The beat is inserted in sorted position so init() call order does not matter.
+// Panics if id is already registered, matching the safety guarantee of RegisterStructure.
 func RegisterStoryBeat(order int, id string, condition, action func(*Env) bool) {
+	for _, b := range storyBeats {
+		if b.ID == id {
+			panic(fmt.Sprintf("RegisterStoryBeat: ID %q already registered", id))
+		}
+	}
 	beat := storyBeat{Order: order, ID: id, Condition: condition, Action: action}
 	i := sort.Search(len(storyBeats), func(i int) bool {
 		return storyBeats[i].Order >= order
