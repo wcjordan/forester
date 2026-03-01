@@ -389,6 +389,67 @@ func TestVillagerRoutesAroundObstacle(t *testing.T) {
 	}
 }
 
+// --- Villager chops multiple trees before heading to storage ---
+
+// TestVillagerChopsMultipleTrees verifies that a villager retargets another tree
+// after exhausting one, rather than heading to storage with a partial carry load.
+func TestVillagerChopsMultipleTrees(t *testing.T) {
+	// Layout (Tiles[y][x]):
+	//   Tree A at (10,11) TreeSize=2: exhausted before VillagerMaxCarry (5) is reached.
+	//   Tree B at (10,12) TreeSize=3: brings the villager to full capacity.
+	// Log storage at (0,0) is empty so fillRatio=0 and the villager always chooses chop.
+	w := NewWorld(30, 30)
+	lsOrigin := point{X: 0, Y: 0}
+	w.PlaceBuilt(lsOrigin.X, lsOrigin.Y, testLogStorageDef{})
+	w.Tiles[11][10] = Tile{Terrain: Forest, TreeSize: 2} // Tree A: X=10, Y=11
+	w.Tiles[12][10] = Tile{Terrain: Forest, TreeSize: 3} // Tree B: X=10, Y=12
+
+	stores := NewStorageManager()
+	stores.Register(lsOrigin, Wood, 500) // empty → fillRatio=0 → always chop
+
+	s := &State{
+		Player:              NewPlayer(20, 20),
+		World:               w,
+		FoundationDeposited: make(map[point]int),
+		completedBeats:      make(map[string]bool),
+	}
+	env := &Env{State: s, Stores: stores, Villagers: NewVillagerManager()}
+	v := &Villager{X: 10, Y: 10}
+	rng := rand.New(rand.NewSource(0))
+
+	// Tick 1: Idle → WalkingToTree (nearest = Tree A at (10,11)).
+	advanceVillager(v, env, rng, 1)
+	if v.Task != VillagerWalkingToTree {
+		t.Fatalf("after pickTask: task=%v, want VillagerWalkingToTree", v.Task)
+	}
+
+	// Ticks 2–5: move to Tree A, harvest 2 wood, transition through
+	// VillagerFindTree, retarget Tree B — should NOT head to storage mid-carry.
+	advanceVillager(v, env, rng, 4)
+	if w.Tiles[11][10].TreeSize != 0 {
+		t.Fatalf("tree A: TreeSize=%d after 5 ticks, want 0 (fully harvested)", w.Tiles[11][10].TreeSize)
+	}
+	if v.Task == VillagerCarryingToStorage {
+		t.Errorf("villager headed to storage with only %d/%d wood; should have retargeted Tree B",
+			v.Wood, VillagerMaxCarry)
+	}
+	if v.Wood == 0 || v.Wood >= VillagerMaxCarry {
+		t.Errorf("wood=%d after Tree A exhausted; want 0 < wood < VillagerMaxCarry (%d)", v.Wood, VillagerMaxCarry)
+	}
+
+	// Ticks 6–15: move to Tree B, harvest 3 more → full → CarryingToStorage.
+	advanceVillager(v, env, rng, 10)
+	if w.Tiles[12][10].TreeSize != 0 {
+		t.Errorf("tree B: TreeSize=%d, want 0 (fully harvested)", w.Tiles[12][10].TreeSize)
+	}
+	if v.Task != VillagerCarryingToStorage {
+		t.Errorf("after filling carry from two trees: task=%v, want VillagerCarryingToStorage", v.Task)
+	}
+	if v.Wood != VillagerMaxCarry {
+		t.Errorf("wood=%d after filling carry capacity, want %d", v.Wood, VillagerMaxCarry)
+	}
+}
+
 // --- CountStructureInstances ---
 
 func TestCountStructureInstances(t *testing.T) {
