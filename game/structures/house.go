@@ -39,23 +39,10 @@ func (houseDef) ShouldSpawn(env *game.Env) bool {
 // as close as possible to the world spawn point rather than near the player.
 func (houseDef) UseSpawnAnchoredPlacement() bool { return true }
 
-// OnBuilt is called when a House is completed. It spawns a villager at the
-// first clear tile on the full Chebyshev border around the house footprint.
+// OnBuilt is called when a House is completed.
+// It marks the house as unoccupied; villager spawning is handled via XP milestone cards.
 func (d houseDef) OnBuilt(env *game.Env, origin geom.Point) {
-	fw, fh := d.Footprint()
-	px, py := env.State.Player.X, env.State.Player.Y
-	spawned := false
-	geom.FootprintBorderDo(origin.X, origin.Y, fw, fh, func(bx, by int) {
-		if spawned || bx == px && by == py {
-			return
-		}
-		tile := env.State.World.TileAt(bx, by)
-		if tile == nil || tile.Structure != game.NoStructure {
-			return
-		}
-		env.Villagers.Spawn(bx, by)
-		spawned = true
-	})
+	env.State.HouseOccupancy[origin] = false
 }
 
 // OnPlayerInteraction handles adjacent-player interaction.

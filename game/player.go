@@ -27,22 +27,25 @@ type Player struct {
 	// DepositInterval controls how often the player can auto-deposit one wood into built storage.
 	DepositInterval time.Duration
 	// HarvestInterval controls how often the player auto-harvests adjacent trees.
-	HarvestInterval  time.Duration
-	Cooldowns        map[CooldownType]time.Time
-	pendingCooldowns map[CooldownType]time.Time
+	HarvestInterval time.Duration
+	// MoveSpeedMultiplier scales all movement cooldowns. Starts at 1.0; values below 1.0 are faster.
+	MoveSpeedMultiplier float64
+	Cooldowns           map[CooldownType]time.Time
+	pendingCooldowns    map[CooldownType]time.Time
 }
 
 // NewPlayer creates a player at the given position, facing north.
 func NewPlayer(x, y int) *Player {
 	return &Player{
 		X: x, Y: y, FacingDX: 0, FacingDY: -1,
-		Inventory:        make(map[ResourceType]int),
-		MaxCarry:         InitialCarryingCapacity,
-		BuildInterval:    DepositTickInterval,
-		DepositInterval:  DepositTickInterval,
-		HarvestInterval:  harvestTickInterval,
-		Cooldowns:        make(map[CooldownType]time.Time),
-		pendingCooldowns: make(map[CooldownType]time.Time),
+		Inventory:           make(map[ResourceType]int),
+		MaxCarry:            InitialCarryingCapacity,
+		BuildInterval:       DepositTickInterval,
+		DepositInterval:     DepositTickInterval,
+		HarvestInterval:     harvestTickInterval,
+		MoveSpeedMultiplier: 1.0,
+		Cooldowns:           make(map[CooldownType]time.Time),
+		pendingCooldowns:    make(map[CooldownType]time.Time),
 	}
 }
 
@@ -81,10 +84,11 @@ func (p *Player) commitCooldowns() {
 // Updates the player's facing direction when the cooldown is satisfied.
 func (p *Player) Move(dx, dy int, w *World, now time.Time) {
 	tile := w.TileAt(p.X, p.Y)
-	cooldown := defaultMoveCooldown
+	baseCooldown := defaultMoveCooldown
 	if tile != nil {
-		cooldown = MoveCooldownFor(tile)
+		baseCooldown = MoveCooldownFor(tile)
 	}
+	cooldown := time.Duration(float64(baseCooldown) * p.MoveSpeedMultiplier)
 	if !p.CooldownExpired(Move, now) {
 		return
 	}

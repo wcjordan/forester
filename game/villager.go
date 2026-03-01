@@ -72,6 +72,31 @@ func (vm *VillagerManager) Spawn(x, y int) {
 	vm.Villagers = append(vm.Villagers, &Villager{X: x, Y: y})
 }
 
+// SpawnVillagerAtHouse spawns a villager at the first clear tile on the Chebyshev
+// border of the given house, then marks the house as occupied in HouseOccupancy.
+// Returns true if a villager was spawned.
+func SpawnVillagerAtHouse(env *Env, origin geom.Point) bool {
+	entry, ok := env.State.World.structureIndex[point(origin)]
+	if !ok {
+		return false
+	}
+	fw, fh := entry.Def.Footprint()
+	spawned := false
+	geom.FootprintBorderDo(origin.X, origin.Y, fw, fh, func(bx, by int) {
+		if spawned {
+			return
+		}
+		tile := env.State.World.TileAt(bx, by)
+		if tile == nil || tile.Structure != NoStructure {
+			return
+		}
+		env.Villagers.Spawn(bx, by)
+		env.State.HouseOccupancy[origin] = true
+		spawned = true
+	})
+	return spawned
+}
+
 // Tick advances every villager by one step.
 func (vm *VillagerManager) Tick(env *Env, rng *rand.Rand, now time.Time) {
 	for _, v := range vm.Villagers {

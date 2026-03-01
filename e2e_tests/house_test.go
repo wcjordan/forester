@@ -258,15 +258,19 @@ func TestHouseWorkflow(t *testing.T) {
 		t.Error("phase 8: offer should be cleared after SelectCard")
 	}
 
-	// ── Phase 9: Verify 1st villager + harvest wood for 2nd house ────────────
-	// After the 1st house is built, 1 villager must have spawned from OnBuilt.
+	// ── Phase 9: Spawn 1st villager via card + harvest wood for 2nd house ────────────
+	// Villager spawning is now card-gated: we queue a spawn_villager offer explicitly
+	// (the XP milestone system would also produce one in normal play once a house is built).
 	// Harvest from the fresh forest belt at x=53 (completely untouched — Phase 3
 	// only swept x=47–49). Route: north×1→(46,50), east×7→(53,50), north×6→(53,44),
 	// then sweep north 3 more positions ticking 15 times each.
 	// Fresh tile count: 4+3×3=13 tiles × min tree size 4 = 52 wood guaranteed.
-	announcePhase(m, "Phase 9: Verify 1st villager, harvest wood for 2nd house")
+	announcePhase(m, "Phase 9: Spawn 1st villager via card, harvest wood for 2nd house")
+	// Queue and pick a spawn_villager card to get the first villager.
+	g.State.AddOffer([]string{"spawn_villager"})
+	g.SelectCard(0)
 	if g.Villagers.Count() != 1 {
-		t.Errorf("phase 9: expected 1 villager after 1st house built, got %d", g.Villagers.Count())
+		t.Errorf("phase 9: expected 1 villager after picking spawn_villager card, got %d", g.Villagers.Count())
 	}
 
 	moveSafe(&m, clock, g, "w") // north → (46,50): clear of 1st house (y=51+)
@@ -371,15 +375,23 @@ func TestHouseWorkflow(t *testing.T) {
 		}
 	}
 
-	// ── Phase 13: Verify 2nd house built + 2nd villager spawned ───────────────
-	announcePhase(m, "Phase 13: Verify 2nd house built and 2nd villager spawned")
+	// ── Phase 13: Verify 2nd house built ───────────────────────────────────────
+	// Villager spawning for the 2nd house is card-gated; we only verify the house was built.
+	announcePhase(m, "Phase 13: Verify 2nd house built")
 	if g.State.World.CountStructureInstances(game.House) < 2 {
 		t.Fatal("phase 13: 2nd house not built")
 	}
-	if g.Villagers.Count() != 2 {
-		t.Errorf("phase 13: expected 2 villagers after 2nd house built, got %d", g.Villagers.Count())
+	// 2nd house must be registered as unoccupied (awaiting a spawn_villager card pick).
+	unoccupied := 0
+	for _, occupied := range g.State.HouseOccupancy {
+		if !occupied {
+			unoccupied++
+		}
+	}
+	if unoccupied == 0 {
+		t.Error("phase 13: expected at least one unoccupied house after 2nd house built")
 	}
 
-	announcePhase(m, fmt.Sprintf("Done — 2 houses built, 2 villagers spawned! BuildInterval: %v",
+	announcePhase(m, fmt.Sprintf("Done — 2 houses built, BuildInterval: %v",
 		g.State.Player.BuildInterval))
 }
