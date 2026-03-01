@@ -3,6 +3,8 @@ package game
 import (
 	"testing"
 	"time"
+
+	"forester/game/internal/gametest"
 )
 
 func TestMovePlayer(t *testing.T) {
@@ -85,7 +87,7 @@ func TestPlayerMoveCooldown(t *testing.T) {
 func TestMovePlayerStructureBlocking(t *testing.T) {
 	t.Run("blocked by LogStorage", func(t *testing.T) {
 		w := NewWorld(10, 10)
-		w.PlaceBuilt(6, 5, testLogStorageDef{})
+		w.PlaceBuilt(6, 5, gametest.LogStorageDef{})
 		p := NewPlayer(5, 5)
 		p.Move(1, 0, w, time.Now()) // try to move into (6,5)
 		if p.X != 5 {
@@ -95,7 +97,7 @@ func TestMovePlayerStructureBlocking(t *testing.T) {
 
 	t.Run("blocked by FoundationLogStorage", func(t *testing.T) {
 		w := NewWorld(10, 10)
-		w.PlaceFoundation(6, 5, testLogStorageDef{})
+		w.PlaceFoundation(6, 5, gametest.LogStorageDef{})
 		p := NewPlayer(5, 5)
 		p.Move(1, 0, w, time.Now())
 		if p.X != 5 {

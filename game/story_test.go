@@ -4,6 +4,8 @@ import (
 	"math/rand"
 	"testing"
 	"time"
+
+	"forester/game/internal/gametest"
 )
 
 // testWoodDef is a minimal ResourceDef for use in package game tests.
@@ -50,44 +52,7 @@ func withTestResources(t *testing.T) {
 	t.Cleanup(func() { resourceRegistry = orig })
 }
 
-// Test-local StructureType constants. Package game tests cannot import
-// game/structures (cycle), so these replicate the string values defined there.
-// They must stay in sync with game/structures/log_storage.go and house.go.
-const (
-	FoundationLogStorage StructureType = "foundation_log_storage"
-	LogStorage           StructureType = "log_storage"
-	FoundationHouse      StructureType = "foundation_house"
-	House                StructureType = "house"
-)
-
-// testLogStorageDef is a minimal StructureDef for spawning tests in package game.
-// It mimics just enough of logStorageDef (now in game/structures) to exercise
-// spawnFoundationAt and placement helpers without importing the structures subpackage.
-// ShouldSpawn returns false: initial log storage spawning is owned by story beats.
-// The canonical version for external test packages lives in game/internal/gametest.
-type testLogStorageDef struct{}
-
-func (testLogStorageDef) FoundationType() StructureType                    { return FoundationLogStorage }
-func (testLogStorageDef) BuiltType() StructureType                         { return LogStorage }
-func (testLogStorageDef) Footprint() (w, h int)                            { return 4, 4 }
-func (testLogStorageDef) BuildCost() int                                   { return 20 }
-func (testLogStorageDef) ShouldSpawn(_ *Env) bool                          { return false }
-func (testLogStorageDef) OnPlayerInteraction(_ *Env, _ point, _ time.Time) {}
-func (testLogStorageDef) OnBuilt(_ *Env, _ point)                          {}
-
-// testWallDef is a minimal StructureDef for pathfinding/routing obstacle tests.
-// The canonical version for external test packages lives in game/internal/gametest.
-type testWallDef struct{ width, height int }
-
-func (d testWallDef) FoundationType() StructureType                    { return LogStorage }
-func (d testWallDef) BuiltType() StructureType                         { return LogStorage }
-func (d testWallDef) Footprint() (w, h int)                            { return d.width, d.height }
-func (d testWallDef) BuildCost() int                                   { return 0 }
-func (d testWallDef) ShouldSpawn(_ *Env) bool                          { return false }
-func (d testWallDef) OnPlayerInteraction(_ *Env, _ point, _ time.Time) {}
-func (d testWallDef) OnBuilt(_ *Env, _ point)                          {}
-
-// withTestStructures registers testLogStorageDef and the test story beats for the
+// withTestStructures registers gametest.LogStorageDef and the test story beats for the
 // duration of t, then restores the original registries on cleanup. Story beats must
 // be set up here because game package tests do not import game/structures, so its
 // init() functions (which normally register the beats) do not run.
@@ -97,18 +62,18 @@ func withTestStructures(t *testing.T) {
 	origBeats := storyBeats
 	structures = map[StructureType]StructureDef{}
 	storyBeats = nil
-	RegisterStructure(testLogStorageDef{})
+	RegisterStructure(gametest.LogStorageDef{})
 	RegisterStoryBeat(100, "initial_log_storage",
 		func(env *Env) bool {
 			p := env.State.Player
 			return p.Inventory[Wood] >= p.MaxCarry
 		},
 		func(env *Env) bool {
-			return SpawnFoundationByType(env, FoundationLogStorage)
+			return SpawnFoundationByType(env, gametest.FoundationLogStorage)
 		},
 	)
 	RegisterStoryBeat(200, "first_log_storage_built",
-		func(env *Env) bool { return env.State.World.HasStructureOfType(LogStorage) },
+		func(env *Env) bool { return env.State.World.HasStructureOfType(gametest.LogStorage) },
 		func(env *Env) bool {
 			env.State.AddOffer([]string{"carry_capacity"})
 			return true
@@ -153,7 +118,7 @@ func TestFoundationSpawnsWhenInventoryFull(t *testing.T) {
 		maybeAdvanceStory(env)
 		maybeSpawnFoundation(env)
 	}
-	if s.World.HasStructureOfType(FoundationLogStorage) {
+	if s.World.HasStructureOfType(gametest.FoundationLogStorage) {
 		t.Fatal("foundation appeared before inventory full")
 	}
 
@@ -162,7 +127,7 @@ func TestFoundationSpawnsWhenInventoryFull(t *testing.T) {
 	IterateResources(func(d ResourceDef) { d.Harvest(env, now) })
 	maybeAdvanceStory(env)
 	maybeSpawnFoundation(env)
-	if !s.World.HasStructureOfType(FoundationLogStorage) {
+	if !s.World.HasStructureOfType(gametest.FoundationLogStorage) {
 		t.Error("foundation did not appear when inventory became full")
 	}
 }
@@ -180,11 +145,11 @@ func TestStoryBeatFiresOnce(t *testing.T) {
 	env := &Env{State: s, Stores: stores}
 
 	maybeAdvanceStory(env)
-	count1 := countStructureTiles(w, FoundationLogStorage)
+	count1 := countStructureTiles(w, gametest.FoundationLogStorage)
 
 	// Second call — beat is now marked complete; should not spawn another foundation.
 	maybeAdvanceStory(env)
-	count2 := countStructureTiles(w, FoundationLogStorage)
+	count2 := countStructureTiles(w, gametest.FoundationLogStorage)
 
 	if count1 == 0 {
 		t.Error("story beat did not fire on first call")

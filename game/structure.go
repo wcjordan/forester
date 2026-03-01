@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"forester/game/core"
 	"forester/game/geom"
 )
 
@@ -16,14 +17,14 @@ type StructureDef interface {
 	BuildCost() int
 	// ShouldSpawn returns true when domain conditions are met (e.g. enough wood cut).
 	// The generic spawn loop handles the "already placed" guard separately.
-	ShouldSpawn(env *Env) bool
+	ShouldSpawn(env core.StructureEnv) bool
 	// OnPlayerInteraction is called each tick the player is adjacent to this structure instance.
 	// origin is the top-left corner of the specific instance being interacted with.
 	// now is the current clock time; implementations use it to check and set cooldowns.
-	OnPlayerInteraction(env *Env, origin geom.Point, now time.Time)
+	OnPlayerInteraction(env core.StructureEnv, origin geom.Point, now time.Time)
 	// OnBuilt is called once when the structure is completed.
 	// origin is the top-left corner of the specific instance that was just built.
-	OnBuilt(env *Env, origin geom.Point)
+	OnBuilt(env core.StructureEnv, origin geom.Point)
 }
 
 // structureEntry pairs a StructureDef with the origin (top-left corner) of the

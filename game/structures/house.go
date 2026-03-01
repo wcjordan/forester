@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"forester/game"
+	"forester/game/core"
 	"forester/game/geom"
 )
 
@@ -64,7 +65,8 @@ func (houseDef) BuildCost() int { return houseBuildCost }
 // ShouldSpawn is the world condition for spawning additional houses.
 // Returns true when at least one house has been built and no house foundation is pending.
 // The first house is handled by the story beat system; this drives all subsequent spawns.
-func (houseDef) ShouldSpawn(env *game.Env) bool {
+func (houseDef) ShouldSpawn(coreEnv core.StructureEnv) bool {
+	env := coreEnv.(*game.Env)
 	built := len(env.State.World.StructureTypeIndex[House])
 	pending := len(env.State.World.StructureTypeIndex[FoundationHouse])
 	return built >= 1 && pending == 0
@@ -76,14 +78,16 @@ func (houseDef) UseSpawnAnchoredPlacement() bool { return true }
 
 // OnBuilt is called when a House is completed.
 // It marks the house as unoccupied; villager spawning is handled via XP milestone cards.
-func (d houseDef) OnBuilt(env *game.Env, origin geom.Point) {
+func (d houseDef) OnBuilt(coreEnv core.StructureEnv, origin geom.Point) {
+	env := coreEnv.(*game.Env)
 	env.State.HouseOccupancy[origin] = false
 }
 
 // OnPlayerInteraction handles adjacent-player interaction.
 // When adjacent to a foundation, deposits one wood toward the build cost each cooldown tick.
 // When adjacent to a built house, nothing happens (no storage).
-func (d houseDef) OnPlayerInteraction(env *game.Env, origin geom.Point, now time.Time) {
+func (d houseDef) OnPlayerInteraction(coreEnv core.StructureEnv, origin geom.Point, now time.Time) {
+	env := coreEnv.(*game.Env)
 	tile := env.State.World.TileAt(origin.X, origin.Y)
 	if tile == nil || tile.Structure != FoundationHouse {
 		return

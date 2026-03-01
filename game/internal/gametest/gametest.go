@@ -2,18 +2,23 @@
 // game module (game/geom, etc.). It lives under game/internal so it is
 // accessible to all packages rooted at forester/game but not to callers
 // outside that subtree.
-//
-// Note: game package internal tests (package game) cannot import this package
-// because gametest imports game, which would create a cycle. Those tests keep
-// local equivalents in story_test.go.
 package gametest
 
 import (
 	"time"
 
-	"forester/game"
+	"forester/game/core"
 	"forester/game/geom"
-	"forester/game/structures"
+)
+
+// StructureType constants mirror the values defined in game/structures.
+// Defined here as string literals so this package does not import game/structures
+// (which imports game, which would create a cycle for package game tests).
+const (
+	FoundationLogStorage core.StructureType = "foundation_log_storage"
+	LogStorage           core.StructureType = "log_storage"
+	FoundationHouse      core.StructureType = "foundation_house"
+	House                core.StructureType = "house"
 )
 
 // LogStorageDef is a minimal game.StructureDef stub that mimics a 4×4 log
@@ -22,10 +27,10 @@ import (
 type LogStorageDef struct{}
 
 // FoundationType implements game.StructureDef.
-func (LogStorageDef) FoundationType() game.StructureType { return structures.FoundationLogStorage }
+func (LogStorageDef) FoundationType() core.StructureType { return FoundationLogStorage }
 
 // BuiltType implements game.StructureDef.
-func (LogStorageDef) BuiltType() game.StructureType { return structures.LogStorage }
+func (LogStorageDef) BuiltType() core.StructureType { return LogStorage }
 
 // Footprint implements game.StructureDef.
 func (LogStorageDef) Footprint() (w, h int) { return 4, 4 }
@@ -34,23 +39,23 @@ func (LogStorageDef) Footprint() (w, h int) { return 4, 4 }
 func (LogStorageDef) BuildCost() int { return 20 }
 
 // ShouldSpawn implements game.StructureDef.
-func (LogStorageDef) ShouldSpawn(_ *game.Env) bool { return false }
+func (LogStorageDef) ShouldSpawn(_ core.StructureEnv) bool { return false }
 
 // OnPlayerInteraction implements game.StructureDef.
-func (LogStorageDef) OnPlayerInteraction(_ *game.Env, _ geom.Point, _ time.Time) {}
+func (LogStorageDef) OnPlayerInteraction(_ core.StructureEnv, _ geom.Point, _ time.Time) {}
 
 // OnBuilt implements game.StructureDef.
-func (LogStorageDef) OnBuilt(_ *game.Env, _ geom.Point) {}
+func (LogStorageDef) OnBuilt(_ core.StructureEnv, _ geom.Point) {}
 
 // WallDef is a minimal game.StructureDef stub that places a solid blocking
 // rectangle of arbitrary size. Useful for pathfinding and routing obstacle tests.
 type WallDef struct{ Width, Height int }
 
 // FoundationType implements game.StructureDef.
-func (d WallDef) FoundationType() game.StructureType { return structures.LogStorage }
+func (d WallDef) FoundationType() core.StructureType { return LogStorage }
 
 // BuiltType implements game.StructureDef.
-func (d WallDef) BuiltType() game.StructureType { return structures.LogStorage }
+func (d WallDef) BuiltType() core.StructureType { return LogStorage }
 
 // Footprint implements game.StructureDef.
 func (d WallDef) Footprint() (w, h int) { return d.Width, d.Height }
@@ -59,10 +64,10 @@ func (d WallDef) Footprint() (w, h int) { return d.Width, d.Height }
 func (d WallDef) BuildCost() int { return 0 }
 
 // ShouldSpawn implements game.StructureDef.
-func (d WallDef) ShouldSpawn(_ *game.Env) bool { return false }
+func (d WallDef) ShouldSpawn(_ core.StructureEnv) bool { return false }
 
 // OnPlayerInteraction implements game.StructureDef.
-func (d WallDef) OnPlayerInteraction(_ *game.Env, _ geom.Point, _ time.Time) {}
+func (d WallDef) OnPlayerInteraction(_ core.StructureEnv, _ geom.Point, _ time.Time) {}
 
 // OnBuilt implements game.StructureDef.
-func (d WallDef) OnBuilt(_ *game.Env, _ geom.Point) {}
+func (d WallDef) OnBuilt(_ core.StructureEnv, _ geom.Point) {}
