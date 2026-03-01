@@ -4,7 +4,7 @@ import "sort"
 
 // storyBeat is a one-shot trigger that fires exactly once when its condition is
 // met. At most one beat fires per call to maybeAdvanceStory; beats are evaluated
-// in strict Order — if an incomplete beat's condition is not yet true, evaluation
+// in strict order — if an incomplete beat's condition is not yet true, evaluation
 // stops so that later beats cannot complete out of order.
 //
 // Action returns true when the beat is complete and should not fire again.

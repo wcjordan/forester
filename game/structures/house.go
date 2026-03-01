@@ -27,7 +27,7 @@ func init() {
 	// this threshold to match.
 	game.RegisterStoryBeat(300, "initial_house",
 		func(env *game.Env) bool {
-			return env.Stores.Total(game.Wood) >= 50
+			return env.Stores.Total(game.Wood) >= houseBuildCost
 		},
 		func(env *game.Env) bool {
 			return game.SpawnFoundationByType(env, FoundationHouse)
