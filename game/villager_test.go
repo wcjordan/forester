@@ -231,7 +231,7 @@ func TestNearestClearTileAdjacent(t *testing.T) {
 		t.Fatal("returned tile is out of bounds")
 	}
 	if tile.Structure != NoStructure {
-		t.Errorf("returned tile (%d,%d) has structure %d, want NoStructure", tx, ty, tile.Structure)
+		t.Errorf("returned tile (%d,%d) has structure %q, want NoStructure", tx, ty, tile.Structure)
 	}
 
 	t.Run("returns false when type not present", func(t *testing.T) {
