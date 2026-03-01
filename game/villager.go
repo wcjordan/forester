@@ -19,6 +19,7 @@ type VillagerTask int
 // VillagerTask values.
 const (
 	VillagerIdle              VillagerTask = iota // choosing next task
+	VillagerFindTree                              // finding a tree to harvest
 	VillagerWalkingToTree                         // moving to tree tile to harvest
 	VillagerCarryingToStorage                     // carrying harvested wood to log storage
 	VillagerWalkingToStorage                      // walking to log storage to fetch wood
@@ -30,6 +31,8 @@ func (t VillagerTask) String() string {
 	switch t {
 	case VillagerIdle:
 		return "Idle"
+	case VillagerFindTree:
+		return "FindTree"
 	case VillagerWalkingToTree:
 		return "WalkingToTree"
 	case VillagerCarryingToStorage:
@@ -92,24 +95,32 @@ func (v *Villager) Tick(env *Env, rng *rand.Rand, now time.Time) {
 	case VillagerIdle:
 		v.pickTask(env, rng)
 
-	case VillagerWalkingToTree:
-		tile := env.State.World.TileAt(v.TargetX, v.TargetY)
-		// Target no longer valid (exhausted or gone).
-		if tile == nil || tile.Terrain != Forest || tile.TreeSize == 0 {
+	case VillagerFindTree:
+		if !v.tryAssignChopTask(env) {
 			if v.Wood > 0 {
 				v.headToStorage(env)
 			} else {
 				v.Task = VillagerIdle
 			}
+		}
+
+	case VillagerWalkingToTree:
+		// Target no longer valid (exhausted or gone).
+		if !env.State.World.isHarvestable(v.TargetX, v.TargetY) {
+			v.Task = VillagerFindTree
 			return
 		}
 		if v.X == v.TargetX && v.Y == v.TargetY {
 			// On the tree tile: harvest one wood.
+			tile := env.State.World.TileAt(v.TargetX, v.TargetY)
 			take := min(1, tile.TreeSize, VillagerMaxCarry-v.Wood)
 			tile.TreeSize -= take
 			v.Wood += take
-			if v.Wood >= VillagerMaxCarry || tile.TreeSize == 0 {
+			if v.Wood >= VillagerMaxCarry {
 				v.headToStorage(env)
+			} else if tile.TreeSize == 0 {
+				// Tree exhausted but not full; find another tree.
+				v.Task = VillagerFindTree
 			}
 		} else {
 			v.move(env.State.World)
@@ -276,8 +287,7 @@ func (v *Villager) move(world *World) {
 		return // already at goal
 	}
 	next := v.path[0]
-	tile := world.TileAt(next.X, next.Y)
-	if tile == nil || tile.Structure != NoStructure {
+	if world.IsBlocked(next.X, next.Y) {
 		v.path = nil // next step blocked; recompute next tick
 		return
 	}
@@ -317,8 +327,7 @@ func nearestClearTileAdjacent(world *World, stype StructureType, fromX, fromY in
 		}
 		fw, fh := entry.Def.Footprint()
 		geom.ForFootprintCardinalNeighbors(origin.X, origin.Y, fw, fh, func(px, py int) {
-			tile := world.TileAt(px, py)
-			if tile == nil || tile.Structure != NoStructure {
+			if world.IsBlocked(px, py) {
 				return
 			}
 			dx, dy := px-fromX, py-fromY
