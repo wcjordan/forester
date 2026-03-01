@@ -11,6 +11,7 @@ import (
 
 	"forester/game"
 	"forester/game/geom"
+	"forester/game/structures"
 )
 
 // TickMsg is sent each tick interval to drive the game loop.
@@ -169,13 +170,13 @@ func (m Model) View() string {
 
 			// Structure overlays take priority over terrain.
 			switch tile.Structure {
-			case game.FoundationLogStorage, game.FoundationHouse:
+			case structures.FoundationLogStorage, structures.FoundationHouse:
 				sb.WriteString(foundationStyle.Render("?"))
 				continue
-			case game.LogStorage:
+			case structures.LogStorage:
 				sb.WriteString(logStorageStyle.Render("L"))
 				continue
-			case game.House:
+			case structures.House:
 				sb.WriteString(houseStyle.Render("H"))
 				continue
 			}
@@ -212,7 +213,7 @@ func (m Model) View() string {
 	}
 
 	villagerCount := m.game.Villagers.Count()
-	houseCount := world.CountStructureInstances(game.House)
+	houseCount := world.CountStructureInstances(structures.House)
 	if villagerCount > 0 || houseCount > 0 {
 		status += fmt.Sprintf("  Villagers: %d/%d", villagerCount, houseCount)
 	}

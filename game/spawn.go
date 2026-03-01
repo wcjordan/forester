@@ -21,6 +21,18 @@ func findStructureDefByFoundationType(ft StructureType) StructureDef {
 	return def
 }
 
+// SpawnFoundationByType looks up the StructureDef registered for ft and places its
+// foundation near the player. Returns true if placed, false if no valid location
+// is found or ft is not registered. Callers may retry on the next tick.
+// Intended for use in story beat actions registered via RegisterStoryBeat.
+func SpawnFoundationByType(env *Env, ft StructureType) bool {
+	def := findStructureDefByFoundationType(ft)
+	if def == nil {
+		return false
+	}
+	return spawnFoundationAt(env.State.World, env.State.Player.X, env.State.Player.Y, def)
+}
+
 // spawnFoundationAt finds a valid location for def and places its foundation tile.
 // Placement is near the world spawn point if def implements spawnAnchoredPlacer,
 // otherwise near the player. Returns true if a foundation was placed, false if no

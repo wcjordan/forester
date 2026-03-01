@@ -63,10 +63,10 @@ func TestFoundationBuildMechanic(t *testing.T) {
 		for i := range logStorageBuildCost {
 			g.TickAdjacentStructures(t0.Add(time.Duration(i) * (game.DepositTickInterval + time.Millisecond)))
 		}
-		if s.World.HasStructureOfType(game.FoundationLogStorage) {
+		if s.World.HasStructureOfType(FoundationLogStorage) {
 			t.Error("FoundationLogStorage tiles should be gone after build completes")
 		}
-		if !s.World.HasStructureOfType(game.LogStorage) {
+		if !s.World.HasStructureOfType(LogStorage) {
 			t.Error("LogStorage tiles should exist after build completes")
 		}
 		if s.Player.Inventory[game.Wood] != 0 {

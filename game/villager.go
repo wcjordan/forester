@@ -10,6 +10,26 @@ import (
 // VillagerMaxCarry is the maximum wood a villager can carry at once.
 const VillagerMaxCarry = 5
 
+// villagerDepositTypes lists StructureTypes that villagers treat as wood-deposit destinations.
+// Populated via RegisterVillagerDepositType from external packages (e.g. game/structures).
+var villagerDepositTypes []StructureType
+
+// villagerDeliveryTypes lists StructureTypes that villagers treat as build-delivery targets.
+// Populated via RegisterVillagerDeliveryType from external packages (e.g. game/structures).
+var villagerDeliveryTypes []StructureType
+
+// RegisterVillagerDepositType marks stype as a destination for villagers depositing harvested wood.
+// Call from an init() in an external package (e.g. game/structures).
+func RegisterVillagerDepositType(stype StructureType) {
+	villagerDepositTypes = append(villagerDepositTypes, stype)
+}
+
+// RegisterVillagerDeliveryType marks stype as a foundation target for villagers delivering wood.
+// Call from an init() in an external package (e.g. game/structures).
+func RegisterVillagerDeliveryType(stype StructureType) {
+	villagerDeliveryTypes = append(villagerDeliveryTypes, stype)
+}
+
 // villagerMoveCooldown is how often a villager takes one movement or harvest step.
 const villagerMoveCooldown = 300 * time.Millisecond
 
@@ -256,17 +276,26 @@ func (v *Villager) tryAssignDeliverTask(env *Env) bool {
 	if env.Stores.Total(Wood) == 0 {
 		return false
 	}
-	if len(env.State.World.StructureTypeIndex[FoundationHouse]) == 0 {
+	hasDeliveryTarget := false
+	for _, dt := range villagerDeliveryTypes {
+		if len(env.State.World.StructureTypeIndex[dt]) > 0 {
+			hasDeliveryTarget = true
+			break
+		}
+	}
+	if !hasDeliveryTarget {
 		return false
 	}
-	tx, ty, ok := nearestClearTileAdjacent(env.State.World, LogStorage, v.X, v.Y, nil)
-	if !ok {
-		return false
+	for _, depositType := range villagerDepositTypes {
+		tx, ty, ok := nearestClearTileAdjacent(env.State.World, depositType, v.X, v.Y, nil)
+		if ok {
+			v.Task = VillagerWalkingToStorage
+			v.TargetX, v.TargetY = tx, ty
+			v.path = nil
+			return true
+		}
 	}
-	v.Task = VillagerWalkingToStorage
-	v.TargetX, v.TargetY = tx, ty
-	v.path = nil
-	return true
+	return false
 }
 
 // headToStorage transitions the villager to CarryingToStorage toward the nearest non-full storage.
@@ -276,27 +305,31 @@ func (v *Villager) headToStorage(env *Env) {
 		inst := env.Stores.FindByOrigin(origin)
 		return inst == nil || inst.Stored >= inst.Capacity
 	}
-	tx, ty, ok := nearestClearTileAdjacent(env.State.World, LogStorage, v.X, v.Y, isFull)
-	if !ok {
-		v.Task = VillagerIdle
-		return
+	for _, depositType := range villagerDepositTypes {
+		tx, ty, ok := nearestClearTileAdjacent(env.State.World, depositType, v.X, v.Y, isFull)
+		if ok {
+			v.Task = VillagerCarryingToStorage
+			v.TargetX, v.TargetY = tx, ty
+			v.path = nil
+			return
+		}
 	}
-	v.Task = VillagerCarryingToStorage
-	v.TargetX, v.TargetY = tx, ty
-	v.path = nil
+	v.Task = VillagerIdle
 }
 
-// headToHouse transitions the villager to DeliveringToHouse toward the nearest house foundation.
-// Returns false if no house foundation is found.
+// headToHouse transitions the villager to DeliveringToHouse toward the nearest
+// registered delivery target (e.g. house foundation). Returns false if none found.
 func (v *Villager) headToHouse(env *Env) bool {
-	tx, ty, ok := nearestClearTileAdjacent(env.State.World, FoundationHouse, v.X, v.Y, nil)
-	if !ok {
-		return false
+	for _, deliveryType := range villagerDeliveryTypes {
+		tx, ty, ok := nearestClearTileAdjacent(env.State.World, deliveryType, v.X, v.Y, nil)
+		if ok {
+			v.Task = VillagerDeliveringToHouse
+			v.TargetX, v.TargetY = tx, ty
+			v.path = nil
+			return true
+		}
 	}
-	v.Task = VillagerDeliveringToHouse
-	v.TargetX, v.TargetY = tx, ty
-	v.path = nil
-	return true
+	return false
 }
 
 // move advances the villager one step along its cached A* path toward (TargetX, TargetY).
@@ -367,9 +400,9 @@ func nearestClearTileAdjacent(world *World, stype StructureType, fromX, fromY in
 	return tx, ty, found
 }
 
-// storageOriginAdjacent returns the origin of a LogStorage tile cardinally adjacent
-// to (x, y), using the structureIndex for lookup. Returns ok=false if none found.
-func storageOriginAdjacent(world *World, x, y int) (point, bool) {
+// adjacentStructureOriginOfType returns the origin of the first structure of stype
+// cardinally adjacent to (x, y). Returns ok=false if none found.
+func adjacentStructureOriginOfType(world *World, x, y int, stype StructureType) (point, bool) {
 	for _, d := range [4][2]int{{0, -1}, {0, 1}, {-1, 0}, {1, 0}} {
 		nx, ny := x+d[0], y+d[1]
 		entry, found := world.structureIndex[point{X: nx, Y: ny}]
@@ -377,25 +410,30 @@ func storageOriginAdjacent(world *World, x, y int) (point, bool) {
 			continue
 		}
 		tile := world.TileAt(entry.Origin.X, entry.Origin.Y)
-		if tile != nil && tile.Structure == LogStorage {
+		if tile != nil && tile.Structure == stype {
 			return entry.Origin, true
 		}
 	}
 	return point{}, false
 }
 
-// foundationHouseOriginAdjacent returns the origin of a FoundationHouse tile cardinally
-// adjacent to (x, y), using the structureIndex for lookup. Returns ok=false if none found.
-func foundationHouseOriginAdjacent(world *World, x, y int) (point, bool) {
-	for _, d := range [4][2]int{{0, -1}, {0, 1}, {-1, 0}, {1, 0}} {
-		nx, ny := x+d[0], y+d[1]
-		entry, found := world.structureIndex[point{X: nx, Y: ny}]
-		if !found {
-			continue
+// storageOriginAdjacent returns the origin of any registered deposit-target structure
+// cardinally adjacent to (x, y). Returns ok=false if none found.
+func storageOriginAdjacent(world *World, x, y int) (point, bool) {
+	for _, stype := range villagerDepositTypes {
+		if origin, ok := adjacentStructureOriginOfType(world, x, y, stype); ok {
+			return origin, true
 		}
-		tile := world.TileAt(entry.Origin.X, entry.Origin.Y)
-		if tile != nil && tile.Structure == FoundationHouse {
-			return entry.Origin, true
+	}
+	return point{}, false
+}
+
+// foundationHouseOriginAdjacent returns the origin of any registered delivery-target
+// structure cardinally adjacent to (x, y). Returns ok=false if none found.
+func foundationHouseOriginAdjacent(world *World, x, y int) (point, bool) {
+	for _, stype := range villagerDeliveryTypes {
+		if origin, ok := adjacentStructureOriginOfType(world, x, y, stype); ok {
+			return origin, true
 		}
 	}
 	return point{}, false

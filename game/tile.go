@@ -14,14 +14,8 @@ const (
 // new types without editing this file.
 type StructureType string
 
-// Structure types.
-const (
-	NoStructure          StructureType = ""                       // empty tile
-	FoundationLogStorage StructureType = "foundation_log_storage" // Log Storage foundation (blocks movement, accepts resource deposits)
-	LogStorage           StructureType = "log_storage"            // built Log Storage (blocks movement)
-	FoundationHouse      StructureType = "foundation_house"       // House foundation (blocks movement, accepts resource deposits)
-	House                StructureType = "house"                  // built House (blocks movement)
-)
+// NoStructure is the zero value for StructureType, representing an empty tile.
+const NoStructure StructureType = ""
 
 // Tile represents a single cell in the world grid.
 type Tile struct {

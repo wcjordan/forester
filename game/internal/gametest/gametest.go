@@ -13,6 +13,7 @@ import (
 
 	"forester/game"
 	"forester/game/geom"
+	"forester/game/structures"
 )
 
 // LogStorageDef is a minimal game.StructureDef stub that mimics a 4×4 log
@@ -21,10 +22,10 @@ import (
 type LogStorageDef struct{}
 
 // FoundationType implements game.StructureDef.
-func (LogStorageDef) FoundationType() game.StructureType { return game.FoundationLogStorage }
+func (LogStorageDef) FoundationType() game.StructureType { return structures.FoundationLogStorage }
 
 // BuiltType implements game.StructureDef.
-func (LogStorageDef) BuiltType() game.StructureType { return game.LogStorage }
+func (LogStorageDef) BuiltType() game.StructureType { return structures.LogStorage }
 
 // Footprint implements game.StructureDef.
 func (LogStorageDef) Footprint() (w, h int) { return 4, 4 }
@@ -46,10 +47,10 @@ func (LogStorageDef) OnBuilt(_ *game.Env, _ geom.Point) {}
 type WallDef struct{ Width, Height int }
 
 // FoundationType implements game.StructureDef.
-func (d WallDef) FoundationType() game.StructureType { return game.LogStorage }
+func (d WallDef) FoundationType() game.StructureType { return structures.LogStorage }
 
 // BuiltType implements game.StructureDef.
-func (d WallDef) BuiltType() game.StructureType { return game.LogStorage }
+func (d WallDef) BuiltType() game.StructureType { return structures.LogStorage }
 
 // Footprint implements game.StructureDef.
 func (d WallDef) Footprint() (w, h int) { return d.Width, d.Height }
