@@ -41,7 +41,7 @@ type testCarryUpgrade struct{}
 func (testCarryUpgrade) ID() string          { return "test_carry" }
 func (testCarryUpgrade) Name() string        { return "Test Carry" }
 func (testCarryUpgrade) Description() string { return "test" }
-func (testCarryUpgrade) Apply(p *Player)     { p.MaxCarry = 100 }
+func (testCarryUpgrade) Apply(env *Env)      { env.State.Player.MaxCarry = 100 }
 
 func TestAddOfferAndSelectCard(t *testing.T) {
 	upgradeRegistry["test_carry"] = testCarryUpgrade{}

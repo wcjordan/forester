@@ -1,11 +1,12 @@
 package game
 
-// UpgradeDef defines an upgrade that can be applied to the player.
+// UpgradeDef defines an upgrade that can be applied via a card selection event.
 type UpgradeDef interface {
 	ID() string
 	Name() string
 	Description() string
-	Apply(p *Player)
+	// Apply executes the upgrade. env gives access to the player, world, villagers, and RNG.
+	Apply(env *Env)
 }
 
 // upgradeRegistry maps stable upgrade IDs to their runtime definitions.
