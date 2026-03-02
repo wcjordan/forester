@@ -18,15 +18,15 @@ var peopleFS embed.FS
 
 // Sprite sheet images loaded at init time.
 var (
-	GrassTile  *ebiten.Image
-	Treetop    *ebiten.Image
-	Trunk      *ebiten.Image
-	Grass      *ebiten.Image
-	Dirt       *ebiten.Image
-	House      *ebiten.Image
-	Barrel     *ebiten.Image
-	MaleWalk   *ebiten.Image
-	FemaleWalk *ebiten.Image
+	GrassTile *ebiten.Image
+	Treetop   *ebiten.Image
+	Trunk     *ebiten.Image
+	Grass     *ebiten.Image
+	Dirt      *ebiten.Image
+	House     *ebiten.Image
+	Barrel    *ebiten.Image
+	Player    *ebiten.Image
+	Villager  *ebiten.Image
 )
 
 func loadFromFS(fs embed.FS, path string) *ebiten.Image {
@@ -52,6 +52,6 @@ func init() {
 	House = loadFromFS(tilesFS, "sprites/lpc_base_assets/tiles/house.png")
 	Barrel = loadFromFS(tilesFS, "sprites/lpc_base_assets/tiles/barrel.png")
 
-	MaleWalk = loadFromFS(peopleFS, "sprites/lpc_base_assets/sprites/people/male_walkcycle.png")
-	FemaleWalk = loadFromFS(peopleFS, "sprites/lpc_base_assets/sprites/people/female_walkcycle.png")
+	Player = loadFromFS(peopleFS, "sprites/lpc_base_assets/sprites/people/soldier.png")
+	Villager = loadFromFS(peopleFS, "sprites/lpc_base_assets/sprites/people/soldier_altcolor.png")
 }

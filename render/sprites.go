@@ -55,10 +55,10 @@ func spriteForTile(tile *game.Tile) drawArgs {
 
 // spriteForPlayer returns drawArgs for the player character.
 func spriteForPlayer() drawArgs {
-	return scaledSprite(assets.MaleWalk, 0, 128, 64, 64, 0.5)
+	return scaledSprite(assets.Player, 0, 128, 64, 64, 0.5)
 }
 
 // spriteForVillager returns drawArgs for a villager character.
 func spriteForVillager() drawArgs {
-	return scaledSprite(assets.FemaleWalk, 0, 128, 64, 64, 0.5)
+	return scaledSprite(assets.Villager, 0, 128, 64, 64, 0.5)
 }
