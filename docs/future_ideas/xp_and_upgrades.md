@@ -1,39 +1,46 @@
-# Future Idea: XP & Card Upgrade System
+# Future Idea: XP & Card Upgrade System (Remaining Work)
 
-## Concept
+The core XP and card system is implemented (see `game/xp.go`, `game/upgrade.go`, `game/upgrades/`).
+This file tracks what is **not yet built**.
 
-Vampire Survivors-style progression: gathering resources earns XP, level-ups trigger card selection events where the player picks from a few upgrades. Rare cards unlock at village milestones.
+---
 
-## Mechanics
+## What's implemented
 
-### XP
-- Player earns XP from gathering resources (wood, future: stone, berries, etc.)
-- Villagers do NOT earn the player XP (they contribute to the village, not the player's growth)
-- XP curve and level-up frequency to be tuned via playtesting
+- XP earned from chopping (+1/wood), depositing (+1/wood), completing structures (+10 player / +20 villager)
+- XP milestones with growing gaps (50, 75, 100, 125, …); game pauses and presents 3-card offer
+- Card pool: faster harvesting, depositing, movement, building (stackable)
+- Spawn Villager card (conditionally offered when an unoccupied house exists)
 
-### Card Selection
-- On level-up: pause and present 3 upgrade cards to choose from
-- Regular cards: triggered by XP milestones
-- Rare cards: triggered by village progression milestones (e.g. first house built, 4 houses built)
+---
 
-### Upgrade Types
-- **Player abilities**: move faster, cut faster, carry more wood
-- **Village improvements**: villagers work faster, structures upgrade sooner
-- **Unlock mechanics**: villagers can cut trees, new resource types become available
+## Remaining work
+
+### Village improvement upgrade cards
+Cards that improve the village rather than the player directly:
+- Villager move speed upgrade
+- Lower structure spawn thresholds (e.g. house foundation triggers earlier)
+- Villager carry capacity increase
+- Storage capacity upgrade
+
+### Rare / milestone-triggered cards
+Distinct from regular XP milestone cards — triggered by specific village achievements:
+- "4 houses built" milestone card
+- "First resource depot built" milestone card
+- Mechanism to distinguish rare cards from regular ones in the UI
+
+### New resource types as XP sources
+Stone, berries, fish, etc. would each earn XP when gathered — keeping the XP flow natural as the game expands.
+
+### Unlock mechanics
+Cards that unlock new behaviors entirely:
+- Villagers autonomously cut trees (currently they don't — only the player does)
+- New resource types become available to gather
+
+---
 
 ## Open Questions
 
-- Exact XP curve (how fast do levels come)?
-- How many cards offered per level (3 is the classic Vampire Survivors number)?
-- Which upgrades are common vs. rare?
-- How do rare milestone cards interact with regular level-up cards?
-
-## Why Deferred
-
-Deprioritized in favor of structure progression (Phase 2), which provides a more tangible sense of building. Upgrades work best once there are multiple systems (roads, villagers, multiple resource types) worth upgrading.
-
-## Implementation Notes
-
-- `game/xp.go` - XP tracking and level-up logic
-- `game/upgrades.go` - Upgrade definitions and application to game state
-- `render/cards.go` - Card selection UI (pause game, show 3 options, apply choice)
+- Common vs. rare card rarity — how to signal rarity in the ASCII UI?
+- Milestone card interaction: if XP milestone and village milestone fire simultaneously, queue both or merge into one offer?
+- Upgrade stacking caps — should any upgrade have a maximum stack count?
