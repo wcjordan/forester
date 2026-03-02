@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	tea "github.com/charmbracelet/bubbletea"
+	ebiten "github.com/hajimehoshi/ebiten/v2"
 
 	"forester/game"
 	_ "forester/game/resources"
@@ -14,9 +14,15 @@ import (
 )
 
 func main() {
+	if shouldRunTUI() {
+		runTUI()
+		return
+	}
+
 	g := game.New()
-	p := tea.NewProgram(render.NewModel(g), tea.WithAltScreen())
-	if _, err := p.Run(); err != nil {
+	ebiten.SetWindowSize(1280, 720)
+	ebiten.SetWindowTitle("Forester")
+	if err := ebiten.RunGame(render.NewEbitenGame(g)); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
