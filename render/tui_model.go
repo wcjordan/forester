@@ -1,3 +1,5 @@
+//go:build !js
+
 package render
 
 import (
@@ -411,16 +413,6 @@ func (m Model) renderCardScreen() string {
 	}
 
 	return sb.String()
-}
-
-func clamp(v, lo, hi int) int {
-	if v < lo {
-		return lo
-	}
-	if v > hi {
-		return hi
-	}
-	return v
 }
 
 // buildProgressBar renders a text progress bar for a build operation.

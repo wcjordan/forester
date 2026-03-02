@@ -9,7 +9,9 @@ See `docs/PROJECT_PLAN.md` for an idea of the project.
 See `docs/GETTING_AROUND.md` for a full navigation guide covering every file, the libraries used in each area, and key architectural patterns.
 
 Quick reference:
-- `main.go` — Entry point. Creates and runs the game. Blank-imports `game/structures`, `game/upgrades`, `game/resources`.
+- `main.go` — Entry point. Defaults to Ebitengine window; `--tui` flag runs bubbletea TUI. Blank-imports `game/structures`, `game/upgrades`, `game/resources`.
+- `main_tui.go` — (`//go:build !js`) `shouldRunTUI()` / `runTUI()` — bubbletea startup.
+- `main_wasm.go` — (`//go:build js`) Stubs so WASM builds compile without bubbletea.
 - `game/` — Core game package (all game logic lives here)
   - `game.go` — `Game` struct, `New()`, `Tick()` orchestrator; owns `State`, `StorageManager`, `VillagerManager`
   - `state.go` — `State` struct (serializable: Player, World, XP, HouseOccupancy, pendingOfferIDs)
@@ -31,7 +33,9 @@ Quick reference:
   - `game/resources/` — `woodDef` (implements `ResourceDef`, registers via `init()`)
   - `game/structures/` — `logStorageDef`, `houseDef` (register via `init()`)
   - `game/upgrades/` — all upgrade cards (register via `init()`)
-- `render/model.go` — bubbletea `Model` (TUI + card selection overlay)
+- `render/tui_model.go` — (`//go:build !js`) bubbletea `Model` (TUI + card selection overlay)
+- `render/ebiten_model.go` — `EbitenGame` Ebitengine renderer (solid-color tile grid, WASD input)
+- `render/util.go` — Shared render utilities (`clamp`)
 - `e2e_tests/` — End-to-end tests with injected clock + RNG
 - `docs/PROJECT_PLAN.md` — Full game design document
 - `docs/GRAPHICS_MIGRATION.md` — Ebitengine renderer migration plan
@@ -50,6 +54,7 @@ make dev     # hot-reload with air
 make e2e_viz  # visual E2E playback in terminal
 make clean   # remove build artifacts
 make format  # format code w/ gofmt
+make wasm    # compile WASM binary (forester.wasm)
 ```
 
 ---
