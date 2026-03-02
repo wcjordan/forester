@@ -22,3 +22,6 @@ coverage.html
 
 # Transient working files are tracked but listed here for awareness
 # docs/in_progress/
+
+# Assets
+assets/sprites/lpc_base_assets
