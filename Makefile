@@ -1,4 +1,4 @@
-.PHONY: build test lint run dev clean check format e2e_viz
+.PHONY: build test lint run dev clean check format e2e_viz wasm
 
 BINARY := forester
 
@@ -18,8 +18,11 @@ run: build
 dev:
 	air
 
+wasm:
+	GOOS=js GOARCH=wasm go build -o forester.wasm .
+
 clean:
-	rm -f $(BINARY)
+	rm -f $(BINARY) forester.wasm
 	rm -rf tmp/
 
 check: lint test
