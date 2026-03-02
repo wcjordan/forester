@@ -32,8 +32,8 @@ A city builder/simulation game where you play as a character who develops a vill
 - Moves around a top-down map
 - Auto-interacts with nearby objects (trees, resources)
 - Carries resources on their back
-- Earns XP from gathering resources (not villagers) *(XP not yet tracked)*
-- Triggers card/upgrade choices through milestone story beats *(XP-based triggers planned)*
+- Earns XP from chopping (+1/wood), depositing (+1/wood), and completing structures (+10 player / +20 villager)
+- XP milestones (50, 125, 225, 350, 500, …) pause gameplay and present a 3-card upgrade offer
 
 ### 2. World & Map
 - **Target size**: 1000×1000 tiles *(current: 100×100)*
@@ -60,17 +60,20 @@ A city builder/simulation game where you play as a character who develops a vill
 - **Block regrowth**: Trees won't regrow within noGrowRadius of any structure
 
 ### 6. Experience & Upgrades
-- **Card Triggers** (implemented as ordered story beats):
-  - After first log storage built: Expanded Carry Capacity (20 → 100 wood)
-  - After first house built: choose Faster Construction or Faster Depositing
-- **XP Source**: Gathering resources (player only) *(XP not yet tracked; triggers are milestone-based)*
+- **XP Source**: Player earns XP from chopping (+1/wood), depositing (+1/wood), and completing structures (+10 player / +20 villager)
+- **XP Milestones**: 50, 125, 225, 350, 500, … (threshold grows each milestone); game pauses and presents a 3-card upgrade offer
+- **Card pool** (stackable, Vampire Survivors-style): Faster harvesting, depositing, movement, building; Spawn Villager (offered when an unoccupied house exists)
+- **Legacy story beats** (still active): First log storage → Expanded Carry Capacity; first house → build/deposit speed options
 - **Upgrade Types** (implemented):
   - Player carry capacity (+80 max wood)
   - Foundation build speed (+10%)
   - Storage deposit speed (+10%)
+  - Harvest speed (+10%)
+  - Move speed (+10%)
+  - Spawn Villager (places villager at an unoccupied house)
 
 ### 7. Villagers
-- **Spawning**: One villager spawns for each house built
+- **Spawning**: Card-gated — "Spawn Villager" card appears in XP milestone offers when an unoccupied house exists; places a villager adjacent to a random unoccupied house. Per-house occupancy tracked in `State.HouseOccupancy`
 - **Behavior**: Autonomous; probabilistic task selection based on log storage fill level
   - P(chop task) = 1 − fill_ratio; P(deliver task) = fill_ratio
   - **Chop task**: Walk to nearest tree → harvest up to 5 wood → carry to log storage
@@ -138,7 +141,7 @@ t  Mid tree, size 4–6 (green)
 
 #### Structure progression
 1. **Log Storage (4×4)** ✅ — Foundation appears when inventory is full (≥20 wood). Costs 20 wood. Auto-deposits player wood at 100 ms/unit when adjacent. Capacity: 500 wood.
-2. **House (2×2)** ✅ — Foundation appears after 50 wood deposited in storage. Costs 50 wood. Spawns a villager on completion. Subsequent houses spawn automatically when no foundation is pending.
+2. **House (2×2)** ✅ — Foundation appears after 50 wood deposited in storage. Costs 50 wood. Villager spawning is card-gated via the XP system (see Phase 3). Subsequent houses spawn automatically when no foundation is pending.
 3. **Resource Depot** — Planned after 4 houses built. Details TBD.
 
 #### Features
@@ -187,21 +190,21 @@ H  House (bold magenta)
 
 #### Features
 - [x] Villager entity (`Villager` struct: position, task, wood inventory, move cooldown)
-- [x] Villager spawning (one per house built, via `houseDef.OnBuilt`)
+- [x] Villager spawning: card-gated via "Spawn Villager" XP upgrade; per-house occupancy tracked in `State.HouseOccupancy`
 - [x] Autonomous task selection: probabilistic based on log storage fill
-- [x] Chop task: walk to nearest tree → harvest (up to 5 wood) → carry to log storage
+- [x] Chop task: walk to nearest tree → harvest multiple trees until full → carry to log storage
 - [x] Deliver task: fetch wood from log storage → carry to nearest house (wood consumed)
 - [x] Cardinal movement: step toward target, primary axis first, fallback if blocked
-- [x] Status bar: `Log: X/Y` (stored/capacity) and `Villagers: X/Y` (count/house count)
+- [x] Status bar: `Log: X/Y` (stored/capacity), `Villagers: X/Y` (count/house count), `XP: n/next`
 - [x] `StorageManager.WithdrawFrom` for villager fetch
-- [ ] XP tracking (player earns XP from harvesting)
-- [ ] XP level-up thresholds and card selection
-- [ ] Upgrade cards: player abilities (more move/harvest speed)
+- [x] XP tracking: +1/wood chopped, +1/wood deposited, +10/structure by player, +20/structure by villager
+- [x] XP milestones (50, 125, 225, 350, 500, …) pause game and present 3-card upgrade offer
+- [x] Upgrade cards: faster harvesting, depositing, movement, building (stackable)
+- [x] Spawn Villager upgrade card (offered when unoccupied house exists)
 - [ ] Upgrade cards: village improvements (villager speed, structure thresholds)
 - [ ] Following behavior (villagers trail player and mirror current task)
 - [ ] Foreman promotion (player promotes a villager; foreman works autonomously)
 - [ ] Foreman influence (foreman encourages nearby villagers to join its task)
-- [ ] Milestone tracking for rare card triggers
 - [ ] Resource Depot structure
 
 #### ASCII glyphs added
@@ -271,9 +274,9 @@ make format   # gofmt
 
 ### Near-term
 - Resource Depot (triggered after 4 houses)
-- XP tracking and XP-based card triggers
 - Villager following behavior
 - Foreman system
+- Graphical renderer (Ebitengine migration — see `docs/GRAPHICS_MIGRATION.md`)
 
 ### Medium-term
 - Road formation (grassland → trodden → road from walk traffic)
@@ -315,10 +318,10 @@ make format   # gofmt
 - [ ] Resource Depot foundation appears after 4 houses built
 
 ### Phase 3 Complete When:
-- ✅ Villagers spawn (1 per house) and appear on map
-- ✅ Villagers autonomously collect and deliver wood
-- ✅ Status bar shows log storage fill and villager/house ratio
-- [ ] XP tracked and triggers card offers at milestones
+- ✅ Villagers spawn (card-gated via XP system) and appear on map
+- ✅ Villagers autonomously collect and deliver wood (multi-tree chop before returning)
+- ✅ Status bar shows log storage fill, villager/house ratio, and XP progress
+- ✅ XP tracked and triggers 3-card upgrade offers at milestones
 - [ ] Villagers follow player and mirror current activity
 - [ ] Foreman can be promoted; works autonomously with influence
 - [ ] Village feels "alive" with coordinated activity

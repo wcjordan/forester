@@ -9,19 +9,32 @@ See `docs/PROJECT_PLAN.md` for an idea of the project.
 See `docs/GETTING_AROUND.md` for a full navigation guide covering every file, the libraries used in each area, and key architectural patterns.
 
 Quick reference:
-- `main.go` — Entry point. Creates and runs the game.
+- `main.go` — Entry point. Creates and runs the game. Blank-imports `game/structures`, `game/upgrades`, `game/resources`.
 - `game/` — Core game package (all game logic lives here)
-  - `game.go` — `Game` struct, `New()`, `Tick()` orchestrator
-  - `state.go` — `State` struct (owns Player + World)
-  - `player.go` — `Player` entity (position, inventory)
-  - `world.go` — `World` grid, `NewWorld()`, bounds/tile access
-  - `tile.go` — `Tile` and `TerrainType` definitions
-  - `structure.go` — `StructureDef` interface + structure registry
+  - `game.go` — `Game` struct, `New()`, `Tick()` orchestrator; owns `State`, `StorageManager`, `VillagerManager`
+  - `state.go` — `State` struct (serializable: Player, World, XP, HouseOccupancy, pendingOfferIDs)
+  - `player.go` — `Player` entity (position, inventory, cooldowns)
+  - `world.go` — `World` grid, `NewWorld()`, bounds/tile access, `AddStructure()`
+  - `tile.go` — `Tile`, `TerrainType`; `StructureType` aliased from `game/core`
+  - `structure.go` — `StructureDef` interface + `RegisterStructure()`
+  - `resource.go` — `ResourceDef` interface + `RegisterResource()`
+  - `upgrade.go` — `UpgradeDef` interface + `RegisterUpgrade()`
+  - `villager.go` — `Villager`, `VillagerManager`; autonomous chop/deliver behavior
+  - `xp.go` — `AwardXP()`, milestone thresholds, card offer selection
+  - `spawn.go` — `maybeSpawnFoundation()`, placement helpers
+  - `story.go` — ordered one-shot story beats
   - `clock.go` — `Clock` interface for test time injection
   - `storage.go` — `ResourceStorage` / `StorageInstance`
-- `render/model.go` — bubbletea `Model` (TUI presentation layer)
+  - `storage_manager.go` — `StorageManager` (deposit/withdraw aggregation)
+  - `game/core/` — `StructureType` leaf package (no upstream deps)
+  - `game/geom/` — Pure geometry helpers (`Point`, `FindPath`, `SpiralSearchDo`)
+  - `game/resources/` — `woodDef` (implements `ResourceDef`, registers via `init()`)
+  - `game/structures/` — `logStorageDef`, `houseDef` (register via `init()`)
+  - `game/upgrades/` — all upgrade cards (register via `init()`)
+- `render/model.go` — bubbletea `Model` (TUI + card selection overlay)
 - `e2e_tests/` — End-to-end tests with injected clock + RNG
 - `docs/PROJECT_PLAN.md` — Full game design document
+- `docs/GRAPHICS_MIGRATION.md` — Ebitengine renderer migration plan
 
 ---
 
