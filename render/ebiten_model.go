@@ -6,11 +6,9 @@ import (
 
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"github.com/hajimehoshi/ebiten/v2/vector"
 
 	"forester/game"
 	"forester/game/geom"
-	"forester/game/structures"
 )
 
 const (
@@ -19,22 +17,9 @@ const (
 	screenHeight = 720
 )
 
-// Color palette for the Ebitengine renderer.
-var (
-	colorBackground    = color.RGBA{R: 0x1A, G: 0x1A, B: 0x1A, A: 0xFF}
-	colorGrassland     = color.RGBA{R: 0x7E, G: 0xC8, B: 0x50, A: 0xFF}
-	colorForestDense   = color.RGBA{R: 0x2D, G: 0x6A, B: 0x2D, A: 0xFF}
-	colorForestMid     = color.RGBA{R: 0x4A, G: 0x8A, B: 0x4A, A: 0xFF}
-	colorForestSapling = color.RGBA{R: 0x6D, G: 0xAA, B: 0x6D, A: 0xFF}
-	colorStump         = color.RGBA{R: 0x6B, G: 0x5A, B: 0x3E, A: 0xFF}
-	colorFoundation    = color.RGBA{R: 0xD4, G: 0xA8, B: 0x40, A: 0xFF}
-	colorLogStorage    = color.RGBA{R: 0xC8, G: 0x92, B: 0x0A, A: 0xFF}
-	colorHouse         = color.RGBA{R: 0xA0, G: 0x40, B: 0xC0, A: 0xFF}
-	colorPlayer        = color.RGBA{R: 0x40, G: 0x80, B: 0xFF, A: 0xFF}
-	colorVillager      = color.RGBA{R: 0x40, G: 0xC0, B: 0xC0, A: 0xFF}
-)
+var colorBackground = color.RGBA{R: 0x1A, G: 0x1A, B: 0x1A, A: 0xFF}
 
-// EbitenGame implements ebiten.Game and renders the world using solid-color rectangles.
+// EbitenGame implements ebiten.Game and renders the world using LPC sprites.
 type EbitenGame struct {
 	game     *game.Game
 	clock    game.Clock
@@ -91,7 +76,7 @@ func (e *EbitenGame) Update() error {
 	return nil
 }
 
-// Draw renders the world as a grid of colored rectangles.
+// Draw renders the world as a grid of LPC sprites.
 func (e *EbitenGame) Draw(screen *ebiten.Image) {
 	screen.Fill(colorBackground)
 
@@ -113,58 +98,33 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 		for col := 0; col < viewW; col++ {
 			worldX := vpX + col
 			worldY := vpY + row
-			c := e.tileColor(worldX, worldY, world, player, villagerPos)
-			x := float32(col * tileSize)
-			y := float32(row * tileSize)
-			vector.FillRect(screen, x, y, tileSize, tileSize, c, false)
+			tile := world.TileAt(worldX, worldY)
+			if tile == nil {
+				continue
+			}
+
+			screenX := float64(col * tileSize)
+			screenY := float64(row * tileSize)
+
+			// Draw terrain / structure sprite.
+			da := spriteForTile(tile)
+			da.opts.GeoM.Translate(screenX, screenY)
+			screen.DrawImage(da.img, da.opts)
+
+			// Draw villager on this tile.
+			if _, ok := villagerPos[geom.Point{X: worldX, Y: worldY}]; ok {
+				da := spriteForVillager()
+				da.opts.GeoM.Translate(screenX, screenY)
+				screen.DrawImage(da.img, da.opts)
+			}
+
+			// Draw player on this tile (always on top).
+			if worldX == player.X && worldY == player.Y {
+				da := spriteForPlayer()
+				da.opts.GeoM.Translate(screenX, screenY)
+				screen.DrawImage(da.img, da.opts)
+			}
 		}
-	}
-}
-
-// tileColor returns the color for the tile at (worldX, worldY) using the same
-// priority ordering as render/model.go: player > villager > structure > terrain.
-func (e *EbitenGame) tileColor(
-	worldX, worldY int,
-	world *game.World,
-	player *game.Player,
-	villagerPos map[geom.Point]struct{},
-) color.Color {
-	if worldX == player.X && worldY == player.Y {
-		return colorPlayer
-	}
-
-	if _, ok := villagerPos[geom.Point{X: worldX, Y: worldY}]; ok {
-		return colorVillager
-	}
-
-	tile := world.TileAt(worldX, worldY)
-	if tile == nil {
-		return colorBackground
-	}
-
-	switch tile.Structure {
-	case structures.FoundationLogStorage, structures.FoundationHouse:
-		return colorFoundation
-	case structures.LogStorage:
-		return colorLogStorage
-	case structures.House:
-		return colorHouse
-	}
-
-	switch tile.Terrain {
-	case game.Forest:
-		switch {
-		case tile.TreeSize == 0:
-			return colorStump
-		case tile.TreeSize >= 7:
-			return colorForestDense
-		case tile.TreeSize >= 4:
-			return colorForestMid
-		default:
-			return colorForestSapling
-		}
-	default:
-		return colorGrassland
 	}
 }
 
