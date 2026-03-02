@@ -60,9 +60,9 @@ func withTestStructures(t *testing.T) {
 	t.Helper()
 	origStructures := structures
 	origBeats := storyBeats
-	structures = map[StructureType]StructureDef{}
+	structures = map[StructureType]registeredDef{}
 	storyBeats = nil
-	RegisterStructure(gametest.LogStorageDef{})
+	RegisterStructure(gametest.LogStorageDef{}, StructureCallbacks{})
 	RegisterStoryBeat(100, "initial_log_storage",
 		func(env *Env) bool {
 			p := env.State.Player

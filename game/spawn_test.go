@@ -2,29 +2,18 @@ package game
 
 import (
 	"testing"
-	"time"
 
-	"forester/game/core"
 	"forester/game/internal/gametest"
 )
 
-// testHouseDef is a minimal StructureDef for house world-condition tests.
-// ShouldSpawn implements the same gate as houseDef: at least one built house,
-// no pending house foundation.
+// testHouseDef is a minimal StructureDef descriptor for house world-condition tests.
+// ShouldSpawn logic is wired in as a StructureCallbacks when registering.
 type testHouseDef struct{}
 
 func (testHouseDef) FoundationType() StructureType { return gametest.FoundationHouse }
 func (testHouseDef) BuiltType() StructureType      { return gametest.House }
 func (testHouseDef) Footprint() (w, h int)         { return 2, 2 }
 func (testHouseDef) BuildCost() int                { return 50 }
-func (testHouseDef) ShouldSpawn(coreEnv core.StructureEnv) bool {
-	env := coreEnv.(*Env)
-	built := len(env.State.World.StructureTypeIndex[gametest.House])
-	pending := len(env.State.World.StructureTypeIndex[gametest.FoundationHouse])
-	return built >= 1 && pending == 0
-}
-func (testHouseDef) OnPlayerInteraction(_ core.StructureEnv, _ point, _ time.Time) {}
-func (testHouseDef) OnBuilt(_ core.StructureEnv, _ point)                          {}
 
 func TestFoundationLocationIsAllGrassland(t *testing.T) {
 	w := NewWorld(30, 30)
@@ -70,8 +59,14 @@ func TestFoundationLocationBetweenPlayerAndSpawn(t *testing.T) {
 
 func TestHouseWorldConditionSpawnsAfterBuild(t *testing.T) {
 	orig := structures
-	structures = map[StructureType]StructureDef{}
-	RegisterStructure(testHouseDef{})
+	structures = map[StructureType]registeredDef{}
+	RegisterStructure(testHouseDef{}, StructureCallbacks{
+		ShouldSpawn: func(env *Env) bool {
+			built := len(env.State.World.StructureTypeIndex[gametest.House])
+			pending := len(env.State.World.StructureTypeIndex[gametest.FoundationHouse])
+			return built >= 1 && pending == 0
+		},
+	})
 	t.Cleanup(func() { structures = orig })
 
 	w := NewWorld(30, 30)

@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"forester/game"
-	"forester/game/core"
 	"forester/game/geom"
 )
 
@@ -20,7 +19,13 @@ const (
 )
 
 func init() {
-	game.RegisterStructure(logStorageDef{})
+	game.RegisterStructure(logStorageDef{}, game.StructureCallbacks{
+		ShouldSpawn: func(_ *game.Env) bool { return false },
+		OnBuilt: func(env *game.Env, origin geom.Point) {
+			env.Stores.Register(origin, game.Wood, logStorageCapacity)
+		},
+		OnPlayerInteraction: logStorageOnPlayerInteraction,
+	})
 	game.RegisterVillagerDepositType(LogStorage)
 
 	// Order 100: spawn the first log storage foundation when the player's inventory is full.
@@ -67,20 +72,11 @@ func (logStorageDef) StorageResource() game.ResourceType { return game.Wood }
 // StorageCapacity returns the capacity of a single Log Storage instance.
 func (logStorageDef) StorageCapacity() int { return logStorageCapacity }
 
-// ShouldSpawn returns false: the initial log storage is triggered by the story beat system.
-func (logStorageDef) ShouldSpawn(_ core.StructureEnv) bool { return false }
-
-// OnBuilt registers a new storage instance when a Log Storage is completed.
-func (logStorageDef) OnBuilt(coreEnv core.StructureEnv, origin geom.Point) {
-	env := coreEnv.(*game.Env)
-	env.Stores.Register(origin, game.Wood, logStorageCapacity)
-}
-
-// OnPlayerInteraction handles adjacent-player interaction for both foundation and built states.
+// logStorageOnPlayerInteraction handles adjacent-player interaction for both
+// foundation and built states.
 // When adjacent to a foundation, deposits one wood toward the build cost each cooldown tick.
 // When adjacent to a built storage, deposits one wood into the storage instance.
-func (d logStorageDef) OnPlayerInteraction(coreEnv core.StructureEnv, origin geom.Point, now time.Time) {
-	env := coreEnv.(*game.Env)
+func logStorageOnPlayerInteraction(env *game.Env, origin geom.Point, now time.Time) {
 	p := env.State.Player
 	tile := env.State.World.TileAt(origin.X, origin.Y)
 	if tile != nil && tile.Structure == FoundationLogStorage {
@@ -93,9 +89,9 @@ func (d logStorageDef) OnPlayerInteraction(coreEnv core.StructureEnv, origin geo
 		env.State.FoundationDeposited[origin]++
 		p.Inventory[game.Wood]--
 		p.QueueCooldown(game.Build, now.Add(p.BuildInterval))
-		if env.State.FoundationDeposited[origin] >= d.BuildCost() {
+		if env.State.FoundationDeposited[origin] >= logStorageBuildCost {
 			game.AwardXP(env, game.XPBuildCompletePlayer)
-			game.FinalizeFoundation(env, d, origin)
+			game.FinalizeFoundation(env, logStorageDef{}, origin)
 		}
 		return
 	}

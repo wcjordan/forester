@@ -14,11 +14,11 @@ type spawnAnchoredPlacer interface {
 // The explicit FoundationType check guards against accidentally passing a BuiltType,
 // which would also resolve in the dual-keyed map but is not a valid lookup.
 func findStructureDefByFoundationType(ft StructureType) StructureDef {
-	def := structures[ft]
-	if def == nil || def.FoundationType() != ft {
+	reg, ok := structures[ft]
+	if !ok || reg.Def.FoundationType() != ft {
 		return nil
 	}
-	return def
+	return reg.Def
 }
 
 // SpawnFoundationByType looks up the StructureDef registered for ft and places its
@@ -56,8 +56,8 @@ func spawnFoundationAt(world *World, playerX, playerY int, def StructureDef) boo
 // when its ShouldSpawn world condition is met. Each ShouldSpawn implementation is responsible
 // for its own idempotency (e.g. checking that no foundation is already pending).
 func maybeSpawnFoundation(env *Env) {
-	IterateStructures(func(def StructureDef) {
-		if def.ShouldSpawn(env) {
+	IterateStructures(func(def StructureDef, cb StructureCallbacks) {
+		if cb.ShouldSpawn != nil && cb.ShouldSpawn(env) {
 			spawnFoundationAt(env.State.World, env.State.Player.X, env.State.Player.Y, def)
 		}
 	})
