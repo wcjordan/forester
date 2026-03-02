@@ -4,6 +4,8 @@ import (
 	"math/rand"
 	"testing"
 	"time"
+
+	"forester/game/internal/gametest"
 )
 
 // withTestVillagerTypes registers LogStorage as a villager deposit type and
@@ -13,8 +15,8 @@ func withTestVillagerTypes(t *testing.T) {
 	t.Helper()
 	origDeposit := villagerDepositTypes
 	origDelivery := villagerDeliveryTypes
-	villagerDepositTypes = []StructureType{LogStorage}
-	villagerDeliveryTypes = []StructureType{FoundationHouse}
+	villagerDepositTypes = []StructureType{gametest.LogStorage}
+	villagerDeliveryTypes = []StructureType{gametest.FoundationHouse}
 	t.Cleanup(func() {
 		villagerDepositTypes = origDeposit
 		villagerDeliveryTypes = origDelivery
@@ -30,7 +32,7 @@ func makeVillagerEnv(t *testing.T) (*State, *Env) {
 
 	// Log storage at (5, 5) — 4×4
 	lsOrigin := point{X: 5, Y: 5}
-	w.PlaceBuilt(lsOrigin.X, lsOrigin.Y, testLogStorageDef{})
+	w.PlaceBuilt(lsOrigin.X, lsOrigin.Y, gametest.LogStorageDef{})
 
 	// House at (20, 20) — 2×2
 	hOrigin := point{X: 20, Y: 20}
@@ -235,9 +237,9 @@ func TestVillagerFetchesAndDelivers(t *testing.T) {
 
 func TestNearestClearTileAdjacent(t *testing.T) {
 	w := NewWorld(20, 20)
-	w.PlaceBuilt(5, 5, testLogStorageDef{})
+	w.PlaceBuilt(5, 5, gametest.LogStorageDef{})
 
-	tx, ty, ok := nearestClearTileAdjacent(w, LogStorage, 5, 4, nil)
+	tx, ty, ok := nearestClearTileAdjacent(w, gametest.LogStorage, 5, 4, nil)
 	if !ok {
 		t.Fatal("nearestClearTileAdjacent returned false, want true")
 	}
@@ -251,7 +253,7 @@ func TestNearestClearTileAdjacent(t *testing.T) {
 	}
 
 	t.Run("returns false when type not present", func(t *testing.T) {
-		_, _, ok := nearestClearTileAdjacent(w, House, 10, 10, nil)
+		_, _, ok := nearestClearTileAdjacent(w, gametest.House, 10, 10, nil)
 		if ok {
 			t.Error("should return false when no House exists")
 		}
@@ -259,36 +261,36 @@ func TestNearestClearTileAdjacent(t *testing.T) {
 }
 
 func TestNearestClearTileAdjacentExcludesCorners(t *testing.T) {
-	// 4×4 LogStorage at (5,5) — footprint matches testLogStorageDef{}.Footprint().
+	// 4×4 LogStorage at (5,5) — footprint matches gametest.LogStorageDef{}.Footprint().
 	// Cardinal neighbors: top y=4 x∈[5,8], bottom y=9 x∈[5,8],
 	//                     left x=4 y∈[5,8], right x=9 y∈[5,8].
 	// Chebyshev corners (excluded): (4,4), (9,4), (4,9), (9,9).
 	w := NewWorld(20, 20)
-	w.PlaceBuilt(5, 5, testLogStorageDef{})
+	w.PlaceBuilt(5, 5, gametest.LogStorageDef{})
 
 	// Block all cardinal neighbors with House tiles (not indexed as LogStorage).
 	for x := 5; x < 9; x++ {
-		w.TileAt(x, 4).Structure = House // top edge
-		w.TileAt(x, 9).Structure = House // bottom edge
+		w.TileAt(x, 4).Structure = gametest.House // top edge
+		w.TileAt(x, 9).Structure = gametest.House // bottom edge
 	}
 	for y := 5; y < 9; y++ {
-		w.TileAt(4, y).Structure = House // left edge
-		w.TileAt(9, y).Structure = House // right edge
+		w.TileAt(4, y).Structure = gametest.House // left edge
+		w.TileAt(9, y).Structure = gametest.House // right edge
 	}
 
 	// All cardinal neighbors are blocked; only diagonal corners remain open.
 	// The function must treat corners as non-adjacent and return ok=false.
-	_, _, ok := nearestClearTileAdjacent(w, LogStorage, 7, 7, nil)
+	_, _, ok := nearestClearTileAdjacent(w, gametest.LogStorage, 7, 7, nil)
 	if ok {
 		t.Error("nearestClearTileAdjacent returned ok=true when only diagonal corners are free; corners must not be considered adjacent")
 	}
 }
 
 func TestNearestClearTileAdjacentReturnedTileIsCardinallyAdjacent(t *testing.T) {
-	// 4×4 LogStorage at (5,5) — footprint matches testLogStorageDef{}.Footprint().
+	// 4×4 LogStorage at (5,5) — footprint matches gametest.LogStorageDef{}.Footprint().
 	// Chebyshev corners: (4,4), (9,4), (4,9), (9,9) — must never be returned.
 	w := NewWorld(20, 20)
-	w.PlaceBuilt(5, 5, testLogStorageDef{})
+	w.PlaceBuilt(5, 5, gametest.LogStorageDef{})
 
 	corners := map[[2]int]bool{
 		{4, 4}: true, {9, 4}: true,
@@ -297,7 +299,7 @@ func TestNearestClearTileAdjacentReturnedTileIsCardinallyAdjacent(t *testing.T) 
 
 	// Run from several positions and confirm no corner is ever returned.
 	for _, from := range [][2]int{{0, 0}, {4, 4}, {9, 9}, {10, 10}} {
-		tx, ty, ok := nearestClearTileAdjacent(w, LogStorage, from[0], from[1], nil)
+		tx, ty, ok := nearestClearTileAdjacent(w, gametest.LogStorage, from[0], from[1], nil)
 		if !ok {
 			t.Errorf("from (%d,%d): expected ok=true", from[0], from[1])
 			continue
@@ -317,11 +319,11 @@ func TestHeadToStorage(t *testing.T) {
 
 		// Storage A at (5,5) — closer to villager, but full.
 		aOrigin := point{X: 5, Y: 5}
-		w.PlaceBuilt(aOrigin.X, aOrigin.Y, testLogStorageDef{})
+		w.PlaceBuilt(aOrigin.X, aOrigin.Y, gametest.LogStorageDef{})
 
 		// Storage B at (20,5) — farther, but has space.
 		bOrigin := point{X: 20, Y: 5}
-		w.PlaceBuilt(bOrigin.X, bOrigin.Y, testLogStorageDef{})
+		w.PlaceBuilt(bOrigin.X, bOrigin.Y, gametest.LogStorageDef{})
 
 		stores := NewStorageManager()
 		stores.Register(aOrigin, Wood, 10)
@@ -348,7 +350,7 @@ func TestHeadToStorage(t *testing.T) {
 		w := NewWorld(20, 20)
 
 		origin := point{X: 5, Y: 5}
-		w.PlaceBuilt(origin.X, origin.Y, testLogStorageDef{})
+		w.PlaceBuilt(origin.X, origin.Y, gametest.LogStorageDef{})
 
 		stores := NewStorageManager()
 		stores.Register(origin, Wood, 10)
@@ -369,7 +371,7 @@ func TestHeadToStorage(t *testing.T) {
 		w := NewWorld(20, 20)
 
 		origin := point{X: 5, Y: 5}
-		w.PlaceBuilt(origin.X, origin.Y, testLogStorageDef{})
+		w.PlaceBuilt(origin.X, origin.Y, gametest.LogStorageDef{})
 
 		stores := NewStorageManager()
 		stores.Register(origin, Wood, 10)
@@ -392,7 +394,7 @@ func TestHeadToStorage(t *testing.T) {
 func TestVillagerRoutesAroundObstacle(t *testing.T) {
 	w := NewWorld(20, 20)
 	// Vertical wall at X=10, Y=0..14 (width=1, height=15).
-	w.PlaceBuilt(10, 0, testWallDef{1, 15})
+	w.PlaceBuilt(10, 0, gametest.WallDef{Width: 1, Height: 15})
 
 	// Villager at (5,7), target at (15,7). Direct route blocked by wall.
 	v := &Villager{X: 5, Y: 7, TargetX: 15, TargetY: 7}
@@ -418,7 +420,7 @@ func TestVillagerChopsMultipleTrees(t *testing.T) {
 	// Log storage at (0,0) is empty so fillRatio=0 and the villager always chooses chop.
 	w := NewWorld(30, 30)
 	lsOrigin := point{X: 0, Y: 0}
-	w.PlaceBuilt(lsOrigin.X, lsOrigin.Y, testLogStorageDef{})
+	w.PlaceBuilt(lsOrigin.X, lsOrigin.Y, gametest.LogStorageDef{})
 	w.Tiles[11][10] = Tile{Terrain: Forest, TreeSize: 2} // Tree A: X=10, Y=11
 	w.Tiles[12][10] = Tile{Terrain: Forest, TreeSize: 3} // Tree B: X=10, Y=12
 
@@ -472,15 +474,15 @@ func TestVillagerChopsMultipleTrees(t *testing.T) {
 
 func TestCountStructureInstances(t *testing.T) {
 	w := NewWorld(30, 30)
-	if w.CountStructureInstances(House) != 0 {
+	if w.CountStructureInstances(gametest.House) != 0 {
 		t.Error("want 0 initially")
 	}
 	w.PlaceBuilt(2, 2, testHouseDef{})
-	if w.CountStructureInstances(House) != 1 {
-		t.Errorf("want 1 after placing one house, got %d", w.CountStructureInstances(House))
+	if w.CountStructureInstances(gametest.House) != 1 {
+		t.Errorf("want 1 after placing one house, got %d", w.CountStructureInstances(gametest.House))
 	}
 	w.PlaceBuilt(10, 10, testHouseDef{})
-	if w.CountStructureInstances(House) != 2 {
-		t.Errorf("want 2 after placing two houses, got %d", w.CountStructureInstances(House))
+	if w.CountStructureInstances(gametest.House) != 2 {
+		t.Errorf("want 2 after placing two houses, got %d", w.CountStructureInstances(gametest.House))
 	}
 }

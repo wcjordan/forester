@@ -97,7 +97,10 @@ func (g *Game) TickAdjacentStructures(now time.Time) {
 			continue
 		}
 		seen[entry.Origin] = true
-		entry.Def.OnPlayerInteraction(env, entry.Origin, now)
+		cb := lookupCallbacks(entry.Def.BuiltType())
+		if cb.OnPlayerInteraction != nil {
+			cb.OnPlayerInteraction(env, entry.Origin, now)
+		}
 	}
 	s.Player.commitCooldowns()
 }

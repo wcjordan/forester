@@ -18,7 +18,17 @@ const (
 )
 
 func init() {
-	game.RegisterStructure(houseDef{})
+	game.RegisterStructure(houseDef{}, game.StructureCallbacks{
+		ShouldSpawn: func(env *game.Env) bool {
+			built := len(env.State.World.StructureTypeIndex[House])
+			pending := len(env.State.World.StructureTypeIndex[FoundationHouse])
+			return built >= 1 && pending == 0
+		},
+		OnBuilt: func(env *game.Env, origin geom.Point) {
+			env.State.HouseOccupancy[origin] = false
+		},
+		OnPlayerInteraction: houseOnPlayerInteraction,
+	})
 	game.RegisterVillagerDeliveryType(FoundationHouse)
 
 	// Order 300: spawn the first house foundation once enough wood has been deposited.
@@ -61,29 +71,14 @@ func (houseDef) Footprint() (w, h int) { return 2, 2 }
 // BuildCost returns the number of wood required to complete a House foundation.
 func (houseDef) BuildCost() int { return houseBuildCost }
 
-// ShouldSpawn is the world condition for spawning additional houses.
-// Returns true when at least one house has been built and no house foundation is pending.
-// The first house is handled by the story beat system; this drives all subsequent spawns.
-func (houseDef) ShouldSpawn(env *game.Env) bool {
-	built := len(env.State.World.StructureTypeIndex[House])
-	pending := len(env.State.World.StructureTypeIndex[FoundationHouse])
-	return built >= 1 && pending == 0
-}
-
 // UseSpawnAnchoredPlacement signals that the house foundation should be placed
 // as close as possible to the world spawn point rather than near the player.
 func (houseDef) UseSpawnAnchoredPlacement() bool { return true }
 
-// OnBuilt is called when a House is completed.
-// It marks the house as unoccupied; villager spawning is handled via XP milestone cards.
-func (d houseDef) OnBuilt(env *game.Env, origin geom.Point) {
-	env.State.HouseOccupancy[origin] = false
-}
-
-// OnPlayerInteraction handles adjacent-player interaction.
+// houseOnPlayerInteraction handles adjacent-player interaction.
 // When adjacent to a foundation, deposits one wood toward the build cost each cooldown tick.
 // When adjacent to a built house, nothing happens (no storage).
-func (d houseDef) OnPlayerInteraction(env *game.Env, origin geom.Point, now time.Time) {
+func houseOnPlayerInteraction(env *game.Env, origin geom.Point, now time.Time) {
 	tile := env.State.World.TileAt(origin.X, origin.Y)
 	if tile == nil || tile.Structure != FoundationHouse {
 		return
@@ -98,8 +93,8 @@ func (d houseDef) OnPlayerInteraction(env *game.Env, origin geom.Point, now time
 	env.State.FoundationDeposited[origin]++
 	p.Inventory[game.Wood]--
 	p.QueueCooldown(game.Build, now.Add(p.BuildInterval))
-	if env.State.FoundationDeposited[origin] >= d.BuildCost() {
+	if env.State.FoundationDeposited[origin] >= houseBuildCost {
 		game.AwardXP(env, game.XPBuildCompletePlayer)
-		game.FinalizeFoundation(env, d, origin)
+		game.FinalizeFoundation(env, houseDef{}, origin)
 	}
 }

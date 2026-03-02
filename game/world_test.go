@@ -1,6 +1,10 @@
 package game
 
-import "testing"
+import (
+	"testing"
+
+	"forester/game/internal/gametest"
+)
 
 func TestNewWorld(t *testing.T) {
 	w := NewWorld(50, 30)
@@ -56,7 +60,7 @@ func TestInBounds(t *testing.T) {
 }
 
 func TestAddStructure(t *testing.T) {
-	def := testLogStorageDef{} // 4×4, BuiltType=LogStorage, FoundationType=FoundationLogStorage
+	def := gametest.LogStorageDef{} // 4×4, BuiltType=LogStorage, FoundationType=FoundationLogStorage
 
 	t.Run("stamps correct tiles", func(t *testing.T) {
 		w := NewWorld(10, 10)
@@ -64,7 +68,7 @@ func TestAddStructure(t *testing.T) {
 		for dy := 0; dy < 4; dy++ {
 			for dx := 0; dx < 4; dx++ {
 				tile := w.TileAt(2+dx, 3+dy)
-				if tile.Structure != LogStorage {
+				if tile.Structure != gametest.LogStorage {
 					t.Errorf("tile (%d,%d) Structure = %v, want LogStorage", 2+dx, 3+dy, tile.Structure)
 				}
 			}
@@ -108,7 +112,7 @@ func TestAddStructure(t *testing.T) {
 	t.Run("stamps populate type index", func(t *testing.T) {
 		w := NewWorld(10, 10)
 		w.PlaceBuilt(2, 3, def)
-		pts := w.StructureTypeIndex[LogStorage]
+		pts := w.StructureTypeIndex[gametest.LogStorage]
 		if len(pts) != 16 {
 			t.Fatalf("type index has %d points, want 16 (4×4)", len(pts))
 		}
@@ -125,18 +129,18 @@ func TestAddStructure(t *testing.T) {
 	t.Run("foundation to built transition removes foundation entries", func(t *testing.T) {
 		w := NewWorld(10, 10)
 		w.PlaceFoundation(1, 1, def)
-		if len(w.StructureTypeIndex[FoundationLogStorage]) != 16 {
+		if len(w.StructureTypeIndex[gametest.FoundationLogStorage]) != 16 {
 			t.Fatalf("expected 16 foundation entries after placement (4×4)")
 		}
 		w.PlaceBuilt(1, 1, def)
-		if len(w.StructureTypeIndex[FoundationLogStorage]) != 0 {
-			t.Errorf("foundation entries should be gone after overwrite, got %d", len(w.StructureTypeIndex[FoundationLogStorage]))
+		if len(w.StructureTypeIndex[gametest.FoundationLogStorage]) != 0 {
+			t.Errorf("foundation entries should be gone after overwrite, got %d", len(w.StructureTypeIndex[gametest.FoundationLogStorage]))
 		}
-		if _, exists := w.StructureTypeIndex[FoundationLogStorage]; exists {
+		if _, exists := w.StructureTypeIndex[gametest.FoundationLogStorage]; exists {
 			t.Error("foundation key should be removed from index when empty")
 		}
-		if len(w.StructureTypeIndex[LogStorage]) != 16 {
-			t.Errorf("expected 16 built entries (4×4), got %d", len(w.StructureTypeIndex[LogStorage]))
+		if len(w.StructureTypeIndex[gametest.LogStorage]) != 16 {
+			t.Errorf("expected 16 built entries (4×4), got %d", len(w.StructureTypeIndex[gametest.LogStorage]))
 		}
 	})
 
@@ -144,10 +148,10 @@ func TestAddStructure(t *testing.T) {
 		w := NewWorld(10, 10)
 		w.PlaceBuilt(0, 0, def)
 		w.clearStructure(0, 0, def)
-		if len(w.StructureTypeIndex[LogStorage]) != 0 {
-			t.Errorf("expected no entries after clear, got %d", len(w.StructureTypeIndex[LogStorage]))
+		if len(w.StructureTypeIndex[gametest.LogStorage]) != 0 {
+			t.Errorf("expected no entries after clear, got %d", len(w.StructureTypeIndex[gametest.LogStorage]))
 		}
-		if _, exists := w.StructureTypeIndex[LogStorage]; exists {
+		if _, exists := w.StructureTypeIndex[gametest.LogStorage]; exists {
 			t.Error("key should be removed from index when empty")
 		}
 	})
@@ -191,8 +195,8 @@ func TestAddStructure(t *testing.T) {
 		if got := len(w.structureIndex); got != fw*fh {
 			t.Errorf("structureIndex len = %d, want %d (one entry per tile, not duplicated)", got, fw*fh)
 		}
-		if w.CountStructureInstances(LogStorage) != 1 {
-			t.Errorf("CountStructureInstances = %d, want 1 (idempotent)", w.CountStructureInstances(LogStorage))
+		if w.CountStructureInstances(gametest.LogStorage) != 1 {
+			t.Errorf("CountStructureInstances = %d, want 1 (idempotent)", w.CountStructureInstances(gametest.LogStorage))
 		}
 	})
 }
@@ -200,14 +204,14 @@ func TestAddStructure(t *testing.T) {
 func TestHasStructureOfType(t *testing.T) {
 	w := NewWorld(10, 10)
 
-	if w.HasStructureOfType(LogStorage) {
+	if w.HasStructureOfType(gametest.LogStorage) {
 		t.Error("should have no LogStorage initially")
 	}
-	w.PlaceBuilt(1, 1, testLogStorageDef{})
-	if !w.HasStructureOfType(LogStorage) {
+	w.PlaceBuilt(1, 1, gametest.LogStorageDef{})
+	if !w.HasStructureOfType(gametest.LogStorage) {
 		t.Error("should detect LogStorage after PlaceBuilt")
 	}
-	if w.HasStructureOfType(FoundationLogStorage) {
+	if w.HasStructureOfType(gametest.FoundationLogStorage) {
 		t.Error("should not detect FoundationLogStorage when none placed")
 	}
 }

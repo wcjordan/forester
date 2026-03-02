@@ -1,5 +1,7 @@
 package game
 
+import "forester/game/core"
+
 // TerrainType represents the base terrain of a tile.
 type TerrainType int
 
@@ -12,10 +14,10 @@ const (
 // StructureType represents a structure placed on top of terrain.
 // It is a string so that external packages (e.g. game/structures) can define
 // new types without editing this file.
-type StructureType string
+type StructureType = core.StructureType
 
 // NoStructure is the zero value for StructureType, representing an empty tile.
-const NoStructure StructureType = ""
+const NoStructure = core.NoStructure
 
 // Tile represents a single cell in the world grid.
 type Tile struct {
