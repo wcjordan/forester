@@ -8,8 +8,10 @@ A navigation guide covering file layout, responsibilities, and the libraries use
 
 | File | Purpose |
 |---|---|
-| `main.go` | Entry point. Creates `game.Game` and `render.Model`, then hands control to bubbletea. Blank-imports `game/structures`, `game/upgrades`, and `game/resources` to trigger `init()` registration. |
-| `go.mod` / `go.sum` | Module `forester`, Go 1.24. Direct deps: `bubbletea`, `lipgloss`. |
+| `main.go` | Entry point. Defaults to Ebitengine window; `--tui` flag runs bubbletea TUI. Blank-imports `game/structures`, `game/upgrades`, and `game/resources` to trigger `init()` registration. |
+| `main_tui.go` | (`//go:build !js`) `shouldRunTUI()` / `runTUI()` — bubbletea startup. Excluded from WASM builds. |
+| `main_wasm.go` | (`//go:build js`) Stubs for `shouldRunTUI`/`runTUI` so WASM compiles without bubbletea. |
+| `go.mod` / `go.sum` | Module `forester`, Go 1.24. Direct deps: `bubbletea`, `lipgloss`, `ebiten/v2`. |
 | `Makefile` | All dev commands — see [Verification commands](#verification-commands). |
 | `.air.toml` | Hot-reload config for `air` (`make dev`). |
 | `.golangci.yml` | Linter rules consumed by `golangci-lint` (`make lint`). |
@@ -56,13 +58,17 @@ A navigation guide covering file layout, responsibilities, and the libraries use
 
 ---
 
-### `render/` — TUI presentation layer
+### `render/` — presentation layer
+
+Two renderers share the `render` package. `game/` has no I/O knowledge; both renderers are read-only views over `*game.Game`.
 
 | File | Key types / funcs | Notes |
 |---|---|---|
-| `model.go` | `Model` (implements `tea.Model`), `NewModel()`, `NewModelWithClock()`, `Init()`, `Update()`, `View()` | Bubbletea Elm-Architecture model. `Update` dispatches `tea.KeyMsg` / `TickMsg` / `tea.WindowSizeMsg`. `View` renders the viewport centered on the player plus a status bar. When a card offer is pending, renders a full-screen card selection overlay instead of the game view. |
+| `tui_model.go` | `Model` (implements `tea.Model`), `NewModel()`, `NewModelWithClock()`, `Init()`, `Update()`, `View()` | (`//go:build !js`) Bubbletea Elm-Architecture model. `Update` dispatches `tea.KeyMsg` / `TickMsg` / `tea.WindowSizeMsg`. `View` renders the viewport centered on the player plus a status bar. When a card offer is pending, renders a full-screen card selection overlay. |
+| `ebiten_model.go` | `EbitenGame` (implements `ebiten.Game`), `NewEbitenGame()`, `Update()`, `Draw()`, `Layout()` | Ebitengine renderer. `Update` handles WASD/arrow movement and game ticks at 100ms intervals. `Draw` renders the world as solid-color rectangles (1280×720, 32px tiles) with a spec-defined color palette. |
+| `util.go` | `clamp()` | Shared integer clamp helper used by both renderers. |
 
-**Rendering glyphs** (defined in `model.go`)
+**Rendering glyphs** (TUI — defined in `tui_model.go`)
 
 | Glyph | Meaning |
 |---|---|
@@ -97,8 +103,9 @@ Run visually: `make e2e_viz` (set `E2E_VISUAL=1 E2E_VISUAL_DELAY=150ms`).
 
 | Library | Used in | Purpose |
 |---|---|---|
-| `github.com/charmbracelet/bubbletea` | `main.go`, `render/model.go`, `e2e_tests/` | Elm-Architecture TUI framework. Drives the event loop (`Init` / `Update` / `View`). |
-| `github.com/charmbracelet/lipgloss` | `render/model.go` | Terminal color and style (ANSI). Used for per-tile glyph styles. |
+| `github.com/charmbracelet/bubbletea` | `main_tui.go`, `render/tui_model.go`, `e2e_tests/` | Elm-Architecture TUI framework. Drives the event loop (`Init` / `Update` / `View`). Excluded from WASM builds. |
+| `github.com/charmbracelet/lipgloss` | `render/tui_model.go` | Terminal color and style (ANSI). Used for per-tile glyph styles. Excluded from WASM builds. |
+| `github.com/hajimehoshi/ebiten/v2` | `main.go`, `render/ebiten_model.go` | 2D game engine. Provides the window, frame loop, input, and drawing primitives. Compiles for native and WASM. |
 | `math/rand` | `game/` | Seeded RNG for worldgen and regrowth. Injected via `*rand.Rand` for test determinism. |
 | Standard library (`time`, `math`, `fmt`, `strings`) | Throughout | No other runtime dependencies. |
 
@@ -131,9 +138,15 @@ Each upgrade file calls `RegisterUpgrade(myUpgrade{})` in `init()` inside `game/
 `World.Tiles[y][x]` — row first, then column.
 Always use `World.TileAt(x, y)` to access tiles safely (returns `nil` for out-of-bounds).
 
-### Bubbletea tick loop
-`render.TickMsg` fires every `GameTickInterval` (100 ms). Each tick calls `game.Tick()`.
-Player input goes through `tea.KeyMsg` → `state.Move()`.
+### Dual renderer
+Two renderers exist side by side in the `render/` package:
+- **TUI** (`tui_model.go`, `//go:build !js`): bubbletea drives a `TickMsg` every `GameTickInterval` (100ms) which calls `game.Tick()`. Player input via `tea.KeyMsg`.
+- **Ebitengine** (`ebiten_model.go`): Ebitengine calls `Update()` ~60/s. `Update` accumulates time and calls `game.Tick()` every 100ms. WASD held keys call `player.Move()`; the player's 150ms move cooldown throttles actual movement.
+
+Select renderer at runtime: `./forester` → Ebitengine window; `./forester --tui` → bubbletea TUI.
+
+### WASM build isolation
+`render/tui_model.go` and `main_tui.go` carry `//go:build !js` so bubbletea/lipgloss are excluded from WASM builds. `main_wasm.go` (`//go:build js`) provides stubs. Build with `make wasm`.
 
 ---
 
@@ -149,4 +162,5 @@ make dev      # hot-reload with air
 make e2e_viz  # visual E2E playback in terminal
 make clean    # remove build artifacts
 make format   # format code w/ gofmt
+make wasm     # compile WASM binary (forester.wasm)
 ```
