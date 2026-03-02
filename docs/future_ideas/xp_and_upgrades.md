@@ -8,7 +8,7 @@ This file tracks what is **not yet built**.
 ## What's implemented
 
 - XP earned from chopping (+1/wood), depositing (+1/wood), completing structures (+10 player / +20 villager)
-- XP milestones with growing gaps (50, 75, 100, 125, …); game pauses and presents 3-card offer
+- XP milestones at cumulative thresholds 50, 125, 225, 350, 500, … XP (with growing gap sizes 50, 75, 100, 125, …); game pauses and presents 3-card offer
 - Card pool: faster harvesting, depositing, movement, building (stackable)
 - Spawn Villager card (conditionally offered when an unoccupied house exists)
 
@@ -34,7 +34,7 @@ Stone, berries, fish, etc. would each earn XP when gathered — keeping the XP f
 
 ### Unlock mechanics
 Cards that unlock new behaviors entirely:
-- Villagers autonomously cut trees (currently they don't — only the player does)
+
 - New resource types become available to gather
 
 ---

@@ -27,7 +27,7 @@ Quick reference:
   - `storage.go` — `ResourceStorage` / `StorageInstance`
   - `storage_manager.go` — `StorageManager` (deposit/withdraw aggregation)
   - `game/core/` — `StructureType` leaf package (no upstream deps)
-  - `game/geom/` — Pure geometry helpers (`Point`, `findPath`, `spiralSearchDo`)
+  - `game/geom/` — Pure geometry helpers (`Point`, `FindPath`, `SpiralSearchDo`)
   - `game/resources/` — `woodDef` (implements `ResourceDef`, registers via `init()`)
   - `game/structures/` — `logStorageDef`, `houseDef` (register via `init()`)
   - `game/upgrades/` — all upgrade cards (register via `init()`)

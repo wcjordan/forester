@@ -32,7 +32,7 @@ A navigation guide covering file layout, responsibilities, and the libraries use
 | `worldgen.go` | `GenerateWorld()`, `defaultSeed` | Procedural terrain via cellular automata (5 iterations). Same seed → same map. Uses its own local `*rand.Rand`; does **not** share the game RNG. |
 | `spawn.go` | `maybeSpawnFoundation()`, `findValidLocationNearPlayer()`, `findValidLocationNearSpawn()`, `isValidArea()` | Foundation spawn logic: checks each `StructureDef.ShouldSpawn()`, finds valid grassland area, places the foundation tile. Free functions with explicit params. |
 | `story.go` | `StoryBeat`, `storyBeats`, `maybeAdvanceStory()` | Ordered one-shot triggers. Fire at most one per tick; retry until the action succeeds. Drives first-log-storage and first-house story beats. |
-| `structure.go` | `StructureDef` interface, `StructureEntry`, `RegisterStructure()`, `RegisterUpgrade()` | Extension point for new structures. Each type registers itself via `init()` in `game/structures/`. |
+| `structure.go` | `StructureDef` interface, `StructureCallbacks`, `FinalizeFoundation`, `RegisterStructure()`, `IterateStructures()` | Extension point for new structures. Each type registers itself via `init()` in `game/structures/`. |
 | `resource.go` | `ResourceDef` interface, `RegisterResource()`, `IterateResources()` | Extension point for harvestable resource types (wood, future: stone, etc.). Registered from `game/resources/`. |
 | `storage.go` | `ResourceType`, `StorageDef`, `StorageInstance`, `ResourceStorage` | `StorageDef` extends `StructureDef` for structures that hold resources. `StorageInstance` tracks one structure's fill level. |
 | `storage_manager.go` | `StorageManager`, `StorageState` | Runtime owner of all storage amounts. `Register()` called on `OnBuilt`; `DepositAt()` / `WithdrawFrom()` used by interaction handlers and villagers. |
@@ -48,7 +48,7 @@ A navigation guide covering file layout, responsibilities, and the libraries use
 | Package | Key types / funcs | Notes |
 |---|---|---|
 | `game/core` | `StructureType`, `NoStructure` | Leaf package (no imports from `game/`). Lets `game/structures` and `game/upgrades` define `StructureType` constants without creating import cycles. |
-| `game/geom` | `Point`, `Rect`, `findPath()`, `spiralSearchDo()`, `FootprintBorderDo()` | Pure geometry helpers. No game logic. Used by villagers, spawn, and structure placement. |
+| `game/geom` | `Point`, `FindPath()`, `SpiralSearchDo()`, `FootprintBorderDo()` | Pure geometry helpers. No game logic. Used by villagers, spawn, and structure placement. |
 | `game/resources` | `woodDef{}` | Implements `ResourceDef` for wood. Registers via `init()`. Handles harvesting (`Harvest`) and regrowth (`Regrow`). |
 | `game/structures` | `logStorageDef{}`, `houseDef{}` | Implements `StructureDef` for each structure. Registers via `init()`. Also calls `RegisterVillagerDepositType` / `RegisterVillagerDeliveryType`. |
 | `game/upgrades` | `carryUpgrade`, `buildSpeedUpgrade`, `depositSpeedUpgrade`, `harvestSpeedUpgrade`, `moveSpeedUpgrade`, `spawnVillagerUpgrade` | Implements `UpgradeDef` for each upgrade card. Registers via `init()`. |
@@ -115,12 +115,12 @@ All time-dependent game logic (`Tick`, move cooldowns, deposit cooldown) accepts
 `worldgen.go` uses its own local RNG (seeded separately by `defaultSeed = 42`).
 
 ### Structure registry
-Each structure file calls `RegisterStructure(myDef{})` in `init()` inside `game/structures/`.
+Each structure file calls `RegisterStructure(myDef{}, game.StructureCallbacks{ ... })` in `init()` inside `game/structures/`.
 `main.go` and `e2e_tests/` blank-import `game/structures` to trigger registration.
-**To add a new structure:** implement `StructureDef`, add a `StructureType` constant in `game/core/core.go`, create a new file in `game/structures/`, register via `init()`.
+**To add a new structure:** implement `StructureDef`, add a `StructureType` constant in `game/core/core.go`, create a new file in `game/structures/`, and in `init()` call `RegisterStructure(myDef{}, game.StructureCallbacks{ ... })`.
 
 ### Upgrade registry
-Each upgrade file calls `RegisterUpgrade(id, myDef{})` in `init()` inside `game/upgrades/`.
+Each upgrade file calls `RegisterUpgrade(myUpgrade{})` in `init()` inside `game/upgrades/`. The upgrade ID comes from `myUpgrade.ID()`.
 `main.go` and `e2e_tests/` blank-import `game/upgrades` to trigger registration.
 
 ### XP and card offers
