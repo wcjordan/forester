@@ -94,6 +94,16 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 		villagerPos[geom.Point{X: v.X, Y: v.Y}] = struct{}{}
 	}
 
+	// Single opts reused for every DrawImage call — reset before each use.
+	var opts ebiten.DrawImageOptions
+
+	drawSprite := func(da drawArgs, screenX, screenY float64) {
+		opts.GeoM.Reset()
+		opts.GeoM.Scale(da.scale, da.scale)
+		opts.GeoM.Translate(screenX, screenY)
+		screen.DrawImage(da.img, &opts)
+	}
+
 	for row := 0; row < viewH; row++ {
 		for col := 0; col < viewW; col++ {
 			worldX := vpX + col
@@ -106,23 +116,14 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 			screenX := float64(col * tileSize)
 			screenY := float64(row * tileSize)
 
-			// Draw terrain / structure sprite.
-			da := spriteForTile(tile)
-			da.opts.GeoM.Translate(screenX, screenY)
-			screen.DrawImage(da.img, da.opts)
+			drawSprite(spriteForTile(tile), screenX, screenY)
 
-			// Draw villager on this tile.
 			if _, ok := villagerPos[geom.Point{X: worldX, Y: worldY}]; ok {
-				da := spriteForVillager()
-				da.opts.GeoM.Translate(screenX, screenY)
-				screen.DrawImage(da.img, da.opts)
+				drawSprite(spriteForVillager(), screenX, screenY)
 			}
 
-			// Draw player on this tile (always on top).
 			if worldX == player.X && worldY == player.Y {
-				da := spriteForPlayer()
-				da.opts.GeoM.Translate(screenX, screenY)
-				screen.DrawImage(da.img, da.opts)
+				drawSprite(spriteForPlayer(), screenX, screenY)
 			}
 		}
 	}
