@@ -10,6 +10,29 @@ See [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) for the full design document.
 - **golangci-lint** — `brew install golangci-lint`
 - **air** (optional, for hot-reload) — `go install github.com/air-verse/air@latest`
 
+## Setup
+
+### LPC Base Assets (required)
+
+The Ebitengine renderer uses sprites from the [Liberated Pixel Cup base assets](https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles).
+
+1. Download the archive from the link above
+2. Extract it so that the `tiles/` and `sprites/` directories land at:
+   ```
+   assets/sprites/lpc_base_assets/
+   ```
+   Expected layout:
+   ```
+   assets/sprites/lpc_base_assets/
+     tiles/
+       treetop.png, trunk.png, grass.png, dirt.png, house.png, barrel.png, ...
+     sprites/
+       people/
+         soldier.png, soldier_altcolor.png, ...
+   ```
+
+This directory is `.gitignore`d and must be populated manually before running.
+
 ## Quick Start
 
 ```bash
