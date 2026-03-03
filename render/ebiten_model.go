@@ -6,6 +6,7 @@ import (
 
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	textv2 "github.com/hajimehoshi/ebiten/v2/text/v2"
 
 	"forester/game"
 	"forester/game/geom"
@@ -24,6 +25,7 @@ type EbitenGame struct {
 	camY     float64
 	screenW  int
 	screenH  int
+	hudFace  *textv2.GoXFace
 }
 
 // NewEbitenGame creates an EbitenGame wrapping the given game using the system clock.
@@ -33,6 +35,7 @@ func NewEbitenGame(g *game.Game) *EbitenGame {
 		clock:   game.RealClock{},
 		screenW: 1280,
 		screenH: 720,
+		hudFace: newHUDFace(),
 	}
 }
 
@@ -93,6 +96,11 @@ func (e *EbitenGame) Update() error {
 func (e *EbitenGame) Draw(screen *ebiten.Image) {
 	screen.Fill(colorBackground)
 
+	if e.game.HasPendingOffer() {
+		drawCardScreen(screen, e.game.CurrentOffer(), e.hudFace, e.screenW, e.screenH)
+		return
+	}
+
 	world := e.game.State.World
 	player := e.game.State.Player
 
@@ -140,6 +148,8 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 			}
 		}
 	}
+
+	drawHUD(screen, e.game, e.hudFace, e.screenW, e.screenH)
 }
 
 // Layout stores the current window dimensions and returns them as the logical screen size.
