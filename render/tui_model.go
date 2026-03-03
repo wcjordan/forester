@@ -414,12 +414,3 @@ func (m Model) renderCardScreen() string {
 
 	return sb.String()
 }
-
-// buildProgressBar renders a text progress bar for a build operation.
-// e.g. "Building: ████░░░░ 75%"
-func buildProgressBar(progress float64) string {
-	const width = 8
-	filled := clamp(int(progress*width), 0, width)
-	bar := strings.Repeat("█", filled) + strings.Repeat("░", width-filled)
-	return fmt.Sprintf("Building: %s %d%%", bar, int(progress*100))
-}

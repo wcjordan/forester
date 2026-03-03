@@ -6,29 +6,39 @@ import (
 
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	textv2 "github.com/hajimehoshi/ebiten/v2/text/v2"
 
 	"forester/game"
 	"forester/game/geom"
 )
 
-const (
-	tileSize     = 32
-	screenWidth  = 1280
-	screenHeight = 720
-)
+const tileSize = 32
 
 var colorBackground = color.RGBA{R: 0x1A, G: 0x1A, B: 0x1A, A: 0xFF}
 
 // EbitenGame implements ebiten.Game and renders the world using LPC sprites.
 type EbitenGame struct {
-	game     *game.Game
-	clock    game.Clock
-	lastTick time.Time
+	game             *game.Game
+	clock            game.Clock
+	lastTick         time.Time
+	camX             float64
+	camY             float64
+	screenW          int
+	screenH          int
+	hudFace          *textv2.GoXFace
+	debugVillager    bool
+	debugVillagerIdx int
 }
 
 // NewEbitenGame creates an EbitenGame wrapping the given game using the system clock.
 func NewEbitenGame(g *game.Game) *EbitenGame {
-	return &EbitenGame{game: g, clock: game.RealClock{}}
+	return &EbitenGame{
+		game:    g,
+		clock:   game.RealClock{},
+		screenW: 1280,
+		screenH: 720,
+		hudFace: newHUDFace(),
+	}
 }
 
 // Update is called every frame (~60/s) by Ebitengine. Handles input and game ticks.
@@ -67,6 +77,27 @@ func (e *EbitenGame) Update() error {
 		player.Move(1, 0, world, now)
 	}
 
+	// Debug villager bar toggle and selection.
+	if inpututil.IsKeyJustPressed(ebiten.KeyBackslash) {
+		e.debugVillager = !e.debugVillager
+	}
+	if n := e.game.Villagers.Count(); n > 0 {
+		if inpututil.IsKeyJustPressed(ebiten.KeyBracketLeft) {
+			e.debugVillagerIdx = (e.debugVillagerIdx - 1 + n) % n
+		}
+		if inpututil.IsKeyJustPressed(ebiten.KeyBracketRight) {
+			e.debugVillagerIdx = (e.debugVillagerIdx + 1) % n
+		}
+	}
+
+	// Update camera with lerp toward player.
+	viewW := e.screenW / tileSize
+	viewH := e.screenH / tileSize
+	targetCamX := clampF(float64(player.X)-float64(viewW)/2, 0, float64(max(0, world.Width-viewW)))
+	targetCamY := clampF(float64(player.Y)-float64(viewH)/2, 0, float64(max(0, world.Height-viewH)))
+	e.camX += (targetCamX - e.camX) * 0.12
+	e.camY += (targetCamY - e.camY) * 0.12
+
 	// Game tick at GameTickInterval cadence.
 	if now.Sub(e.lastTick) >= game.GameTickInterval {
 		e.game.Tick()
@@ -80,13 +111,18 @@ func (e *EbitenGame) Update() error {
 func (e *EbitenGame) Draw(screen *ebiten.Image) {
 	screen.Fill(colorBackground)
 
+	if e.game.HasPendingOffer() {
+		drawCardScreen(screen, e.game.CurrentOffer(), e.hudFace, e.screenW, e.screenH)
+		return
+	}
+
 	world := e.game.State.World
 	player := e.game.State.Player
 
-	viewW := screenWidth / tileSize
-	viewH := screenHeight / tileSize
-	vpX := clamp(player.X-viewW/2, 0, max(0, world.Width-viewW))
-	vpY := clamp(player.Y-viewH/2, 0, max(0, world.Height-viewH))
+	vpX := int(e.camX)
+	vpY := int(e.camY)
+	viewW := e.screenW / tileSize
+	viewH := e.screenH / tileSize
 
 	// Build villager position set for O(1) lookup.
 	villagerPos := make(map[geom.Point]struct{}, e.game.Villagers.Count())
@@ -127,9 +163,16 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 			}
 		}
 	}
+
+	drawHUD(screen, e.game, e.hudFace, e.screenW, e.screenH)
+	if e.debugVillager {
+		drawVillagerDebugBar(screen, e.game, e.hudFace, e.screenW, e.screenH, e.debugVillagerIdx)
+	}
 }
 
-// Layout returns the logical screen dimensions.
-func (e *EbitenGame) Layout(_, _ int) (w, h int) {
-	return screenWidth, screenHeight
+// Layout stores the current window dimensions and returns them as the logical screen size.
+func (e *EbitenGame) Layout(outsideW, outsideH int) (w, h int) {
+	e.screenW = outsideW
+	e.screenH = outsideH
+	return outsideW, outsideH
 }
