@@ -21,6 +21,7 @@ func main() {
 
 	g := game.New()
 	ebiten.SetWindowSize(1280, 720)
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetWindowTitle("Forester")
 	if err := ebiten.RunGame(render.NewEbitenGame(g)); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)

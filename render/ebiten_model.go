@@ -18,14 +18,16 @@ var colorBackground = color.RGBA{R: 0x1A, G: 0x1A, B: 0x1A, A: 0xFF}
 
 // EbitenGame implements ebiten.Game and renders the world using LPC sprites.
 type EbitenGame struct {
-	game     *game.Game
-	clock    game.Clock
-	lastTick time.Time
-	camX     float64
-	camY     float64
-	screenW  int
-	screenH  int
-	hudFace  *textv2.GoXFace
+	game             *game.Game
+	clock            game.Clock
+	lastTick         time.Time
+	camX             float64
+	camY             float64
+	screenW          int
+	screenH          int
+	hudFace          *textv2.GoXFace
+	debugVillager    bool
+	debugVillagerIdx int
 }
 
 // NewEbitenGame creates an EbitenGame wrapping the given game using the system clock.
@@ -73,6 +75,19 @@ func (e *EbitenGame) Update() error {
 		player.Move(-1, 0, world, now)
 	case ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyArrowRight):
 		player.Move(1, 0, world, now)
+	}
+
+	// Debug villager bar toggle and selection.
+	if inpututil.IsKeyJustPressed(ebiten.KeyBackslash) {
+		e.debugVillager = !e.debugVillager
+	}
+	if n := e.game.Villagers.Count(); n > 0 {
+		if inpututil.IsKeyJustPressed(ebiten.KeyBracketLeft) {
+			e.debugVillagerIdx = (e.debugVillagerIdx - 1 + n) % n
+		}
+		if inpututil.IsKeyJustPressed(ebiten.KeyBracketRight) {
+			e.debugVillagerIdx = (e.debugVillagerIdx + 1) % n
+		}
 	}
 
 	// Update camera with lerp toward player.
@@ -150,6 +165,9 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 	}
 
 	drawHUD(screen, e.game, e.hudFace, e.screenW, e.screenH)
+	if e.debugVillager {
+		drawVillagerDebugBar(screen, e.game, e.hudFace, e.screenW, e.screenH, e.debugVillagerIdx)
+	}
 }
 
 // Layout stores the current window dimensions and returns them as the logical screen size.
