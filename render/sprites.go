@@ -29,6 +29,8 @@ var (
 	treetopYoungImg     = assets.Treetop.SubImage(image.Rect(0, 0, 0+96, 0+112)).(*ebiten.Image)
 	grassForestImg      = assets.Grass.SubImage(image.Rect(0, 0, 0+32, 0+32)).(*ebiten.Image)
 	grassTileImg        = assets.GrassTile.SubImage(image.Rect(0, 0, 0+32, 0+32)).(*ebiten.Image)
+	troddenPathImg      = assets.TroddenPath.SubImage(image.Rect(0, 0, 32, 32)).(*ebiten.Image)
+	roadImg             = assets.Road.SubImage(image.Rect(0, 0, 32, 32)).(*ebiten.Image)
 
 	// Characters
 	playerImg   = assets.Player.SubImage(image.Rect(0, 128, 0+64, 128+64)).(*ebiten.Image)
@@ -59,7 +61,14 @@ func spriteForTile(tile *game.Tile) drawArgs {
 			return drawArgs{grassForestImg, 1.0}
 		}
 	default:
-		return drawArgs{grassTileImg, 1.0}
+		switch game.RoadLevelFor(tile) {
+		case 2:
+			return drawArgs{roadImg, 1.0}
+		case 1:
+			return drawArgs{troddenPathImg, 1.0}
+		default:
+			return drawArgs{grassTileImg, 1.0}
+		}
 	}
 }
 

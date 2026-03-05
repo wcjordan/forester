@@ -18,15 +18,17 @@ var peopleFS embed.FS
 
 // Sprite sheet images loaded at init time.
 var (
-	GrassTile *ebiten.Image
-	Treetop   *ebiten.Image
-	Trunk     *ebiten.Image
-	Grass     *ebiten.Image
-	Dirt      *ebiten.Image
-	House     *ebiten.Image
-	Barrel    *ebiten.Image
-	Player    *ebiten.Image
-	Villager  *ebiten.Image
+	GrassTile   *ebiten.Image
+	Treetop     *ebiten.Image
+	Trunk       *ebiten.Image
+	Grass       *ebiten.Image
+	Dirt        *ebiten.Image
+	House       *ebiten.Image
+	Barrel      *ebiten.Image
+	Player      *ebiten.Image
+	Villager    *ebiten.Image
+	TroddenPath *ebiten.Image
+	Road        *ebiten.Image
 )
 
 func loadFromFS(fs embed.FS, path string) *ebiten.Image {
@@ -44,6 +46,12 @@ func loadFromFS(fs embed.FS, path string) *ebiten.Image {
 func init() {
 	GrassTile = ebiten.NewImage(32, 32)
 	GrassTile.Fill(color.RGBA{R: 0x7E, G: 0xC8, B: 0x50, A: 0xFF})
+
+	TroddenPath = ebiten.NewImage(32, 32)
+	TroddenPath.Fill(color.RGBA{R: 0xC8, G: 0xA0, B: 0x60, A: 0xFF}) // sandy tan
+
+	Road = ebiten.NewImage(32, 32)
+	Road.Fill(color.RGBA{R: 0x90, G: 0x78, B: 0x60, A: 0xFF}) // gray-brown packed dirt
 
 	Treetop = loadFromFS(tilesFS, "sprites/lpc_base_assets/tiles/treetop.png")
 	Trunk = loadFromFS(tilesFS, "sprites/lpc_base_assets/tiles/trunk.png")

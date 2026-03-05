@@ -33,6 +33,8 @@ var (
 	logStorageStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Bold(true) // bold yellow
 	houseStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true) // bold magenta
 	villagerStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("14"))           // cyan
+	troddenStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("130"))          // brown/amber
+	roadStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))            // dark gray
 )
 
 // Model is the bubbletea model for the game. It owns viewport dimensions
@@ -196,7 +198,14 @@ func (m Model) View() string {
 					sb.WriteString(forestStyle.Render(","))
 				}
 			default:
-				sb.WriteByte('.')
+				switch game.RoadLevelFor(tile) {
+				case 2:
+					sb.WriteString(roadStyle.Render("="))
+				case 1:
+					sb.WriteString(troddenStyle.Render(":"))
+				default:
+					sb.WriteByte('.')
+				}
 			}
 		}
 		if row < mapHeight-1 {
