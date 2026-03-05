@@ -84,7 +84,7 @@ Suggested first assets to source/generate:
 
 ## Migration Phases
 
-### Phase G0 — Ebitengine skeleton (colored rectangles, no sprites)
+### Phase G0 — Ebitengine skeleton (colored rectangles, no sprites) ✅ COMPLETE
 
 **Goal**: Wire Ebitengine into the project and render the world grid using solid-color rectangles. Prove the integration works and the game loop runs correctly.
 
@@ -123,7 +123,7 @@ Villager       → #40C0C0 (cyan)
 
 ---
 
-### Phase G1 — Sprite rendering (first real art)
+### Phase G1 — Sprite rendering (first real art) ✅ COMPLETE
 
 **Goal**: Replace colored rectangles with 32×32 PNG sprites for terrain and structures.
 
@@ -141,7 +141,7 @@ Villager       → #40C0C0 (cyan)
 
 ---
 
-### Phase G2 — HUD and camera polish
+### Phase G2 — HUD and camera polish ✅ COMPLETE
 
 **Goal**: Basic in-game UI and smooth camera.
 
@@ -198,15 +198,15 @@ Villager       → #40C0C0 (cyan)
 
 ## Immediate Next Step
 
-**Start Phase G0.**
+**Start Phase G3 — Web deployment.**
 
-1. Add Ebitengine: `go get github.com/hajimehoshi/ebiten/v2`
-2. Create `render/ebiten_model.go` with colored-rectangle rendering
-3. Add `--tui` flag to `main.go` to preserve bubbletea mode during transition
-4. Verify WASM compilation
+Phases G0, G1, and G2 are complete. The game runs in Ebitengine with LPC sprites, a HUD, and a polished camera. The WASM build target already compiles.
+
+1. Add `wasm_exec.js` + minimal HTML shell in `web/`
+2. Add `make web` Makefile target (builds WASM and copies to `web/`)
+3. Test in Chrome and Firefox
+4. Verify keyboard input works in browser context
 5. Commit
-
-This is a self-contained change (~200 lines) with no artwork dependency and a clear pass/fail outcome.
 
 ---
 

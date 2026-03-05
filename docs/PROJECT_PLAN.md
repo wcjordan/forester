@@ -20,8 +20,9 @@ A city builder/simulation game where you play as a character who develops a vill
 - **Architecture**: Clean separation of game logic from rendering
 
 ### Libraries in use
-- `bubbletea` - Elm-inspired TUI framework (primary event loop)
-- `lipgloss` - Terminal color and style (ANSI)
+- `ebitengine` - 2D game engine (primary graphical renderer; compiles to WASM for web)
+- `bubbletea` - Elm-inspired TUI framework (available via `--tui` flag)
+- `lipgloss` - Terminal color and style (ANSI, TUI mode only)
 - `air` - Live reload for Go applications
 
 ---
@@ -78,7 +79,7 @@ A city builder/simulation game where you play as a character who develops a vill
   - P(chop task) = 1 − fill_ratio; P(deliver task) = fill_ratio
   - **Chop task**: Walk to nearest tree → harvest up to 5 wood → carry to log storage
   - **Deliver task**: Fetch up to 5 wood from log storage → carry to nearest house (wood consumed)
-- **Movement**: Cardinal step-toward-target (300 ms/step); avoids structures; no BFS pathfinding yet
+- **Movement**: A* pathfinding via `geom.FindPath` (Manhattan heuristic, terrain-cost-aware); exponential backoff and idle-reset after repeated failures on unreachable targets
 - **Contribution**: Wood flow — not XP
 - **Following behavior**: Not yet implemented (villagers work independently)
 - **Foreman system**: Not yet implemented
@@ -194,7 +195,7 @@ H  House (bold magenta)
 - [x] Autonomous task selection: probabilistic based on log storage fill
 - [x] Chop task: walk to nearest tree → harvest multiple trees until full → carry to log storage
 - [x] Deliver task: fetch wood from log storage → carry to nearest house (wood consumed)
-- [x] Cardinal movement: step toward target, primary axis first, fallback if blocked
+- [x] A* pathfinding via `geom.FindPath`; exponential backoff + idle-reset for unreachable targets
 - [x] Status bar: `Log: X/Y` (stored/capacity), `Villagers: X/Y` (count/house count), `XP: n/next`
 - [x] `StorageManager.WithdrawFrom` for villager fetch
 - [x] XP tracking: +1/wood chopped, +1/wood deposited, +10/structure by player, +20/structure by villager
@@ -276,13 +277,12 @@ make format   # gofmt
 - Resource Depot (triggered after 4 houses)
 - Villager following behavior
 - Foreman system
-- Graphical renderer (Ebitengine migration — see `docs/GRAPHICS_MIGRATION.md`)
+- Web deployment (Ebitengine WASM — Phase G3; see `docs/GRAPHICS_MIGRATION.md`)
 
 ### Medium-term
-- Road formation (grassland → trodden → road from walk traffic)
-- BFS pathfinding for villagers
 - Map scale-up to 1000×1000
 - Additional upgrade cards
+- Isometric view (Phase G4)
 
 ### Long-term / Post-MVP
 - Berry harvesting, mining, farming, fishing
