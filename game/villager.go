@@ -273,15 +273,20 @@ func (v *Villager) pickTask(env *Env, rng *rand.Rand) {
 	v.tryAssignChopTask(env)
 }
 
+// setTarget assigns a new movement target and resets path state so A* reruns from scratch.
+func (v *Villager) setTarget(tx, ty int) {
+	v.TargetX, v.TargetY = tx, ty
+	v.path = nil
+	v.pathFailures = 0
+}
+
 func (v *Villager) tryAssignChopTask(env *Env) bool {
 	tx, ty, ok := findNearbyTree(env.State.World, v.X, v.Y)
 	if !ok {
 		return false
 	}
 	v.Task = VillagerWalkingToTree
-	v.TargetX, v.TargetY = tx, ty
-	v.path = nil
-	v.pathFailures = 0
+	v.setTarget(tx, ty)
 	return true
 }
 
@@ -303,9 +308,7 @@ func (v *Villager) tryAssignDeliverTask(env *Env) bool {
 		tx, ty, ok := nearestClearTileAdjacent(env.State.World, depositType, v.X, v.Y, nil)
 		if ok {
 			v.Task = VillagerWalkingToStorage
-			v.TargetX, v.TargetY = tx, ty
-			v.path = nil
-			v.pathFailures = 0
+			v.setTarget(tx, ty)
 			return true
 		}
 	}
@@ -323,9 +326,7 @@ func (v *Villager) headToStorage(env *Env) {
 		tx, ty, ok := nearestClearTileAdjacent(env.State.World, depositType, v.X, v.Y, isFull)
 		if ok {
 			v.Task = VillagerCarryingToStorage
-			v.TargetX, v.TargetY = tx, ty
-			v.path = nil
-			v.pathFailures = 0
+			v.setTarget(tx, ty)
 			return
 		}
 	}
@@ -339,9 +340,7 @@ func (v *Villager) headToHouse(env *Env) bool {
 		tx, ty, ok := nearestClearTileAdjacent(env.State.World, deliveryType, v.X, v.Y, nil)
 		if ok {
 			v.Task = VillagerDeliveringToHouse
-			v.TargetX, v.TargetY = tx, ty
-			v.path = nil
-			v.pathFailures = 0
+			v.setTarget(tx, ty)
 			return true
 		}
 	}
