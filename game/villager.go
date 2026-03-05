@@ -358,7 +358,7 @@ func (v *Villager) move(world *World, now time.Time) {
 			v.pathFailures++
 			if v.pathFailures >= villagerPathMaxFailures {
 				v.Task = VillagerIdle
-				v.pathFailures = 0
+				v.setTarget(0, 0)
 				return
 			}
 			backoff := min(villagerPathBackoffBase<<(v.pathFailures-1), villagerPathBackoffMax)
