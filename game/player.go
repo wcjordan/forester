@@ -112,24 +112,37 @@ func (p *Player) Move(dx, dy int, w *World, now time.Time) {
 	}
 }
 
-// defaultMoveCooldown is the minimum time between moves on standard terrain.
+// defaultMoveCooldown is the base time between moves on standard terrain (Grassland).
 const defaultMoveCooldown = 150 * time.Millisecond
 
-// moveCooldowns defines the minimum time between moves per terrain type.
-// Terrain types not present use defaultMoveCooldown.
-// All values must be >= defaultMoveCooldown so that MoveCost (which divides by
-// defaultMoveCooldown) never returns a value < 1.0 — a requirement for the A*
-// heuristic in geom.FindPath to remain admissible.
+// troddenMoveCooldown is the time between moves on a trodden path tile.
+const troddenMoveCooldown = 120 * time.Millisecond
+
+// roadMoveCooldown is the time between moves on a road tile. This is also the
+// minimum possible move cooldown, so World.MoveCost normalizes by this value to
+// ensure all terrain costs are >= 1.0 (required for A* admissibility).
+const roadMoveCooldown = 90 * time.Millisecond
+
+// moveCooldowns defines the base time between moves per terrain type.
+// Terrain types not present fall through to defaultMoveCooldown.
+// Road-eligible tiles may override these values based on WalkCount; see MoveCooldownFor.
 var moveCooldowns = map[TerrainType]time.Duration{
-	Grassland: 150 * time.Millisecond,
+	Grassland: defaultMoveCooldown,
 	Forest:    300 * time.Millisecond,
 }
 
 // MoveCooldownFor returns the move cooldown for the given tile.
+// Road-eligible tiles use a shorter cooldown based on their traffic level.
 // Forest with TreeSize=0 (cut tree) uses defaultMoveCooldown.
 func MoveCooldownFor(tile *Tile) time.Duration {
 	if tile.Terrain == Forest && tile.TreeSize == 0 {
 		return defaultMoveCooldown
+	}
+	switch RoadLevelFor(tile) {
+	case 2:
+		return roadMoveCooldown
+	case 1:
+		return troddenMoveCooldown
 	}
 	if d, ok := moveCooldowns[tile.Terrain]; ok {
 		return d
