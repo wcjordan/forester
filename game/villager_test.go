@@ -530,6 +530,31 @@ func TestVillagerPathFailureBackoff(t *testing.T) {
 	}
 }
 
+// --- Villager WalkCount increment ---
+
+func TestVillagerMove_IncrementsWalkCount(t *testing.T) {
+	w := NewWorld(20, 20)
+	v := &Villager{X: 5, Y: 5, TargetX: 7, TargetY: 5}
+	now := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	// Grassland tile at destination: WalkCount should increment after villager steps on it.
+	v.move(w, now)
+	tile := w.TileAt(v.X, v.Y)
+	if tile.WalkCount != 1 {
+		t.Errorf("Grassland tile WalkCount = %d after villager step, want 1", tile.WalkCount)
+	}
+
+	// Forest tile: WalkCount should NOT increment.
+	w2 := NewWorld(20, 20)
+	w2.Tiles[5][6] = Tile{Terrain: Forest, TreeSize: 0}
+	v2 := &Villager{X: 5, Y: 5, TargetX: 7, TargetY: 5}
+	v2.move(w2, now)
+	forestTile := w2.TileAt(v2.X, v2.Y)
+	if forestTile.WalkCount != 0 {
+		t.Errorf("Forest tile WalkCount = %d after villager step, want 0", forestTile.WalkCount)
+	}
+}
+
 // --- CountStructureInstances ---
 
 func TestCountStructureInstances(t *testing.T) {

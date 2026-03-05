@@ -122,6 +122,51 @@ func TestMoveCooldowns(t *testing.T) {
 	}
 }
 
+func TestRoadLevelFor(t *testing.T) {
+	cases := []struct {
+		terrain   TerrainType
+		walkCount int
+		want      int
+	}{
+		{Grassland, 0, 0},
+		{Grassland, WalkCountTrodden - 1, 0},
+		{Grassland, WalkCountTrodden, 1},
+		{Grassland, WalkCountRoad - 1, 1},
+		{Grassland, WalkCountRoad, 2},
+		{Grassland, WalkCountRoad + 100, 2},
+		{Forest, WalkCountRoad, 0}, // Forest tiles are never roads
+	}
+	for _, c := range cases {
+		tile := &Tile{Terrain: c.terrain, WalkCount: c.walkCount}
+		if got := RoadLevelFor(tile); got != c.want {
+			t.Errorf("RoadLevelFor(%v, wc=%d) = %d, want %d", c.terrain, c.walkCount, got, c.want)
+		}
+	}
+}
+
+func TestPlayerMove_IncrementsWalkCount(t *testing.T) {
+	w := NewWorld(10, 10)
+	p := NewPlayer(5, 5)
+	t0 := time.Now()
+
+	// Grassland destination: WalkCount should increment.
+	p.Move(1, 0, w, t0) // moves to (6,5)
+	tile := w.TileAt(6, 5)
+	if tile.WalkCount != 1 {
+		t.Errorf("Grassland tile WalkCount = %d, want 1", tile.WalkCount)
+	}
+
+	// Forest destination: WalkCount should NOT increment.
+	w.TileAt(5, 5).Terrain = Forest
+	w.TileAt(5, 5).TreeSize = 5
+	p2 := NewPlayer(4, 5)
+	p2.Move(1, 0, w, t0) // moves to (5,5) — Forest
+	forestTile := w.TileAt(5, 5)
+	if forestTile.WalkCount != 0 {
+		t.Errorf("Forest tile WalkCount = %d, want 0", forestTile.WalkCount)
+	}
+}
+
 func TestNewPlayer(t *testing.T) {
 	p := NewPlayer(10, 20)
 

@@ -107,6 +107,9 @@ func (p *Player) Move(dx, dy int, w *World, now time.Time) {
 	}
 	p.X = nx
 	p.Y = ny
+	if isRoadEligible(destTile) {
+		destTile.WalkCount++
+	}
 }
 
 // defaultMoveCooldown is the minimum time between moves on standard terrain.
