@@ -33,6 +33,17 @@ func RegisterVillagerDeliveryType(stype StructureType) {
 // villagerMoveCooldown is how often a villager takes one movement or harvest step.
 const villagerMoveCooldown = 300 * time.Millisecond
 
+// villagerPathMaxFailures is the number of consecutive FindPath misses before a villager
+// gives up on its current target and returns to VillagerIdle.
+const villagerPathMaxFailures = 5
+
+// villagerPathBackoffBase is the initial retry delay after the first FindPath failure.
+// Each subsequent failure doubles the delay, capped at villagerPathBackoffMax.
+const villagerPathBackoffBase = villagerMoveCooldown
+
+// villagerPathBackoffMax caps the per-failure retry delay.
+const villagerPathBackoffMax = 5 * time.Second
+
 // VillagerTask identifies the villager's current activity.
 type VillagerTask int
 
@@ -75,6 +86,7 @@ type Villager struct {
 	TargetY      int
 	moveCooldown time.Time
 	path         []point // nil = recompute; []point{} = at goal
+	pathFailures int     // consecutive FindPath misses for current target
 }
 
 // VillagerManager manages the set of autonomous villagers at runtime.
@@ -167,7 +179,7 @@ func (v *Villager) Tick(env *Env, rng *rand.Rand, now time.Time) {
 				v.Task = VillagerFindTree
 			}
 		} else {
-			v.move(env.State.World)
+			v.move(env.State.World, now)
 		}
 
 	case VillagerCarryingToStorage:
@@ -183,7 +195,7 @@ func (v *Villager) Tick(env *Env, rng *rand.Rand, now time.Time) {
 				v.Task = VillagerIdle
 			}
 		} else {
-			v.move(env.State.World)
+			v.move(env.State.World, now)
 		}
 
 	case VillagerWalkingToStorage:
@@ -204,7 +216,7 @@ func (v *Villager) Tick(env *Env, rng *rand.Rand, now time.Time) {
 			}
 			v.Task = VillagerIdle
 		} else {
-			v.move(env.State.World)
+			v.move(env.State.World, now)
 		}
 
 	case VillagerDeliveringToHouse:
@@ -229,7 +241,7 @@ func (v *Villager) Tick(env *Env, rng *rand.Rand, now time.Time) {
 			}
 			v.Task = VillagerIdle
 		} else {
-			v.move(env.State.World)
+			v.move(env.State.World, now)
 		}
 	}
 }
@@ -269,6 +281,7 @@ func (v *Villager) tryAssignChopTask(env *Env) bool {
 	v.Task = VillagerWalkingToTree
 	v.TargetX, v.TargetY = tx, ty
 	v.path = nil
+	v.pathFailures = 0
 	return true
 }
 
@@ -292,6 +305,7 @@ func (v *Villager) tryAssignDeliverTask(env *Env) bool {
 			v.Task = VillagerWalkingToStorage
 			v.TargetX, v.TargetY = tx, ty
 			v.path = nil
+			v.pathFailures = 0
 			return true
 		}
 	}
@@ -311,6 +325,7 @@ func (v *Villager) headToStorage(env *Env) {
 			v.Task = VillagerCarryingToStorage
 			v.TargetX, v.TargetY = tx, ty
 			v.path = nil
+			v.pathFailures = 0
 			return
 		}
 	}
@@ -326,6 +341,7 @@ func (v *Villager) headToHouse(env *Env) bool {
 			v.Task = VillagerDeliveringToHouse
 			v.TargetX, v.TargetY = tx, ty
 			v.path = nil
+			v.pathFailures = 0
 			return true
 		}
 	}
@@ -334,12 +350,23 @@ func (v *Villager) headToHouse(env *Env) bool {
 
 // move advances the villager one step along its cached A* path toward (TargetX, TargetY).
 // Recomputes the path if nil (new target) or if the next step becomes blocked.
-func (v *Villager) move(world *World) {
+// On repeated FindPath failures it applies exponential backoff and resets to idle after
+// villagerPathMaxFailures consecutive misses.
+func (v *Villager) move(world *World, now time.Time) {
 	if v.path == nil {
 		v.path = geom.FindPath(world, v.X, v.Y, v.TargetX, v.TargetY)
 		if v.path == nil {
-			return // unreachable; try again next tick
+			v.pathFailures++
+			if v.pathFailures >= villagerPathMaxFailures {
+				v.Task = VillagerIdle
+				v.pathFailures = 0
+				return
+			}
+			backoff := min(villagerPathBackoffBase<<(v.pathFailures-1), villagerPathBackoffMax)
+			v.moveCooldown = now.Add(backoff)
+			return
 		}
+		v.pathFailures = 0
 	}
 	if len(v.path) == 0 {
 		return // already at goal
