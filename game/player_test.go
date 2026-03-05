@@ -122,6 +122,109 @@ func TestMoveCooldowns(t *testing.T) {
 	}
 }
 
+func TestMoveCooldownFor_RoadLevels(t *testing.T) {
+	plain := &Tile{Terrain: Grassland, WalkCount: 0}
+	trodden := &Tile{Terrain: Grassland, WalkCount: WalkCountTrodden}
+	road := &Tile{Terrain: Grassland, WalkCount: WalkCountRoad}
+	forest := &Tile{Terrain: Forest, TreeSize: 5, WalkCount: WalkCountRoad}
+
+	if got := MoveCooldownFor(plain); got != defaultMoveCooldown {
+		t.Errorf("plain Grassland: %v, want %v", got, defaultMoveCooldown)
+	}
+	if got := MoveCooldownFor(trodden); got != troddenMoveCooldown {
+		t.Errorf("trodden: %v, want %v", got, troddenMoveCooldown)
+	}
+	if got := MoveCooldownFor(road); got != roadMoveCooldown {
+		t.Errorf("road: %v, want %v", got, roadMoveCooldown)
+	}
+	// Forest tiles ignore WalkCount.
+	if got := MoveCooldownFor(forest); got != 300*time.Millisecond {
+		t.Errorf("Forest with high WalkCount: %v, want 300ms", got)
+	}
+	// Road cooldown is the shortest, so ordering must hold.
+	if roadMoveCooldown >= troddenMoveCooldown {
+		t.Error("roadMoveCooldown must be less than troddenMoveCooldown")
+	}
+	if troddenMoveCooldown >= defaultMoveCooldown {
+		t.Error("troddenMoveCooldown must be less than defaultMoveCooldown")
+	}
+}
+
+func TestMoveCost_RoadLevels(t *testing.T) {
+	w := NewWorld(5, 5)
+
+	// Default Grassland: cost should be defaultMoveCooldown/roadMoveCooldown.
+	wantGrass := float64(defaultMoveCooldown) / float64(roadMoveCooldown)
+	if got := w.MoveCost(2, 2); got != wantGrass {
+		t.Errorf("Grassland MoveCost = %v, want %v", got, wantGrass)
+	}
+
+	// Road tile: cost should be exactly 1.0.
+	w.TileAt(2, 2).WalkCount = WalkCountRoad
+	if got := w.MoveCost(2, 2); got != 1.0 {
+		t.Errorf("Road MoveCost = %v, want 1.0", got)
+	}
+
+	// All terrain types must have MoveCost >= 1.0 (A* admissibility).
+	for _, tile := range []*Tile{
+		{Terrain: Grassland, WalkCount: 0},
+		{Terrain: Grassland, WalkCount: WalkCountTrodden},
+		{Terrain: Grassland, WalkCount: WalkCountRoad},
+		{Terrain: Forest, TreeSize: 5},
+		{Terrain: Forest, TreeSize: 0},
+	} {
+		cost := float64(MoveCooldownFor(tile)) / float64(roadMoveCooldown)
+		if cost < 1.0 {
+			t.Errorf("MoveCost for tile %+v = %v < 1.0; breaks A* admissibility", tile, cost)
+		}
+	}
+}
+
+func TestRoadLevelFor(t *testing.T) {
+	cases := []struct {
+		terrain   TerrainType
+		walkCount int
+		want      int
+	}{
+		{Grassland, 0, 0},
+		{Grassland, WalkCountTrodden - 1, 0},
+		{Grassland, WalkCountTrodden, 1},
+		{Grassland, WalkCountRoad - 1, 1},
+		{Grassland, WalkCountRoad, 2},
+		{Grassland, WalkCountRoad + 100, 2},
+		{Forest, WalkCountRoad, 0}, // Forest tiles are never roads
+	}
+	for _, c := range cases {
+		tile := &Tile{Terrain: c.terrain, WalkCount: c.walkCount}
+		if got := RoadLevelFor(tile); got != c.want {
+			t.Errorf("RoadLevelFor(%v, wc=%d) = %d, want %d", c.terrain, c.walkCount, got, c.want)
+		}
+	}
+}
+
+func TestPlayerMove_IncrementsWalkCount(t *testing.T) {
+	w := NewWorld(10, 10)
+	p := NewPlayer(5, 5)
+	t0 := time.Now()
+
+	// Grassland destination: WalkCount should increment.
+	p.Move(1, 0, w, t0) // moves to (6,5)
+	tile := w.TileAt(6, 5)
+	if tile.WalkCount != 1 {
+		t.Errorf("Grassland tile WalkCount = %d, want 1", tile.WalkCount)
+	}
+
+	// Forest destination: WalkCount should NOT increment.
+	w.TileAt(5, 5).Terrain = Forest
+	w.TileAt(5, 5).TreeSize = 5
+	p2 := NewPlayer(4, 5)
+	p2.Move(1, 0, w, t0) // moves to (5,5) — Forest
+	forestTile := w.TileAt(5, 5)
+	if forestTile.WalkCount != 0 {
+		t.Errorf("Forest tile WalkCount = %d, want 0", forestTile.WalkCount)
+	}
+}
+
 func TestNewPlayer(t *testing.T) {
 	p := NewPlayer(10, 20)
 

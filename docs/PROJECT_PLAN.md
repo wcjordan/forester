@@ -160,7 +160,7 @@ t  Mid tree, size 4–6 (green)
 - [x] Circular grassland clearing around spawn point
 - [x] Placement constraints: 1-tile buffer, no-under-player, spawn-anchored houses
 - [ ] Resource Depot: triggered after 4 houses; details TBD
-- [ ] Road formation (deferred)
+- [x] Road formation: Grassland tiles accumulate WalkCount from player/villager steps; thresholds at 20 (trodden) and 100 (road); faster movement (120ms/90ms); TUI glyphs `:` and `=`; villagers naturally prefer roads via A* cost
 - [ ] XP-based card triggers (currently milestone/story-beat-based only)
 
 #### ASCII glyphs added
@@ -242,7 +242,7 @@ bubbletea tick (100 ms):
 type Tile struct {
     Terrain   TerrainType   // Grassland, Forest
     TreeSize  int           // Forest only: 1–10 alive, 0 = stump
-    WalkCount int           // traffic counter (road formation — not yet used)
+    WalkCount int           // traffic counter; drives road formation (trodden >=20, road >=100)
     Structure StructureType // overlay: NoStructure, Foundation*, LogStorage, House, …
 }
 ```

@@ -377,6 +377,9 @@ func (v *Villager) move(world *World, now time.Time) {
 	}
 	v.X, v.Y = next.X, next.Y
 	v.path = v.path[1:]
+	if t := world.TileAt(v.X, v.Y); t != nil && isRoadEligible(t) {
+		t.WalkCount++
+	}
 }
 
 // findNearbyTree returns the world coordinates of the first Forest tile with
