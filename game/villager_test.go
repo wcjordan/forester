@@ -503,23 +503,28 @@ func TestVillagerPathFailureBackoff(t *testing.T) {
 
 	v := &Villager{X: 5, Y: 10, TargetX: 15, TargetY: 10, Task: VillagerWalkingToTree}
 	base := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	now := base
 
 	// First failure: backoff = villagerPathBackoffBase (300ms).
-	v.move(w, base)
+	v.move(w, now)
 	if v.pathFailures != 1 {
 		t.Fatalf("pathFailures = %d after 1st miss, want 1", v.pathFailures)
 	}
-	want1 := base.Add(villagerPathBackoffBase)
+	want1 := now.Add(villagerPathBackoffBase)
 	if !v.moveCooldown.Equal(want1) {
 		t.Errorf("moveCooldown after 1st miss = %v, want %v", v.moveCooldown, want1)
 	}
 
-	// Second failure: backoff = 2 × villagerPathBackoffBase (600ms).
-	v.move(w, base)
+	// Advance time to when the villager is allowed to move again.
+	now = v.moveCooldown
+
+	// Second failure: backoff = 2 × villagerPathBackoffBase (600ms),
+	// scheduled relative to the time of the second attempt.
+	v.move(w, now)
 	if v.pathFailures != 2 {
 		t.Fatalf("pathFailures = %d after 2nd miss, want 2", v.pathFailures)
 	}
-	want2 := base.Add(2 * villagerPathBackoffBase)
+	want2 := now.Add(2 * villagerPathBackoffBase)
 	if !v.moveCooldown.Equal(want2) {
 		t.Errorf("moveCooldown after 2nd miss = %v, want %v", v.moveCooldown, want2)
 	}
