@@ -1,5 +1,6 @@
 # Binary
 forester
+forester.wasm
 *.exe
 
 # Air hot-reload

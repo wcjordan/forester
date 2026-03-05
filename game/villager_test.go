@@ -398,9 +398,11 @@ func TestVillagerRoutesAroundObstacle(t *testing.T) {
 
 	// Villager at (5,7), target at (15,7). Direct route blocked by wall.
 	v := &Villager{X: 5, Y: 7, TargetX: 15, TargetY: 7}
+	now := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	for range 60 {
-		v.move(w)
+		v.move(w, now)
+		now = now.Add(villagerMoveCooldown)
 	}
 
 	if v.X != 15 || v.Y != 7 {
@@ -467,6 +469,64 @@ func TestVillagerChopsMultipleTrees(t *testing.T) {
 	}
 	if v.Wood != VillagerMaxCarry {
 		t.Errorf("wood=%d after filling carry capacity, want %d", v.Wood, VillagerMaxCarry)
+	}
+}
+
+// --- Villager path failure backoff and idle reset ---
+
+func TestVillagerPathFailureResetsToIdle(t *testing.T) {
+	w := NewWorld(20, 20)
+	// Surround target at (15,10) with an impassable full-height wall so FindPath always returns nil.
+	w.PlaceBuilt(14, 0, gametest.WallDef{Width: 1, Height: 20})
+
+	v := &Villager{X: 5, Y: 10, TargetX: 15, TargetY: 10, Task: VillagerWalkingToTree}
+	now := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	// Drive move() exactly villagerPathMaxFailures times to exhaust retries.
+	for range villagerPathMaxFailures {
+		v.move(w, now)
+		now = now.Add(villagerPathBackoffMax + time.Second) // skip past any backoff
+	}
+
+	if v.Task != VillagerIdle {
+		t.Errorf("task = %v after %d path failures, want VillagerIdle", v.Task, villagerPathMaxFailures)
+	}
+	if v.pathFailures != 0 {
+		t.Errorf("pathFailures = %d after reset, want 0", v.pathFailures)
+	}
+}
+
+func TestVillagerPathFailureBackoff(t *testing.T) {
+	w := NewWorld(20, 20)
+	// Full-height wall makes target unreachable.
+	w.PlaceBuilt(14, 0, gametest.WallDef{Width: 1, Height: 20})
+
+	v := &Villager{X: 5, Y: 10, TargetX: 15, TargetY: 10, Task: VillagerWalkingToTree}
+	base := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	now := base
+
+	// First failure: backoff = villagerPathBackoffBase (300ms).
+	v.move(w, now)
+	if v.pathFailures != 1 {
+		t.Fatalf("pathFailures = %d after 1st miss, want 1", v.pathFailures)
+	}
+	want1 := now.Add(villagerPathBackoffBase)
+	if !v.moveCooldown.Equal(want1) {
+		t.Errorf("moveCooldown after 1st miss = %v, want %v", v.moveCooldown, want1)
+	}
+
+	// Advance time to when the villager is allowed to move again.
+	now = v.moveCooldown
+
+	// Second failure: backoff = 2 × villagerPathBackoffBase (600ms),
+	// scheduled relative to the time of the second attempt.
+	v.move(w, now)
+	if v.pathFailures != 2 {
+		t.Fatalf("pathFailures = %d after 2nd miss, want 2", v.pathFailures)
+	}
+	want2 := now.Add(2 * villagerPathBackoffBase)
+	if !v.moveCooldown.Equal(want2) {
+		t.Errorf("moveCooldown after 2nd miss = %v, want %v", v.moveCooldown, want2)
 	}
 }
 
