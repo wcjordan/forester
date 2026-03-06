@@ -48,17 +48,18 @@ const (
 	lpcThrustBaseRow = 4 // rows 4–7
 )
 
-// Slash128 section constants (128×128 px per frame, 6 frames per direction).
-// Located at y=3520 in the spritesheet; direction 3 (right) is truncated —
-// falls back to direction 2 (down).
+// Slash128 section constants. Each 128px-tall block in the sheet contains two
+// 64px sub-rows: the main character (top 64px) and an animal companion (bottom
+// 64px). Only the top 64px is used here. Frames are 128px wide (axe arc extends
+// beyond the character body). All 4 directions are available.
 const (
 	lpcSlash128FrameW = 128
-	lpcSlash128FrameH = 128
+	lpcSlash128FrameH = 64
 	lpcSlash128Frames = 6
 )
 
-// lpcSlash128DirY maps direction index to the y-start of that row in the Slash128 section.
-var lpcSlash128DirY = [4]int{3520, 3648, 3776, 3776} // up, left, down, right→down
+// lpcSlash128DirY maps direction index to the y-start of the main-character sub-row.
+var lpcSlash128DirY = [4]int{3520, 3648, 3776, 3904} // up, left, down, right
 
 // dirFrom converts a facing vector to a direction index for spritesheet row selection.
 // Returns 0=up, 1=left, 2=down, 3=right. Defaults to down for a zero vector.
@@ -152,8 +153,8 @@ func spriteForPlayer(baseRow, dir, frame int, slash128 bool) drawArgs {
 		dirY := lpcSlash128DirY[dir]
 		x := frame * lpcSlash128FrameW
 		img := assets.PlayerSheet.SubImage(image.Rect(x, dirY, x+lpcSlash128FrameW, dirY+lpcSlash128FrameH)).(*ebiten.Image)
-		// 128×128 at scale 0.5 → 64×64 rendered; shift to center over the 32×32 tile.
-		return drawArgs{img: img, scale: 0.5, offsetX: -16, offsetY: -32}
+		// 128×64 at scale 0.5 → 64×32 rendered; same height as the tile, wider for the axe arc.
+		return drawArgs{img: img, scale: 0.5, offsetX: -16, offsetY: 0}
 	}
 	row := baseRow + dir
 	x := frame * lpcFrameSize
