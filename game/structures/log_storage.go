@@ -88,6 +88,7 @@ func logStorageOnPlayerInteraction(env *game.Env, origin geom.Point, now time.Ti
 		}
 		env.State.FoundationDeposited[origin]++
 		p.Inventory[game.Wood]--
+		p.LastThrustAt = now
 		p.QueueCooldown(game.Build, now.Add(p.BuildInterval))
 		if env.State.FoundationDeposited[origin] >= logStorageBuildCost {
 			game.AwardXP(env, game.XPBuildCompletePlayer)
@@ -105,6 +106,7 @@ func logStorageOnPlayerInteraction(env *game.Env, origin geom.Point, now time.Ti
 	deposited := env.Stores.DepositAt(origin, 1)
 	p.Inventory[game.Wood] -= deposited
 	if deposited > 0 {
+		p.LastThrustAt = now
 		p.QueueCooldown(game.Deposit, now.Add(p.DepositInterval))
 		game.AwardXP(env, game.XPPerWoodDeposited*deposited)
 	}

@@ -96,19 +96,27 @@ func spriteForTile(tile *game.Tile) drawArgs {
 	}
 }
 
-// animWindow is the duration a slash or thrust animation plays after the last trigger.
-const animWindow = 500 * time.Millisecond
+// Animation durations. Each animation runs to completion before a new cycle can start.
+const (
+	slashAnimDuration  = 750 * time.Millisecond  // 6 frames × ~125ms each
+	thrustAnimDuration = 1000 * time.Millisecond // 8 frames × 125ms each
+)
 
 // playerAnimFrame selects the animation group (baseRow) and frame index for the player.
-// Priority: slash (chopping) > thrust (building) > walk > idle.
-func playerAnimFrame(p *game.Player, now time.Time, moving bool, animTick int) (baseRow, frame int) {
-	if elapsed := now.Sub(p.LastHarvestAt); elapsed >= 0 && elapsed < animWindow {
-		// Slash: 6 frames spread across animWindow.
-		return lpcSlashBaseRow, int(elapsed.Milliseconds()*6/animWindow.Milliseconds()) % 6
+// slashCycleStart and thrustCycleStart are the wall-clock times when the current
+// slash/thrust cycle began (zero = not active). Priority: slash > thrust > walk > idle.
+func playerAnimFrame(slashCycleStart, thrustCycleStart, now time.Time, moving bool, animTick int) (baseRow, frame int) {
+	if !slashCycleStart.IsZero() {
+		if elapsed := now.Sub(slashCycleStart); elapsed >= 0 && elapsed < slashAnimDuration {
+			// Slash: 6 frames across slashAnimDuration.
+			return lpcSlashBaseRow, int(elapsed.Milliseconds() * 6 / slashAnimDuration.Milliseconds())
+		}
 	}
-	if elapsed := now.Sub(p.LastBuildAt); elapsed >= 0 && elapsed < animWindow {
-		// Thrust: 8 frames spread across animWindow.
-		return lpcThrustBaseRow, int(elapsed.Milliseconds()*8/animWindow.Milliseconds()) % 8
+	if !thrustCycleStart.IsZero() {
+		if elapsed := now.Sub(thrustCycleStart); elapsed >= 0 && elapsed < thrustAnimDuration {
+			// Thrust: 8 frames across thrustAnimDuration.
+			return lpcThrustBaseRow, int(elapsed.Milliseconds() * 8 / thrustAnimDuration.Milliseconds())
+		}
 	}
 	if moving {
 		// Walk: 8 frames cycling at ~8fps (advance every 7 Update ticks at 60fps TPS).

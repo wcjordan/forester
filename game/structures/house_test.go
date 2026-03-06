@@ -39,9 +39,9 @@ func buildHouseAt(g *game.Game, ox, oy, playerX, playerY int) {
 	}
 }
 
-// TestBuildSetsLastBuildAt verifies that depositing wood into a house foundation
-// sets Player.LastBuildAt on the tick when the deposit fires.
-func TestBuildSetsLastBuildAt(t *testing.T) {
+// TestBuildSetsLastThrustAt verifies that depositing wood into a house foundation
+// sets Player.LastThrustAt on the tick when the deposit fires.
+func TestBuildSetsLastThrustAt(t *testing.T) {
 	g := makeHouseGame()
 	origin := geom.Point{X: 10, Y: 10}
 	g.State.World.PlaceFoundation(origin.X, origin.Y, houseDef{})
@@ -53,17 +53,17 @@ func TestBuildSetsLastBuildAt(t *testing.T) {
 	t0 := time.Now()
 	g.TickAdjacentStructures(t0)
 
-	if g.State.Player.LastBuildAt.IsZero() {
-		t.Error("LastBuildAt should be set after a build deposit")
+	if g.State.Player.LastThrustAt.IsZero() {
+		t.Error("LastThrustAt should be set after a build deposit")
 	}
-	if !g.State.Player.LastBuildAt.Equal(t0) {
-		t.Errorf("LastBuildAt = %v, want %v", g.State.Player.LastBuildAt, t0)
+	if !g.State.Player.LastThrustAt.Equal(t0) {
+		t.Errorf("LastThrustAt = %v, want %v", g.State.Player.LastThrustAt, t0)
 	}
 }
 
-// TestLastBuildAtNotSetWhenNoWood verifies that LastBuildAt is not touched when
+// TestLastThrustAtNotSetWhenNoWood verifies that LastThrustAt is not touched when
 // the player has no wood to deposit.
-func TestLastBuildAtNotSetWhenNoWood(t *testing.T) {
+func TestLastThrustAtNotSetWhenNoWood(t *testing.T) {
 	g := makeHouseGame()
 	origin := geom.Point{X: 10, Y: 10}
 	g.State.World.PlaceFoundation(origin.X, origin.Y, houseDef{})
@@ -74,8 +74,8 @@ func TestLastBuildAtNotSetWhenNoWood(t *testing.T) {
 
 	g.TickAdjacentStructures(time.Now())
 
-	if !g.State.Player.LastBuildAt.IsZero() {
-		t.Error("LastBuildAt should not be set when player has no wood")
+	if !g.State.Player.LastThrustAt.IsZero() {
+		t.Error("LastThrustAt should not be set when player has no wood")
 	}
 }
 

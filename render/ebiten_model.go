@@ -28,8 +28,10 @@ type EbitenGame struct {
 	hudFace          *textv2.GoXFace
 	debugVillager    bool
 	debugVillagerIdx int
-	playerMoving     bool // true while any movement key is held
-	animTick         int  // increments each Update while playerMoving; resets to 0 when idle
+	playerMoving     bool      // true while any movement key is held
+	animTick         int       // increments each Update while playerMoving; resets to 0 when idle
+	slashCycleStart  time.Time // wall-clock start of the current slash cycle; zero = inactive
+	thrustCycleStart time.Time // wall-clock start of the current thrust cycle; zero = inactive
 }
 
 // NewEbitenGame creates an EbitenGame wrapping the given game using the system clock.
@@ -117,6 +119,15 @@ func (e *EbitenGame) Update() error {
 		e.lastTick = now
 	}
 
+	// Advance animation cycle anchors only when the previous cycle has completed.
+	// This ensures each animation plays to completion before restarting.
+	if ha := player.LastHarvestAt; !ha.IsZero() && ha.After(e.slashCycleStart.Add(slashAnimDuration)) {
+		e.slashCycleStart = ha
+	}
+	if ta := player.LastThrustAt; !ta.IsZero() && ta.After(e.thrustCycleStart.Add(thrustAnimDuration)) {
+		e.thrustCycleStart = ta
+	}
+
 	return nil
 }
 
@@ -135,7 +146,7 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 	// Compute player animation frame for this draw call.
 	playerDir := dirFrom(player.FacingDX, player.FacingDY)
 	now := e.clock.Now()
-	playerBaseRow, playerFrame := playerAnimFrame(player, now, e.playerMoving, e.animTick)
+	playerBaseRow, playerFrame := playerAnimFrame(e.slashCycleStart, e.thrustCycleStart, now, e.playerMoving, e.animTick)
 
 	vpX := int(e.camX)
 	vpY := int(e.camY)
