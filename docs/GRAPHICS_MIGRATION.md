@@ -204,7 +204,7 @@ Phases G0, G1, and G2 are complete. The game runs in Ebitengine with LPC sprites
 
 1. Add `wasm_exec.js` + minimal HTML shell in `web/`
 2. Add `make web` Makefile target (builds WASM and copies to `web/`)
-3. Test in Chrome and Firefox
+3. Test in Chrome, Firefox, and Safari
 4. Verify keyboard input works in browser context
 5. Commit
 

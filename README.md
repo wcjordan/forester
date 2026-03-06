@@ -65,7 +65,7 @@ game/                # Core game logic (no I/O, no rendering)
   worldgen.go        # Procedural map generation (cellular automata)
   tile.go            # Tile, TerrainType, StructureType definitions
   structure.go       # StructureDef interface + registry
-  storage.go         # ResourceStorage / StorageInstance
+  storage.go         # StorageInstance, storageDef, resourceStorage
   storage_manager.go # StorageManager (deposit/withdraw aggregation)
   villager.go        # Villager, VillagerManager; autonomous chop/deliver behavior
   spawn.go           # Foundation spawning logic
