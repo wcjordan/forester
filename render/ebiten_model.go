@@ -146,7 +146,7 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 	// Compute player animation frame for this draw call.
 	playerDir := dirFrom(player.FacingDX, player.FacingDY)
 	now := e.clock.Now()
-	playerBaseRow, playerFrame := playerAnimFrame(e.slashCycleStart, e.thrustCycleStart, now, e.playerMoving, e.animTick)
+	playerBaseRow, playerFrame, playerSlash128 := playerAnimFrame(e.slashCycleStart, e.thrustCycleStart, now, e.playerMoving, e.animTick)
 
 	vpX := int(e.camX)
 	vpY := int(e.camY)
@@ -165,7 +165,7 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 	drawSprite := func(da drawArgs, screenX, screenY float64) {
 		opts.GeoM.Reset()
 		opts.GeoM.Scale(da.scale, da.scale)
-		opts.GeoM.Translate(screenX, screenY)
+		opts.GeoM.Translate(screenX+da.offsetX, screenY+da.offsetY)
 		screen.DrawImage(da.img, &opts)
 	}
 
@@ -188,7 +188,7 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 			}
 
 			if worldX == player.X && worldY == player.Y {
-				drawSprite(spriteForPlayer(playerBaseRow, playerDir, playerFrame), screenX, screenY)
+				drawSprite(spriteForPlayer(playerBaseRow, playerDir, playerFrame, playerSlash128), screenX, screenY)
 			}
 		}
 	}

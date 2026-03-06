@@ -11,11 +11,14 @@ import (
 	"forester/game/structures"
 )
 
-// drawArgs bundles a pre-sliced sprite image and its display scale.
+// drawArgs bundles a pre-sliced sprite image, its display scale, and optional
+// pixel offsets applied after scaling (for oversized frames that extend beyond a tile).
 // Draw() owns a single ebiten.DrawImageOptions that it resets per use.
 type drawArgs struct {
-	img   *ebiten.Image
-	scale float64
+	img     *ebiten.Image
+	scale   float64
+	offsetX float64
+	offsetY float64
 }
 
 // Pre-sliced sprite frames cached at package scope to avoid repeated SubImage calls
@@ -41,10 +44,21 @@ var (
 // Row groups each have 4 rows: +0=up, +1=left, +2=down, +3=right.
 const (
 	lpcFrameSize     = 64
-	lpcWalkBaseRow   = 8  // rows 8–11
-	lpcThrustBaseRow = 4  // rows 4–7
-	lpcSlashBaseRow  = 12 // rows 12–15
+	lpcWalkBaseRow   = 8 // rows 8–11
+	lpcThrustBaseRow = 4 // rows 4–7
 )
+
+// Slash128 section constants (128×128 px per frame, 6 frames per direction).
+// Located at y=3520 in the spritesheet; direction 3 (right) is truncated —
+// falls back to direction 2 (down).
+const (
+	lpcSlash128FrameW = 128
+	lpcSlash128FrameH = 128
+	lpcSlash128Frames = 6
+)
+
+// lpcSlash128DirY maps direction index to the y-start of that row in the Slash128 section.
+var lpcSlash128DirY = [4]int{3520, 3648, 3776, 3776} // up, left, down, right→down
 
 // dirFrom converts a facing vector to a direction index for spritesheet row selection.
 // Returns 0=up, 1=left, 2=down, 3=right. Defaults to down for a zero vector.
@@ -65,33 +79,33 @@ func dirFrom(dx, dy int) int {
 func spriteForTile(tile *game.Tile) drawArgs {
 	switch tile.Structure {
 	case structures.FoundationLogStorage, structures.FoundationHouse:
-		return drawArgs{dirtFoundationImg, 1.0}
+		return drawArgs{img: dirtFoundationImg, scale: 1.0}
 	case structures.LogStorage:
-		return drawArgs{barrelLogStorageImg, 0.5}
+		return drawArgs{img: barrelLogStorageImg, scale: 0.5}
 	case structures.House:
-		return drawArgs{houseImg, 1.0 / 3.0}
+		return drawArgs{img: houseImg, scale: 1.0 / 3.0}
 	}
 
 	switch tile.Terrain {
 	case game.Forest:
 		switch {
 		case tile.TreeSize == 0:
-			return drawArgs{trunkSmallImg, 1.0 / 3.0}
+			return drawArgs{img: trunkSmallImg, scale: 1.0 / 3.0}
 		case tile.TreeSize >= 7:
-			return drawArgs{treetopMatureImg, 1.0 / 3.0}
+			return drawArgs{img: treetopMatureImg, scale: 1.0 / 3.0}
 		case tile.TreeSize >= 4:
-			return drawArgs{treetopYoungImg, 1.0 / 3.0}
+			return drawArgs{img: treetopYoungImg, scale: 1.0 / 3.0}
 		default:
-			return drawArgs{grassForestImg, 1.0}
+			return drawArgs{img: grassForestImg, scale: 1.0}
 		}
 	default:
 		switch game.RoadLevelFor(tile) {
 		case 2:
-			return drawArgs{roadImg, 1.0}
+			return drawArgs{img: roadImg, scale: 1.0}
 		case 1:
-			return drawArgs{troddenPathImg, 1.0}
+			return drawArgs{img: troddenPathImg, scale: 1.0}
 		default:
-			return drawArgs{grassTileImg, 1.0}
+			return drawArgs{img: grassTileImg, scale: 1.0}
 		}
 	}
 }
@@ -102,43 +116,53 @@ const (
 	thrustAnimDuration = 1000 * time.Millisecond // 8 frames × 125ms each
 )
 
-// playerAnimFrame selects the animation group (baseRow) and frame index for the player.
+// playerAnimFrame selects the animation group and frame index for the player.
 // slashCycleStart and thrustCycleStart are the wall-clock times when the current
 // slash/thrust cycle began (zero = not active). Priority: slash > thrust > walk > idle.
-func playerAnimFrame(slashCycleStart, thrustCycleStart, now time.Time, moving bool, animTick int) (baseRow, frame int) {
+// slash128 = true means the slash Slash128 section (128×128 frames) should be used;
+// baseRow is unused in that case.
+func playerAnimFrame(slashCycleStart, thrustCycleStart, now time.Time, moving bool, animTick int) (baseRow, frame int, slash128 bool) {
 	if !slashCycleStart.IsZero() {
 		if elapsed := now.Sub(slashCycleStart); elapsed >= 0 && elapsed < slashAnimDuration {
-			// Slash: 6 frames across slashAnimDuration.
-			return lpcSlashBaseRow, int(elapsed.Milliseconds() * 6 / slashAnimDuration.Milliseconds())
+			// Slash128: 6 frames across slashAnimDuration.
+			return 0, int(elapsed.Milliseconds() * lpcSlash128Frames / slashAnimDuration.Milliseconds()), true
 		}
 	}
 	if !thrustCycleStart.IsZero() {
 		if elapsed := now.Sub(thrustCycleStart); elapsed >= 0 && elapsed < thrustAnimDuration {
 			// Thrust: 8 frames across thrustAnimDuration.
-			return lpcThrustBaseRow, int(elapsed.Milliseconds() * 8 / thrustAnimDuration.Milliseconds())
+			return lpcThrustBaseRow, int(elapsed.Milliseconds() * 8 / thrustAnimDuration.Milliseconds()), false
 		}
 	}
 	if moving {
 		// Walk: 8 frames cycling at ~8fps (advance every 7 Update ticks at 60fps TPS).
-		return lpcWalkBaseRow, (animTick / 7) % 8
+		return lpcWalkBaseRow, (animTick / 7) % 8, false
 	}
-	return lpcWalkBaseRow, 0
+	return lpcWalkBaseRow, 0, false
 }
 
 // spriteForPlayer returns drawArgs for the player, selecting the correct frame
 // from the Universal LPC spritesheet.
-// baseRow selects the animation group (lpcWalkBaseRow, lpcSlashBaseRow, etc.);
-// dir selects the row within that group (0=up,1=left,2=down,3=right);
-// frame selects the column (0-based).
-func spriteForPlayer(baseRow, dir, frame int) drawArgs {
+// When slash128=true, uses the Slash128 section (128×128 px frames) with an offset
+// to center the larger sprite over the 32×32 tile. Otherwise, baseRow selects the
+// animation group (lpcWalkBaseRow, lpcThrustBaseRow), dir the row within that group
+// (0=up,1=left,2=down,3=right), and frame the column (0-based).
+func spriteForPlayer(baseRow, dir, frame int, slash128 bool) drawArgs {
+	if slash128 {
+		dirY := lpcSlash128DirY[dir]
+		x := frame * lpcSlash128FrameW
+		img := assets.PlayerSheet.SubImage(image.Rect(x, dirY, x+lpcSlash128FrameW, dirY+lpcSlash128FrameH)).(*ebiten.Image)
+		// 128×128 at scale 0.5 → 64×64 rendered; shift to center over the 32×32 tile.
+		return drawArgs{img: img, scale: 0.5, offsetX: -16, offsetY: -32}
+	}
 	row := baseRow + dir
 	x := frame * lpcFrameSize
 	y := row * lpcFrameSize
 	img := assets.PlayerSheet.SubImage(image.Rect(x, y, x+lpcFrameSize, y+lpcFrameSize)).(*ebiten.Image)
-	return drawArgs{img, 0.5}
+	return drawArgs{img: img, scale: 0.5}
 }
 
 // spriteForVillager returns drawArgs for a villager character.
 func spriteForVillager() drawArgs {
-	return drawArgs{villagerImg, 0.5}
+	return drawArgs{img: villagerImg, scale: 0.5}
 }
