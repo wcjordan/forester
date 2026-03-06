@@ -2,15 +2,15 @@
 
 ## Stages
 
-- [ ] Stage 1 — Game layer (LastHarvestAt, LastBuildAt)
-- [ ] Stage 2 — Asset loading + docs
-- [ ] Stage 3 — Walk animation
-- [ ] Stage 4 — Slash + Thrust animations
+- [x] Stage 1 — Game layer (LastHarvestAt, LastBuildAt)
+- [x] Stage 2 — Asset loading + docs
+- [x] Stage 3 — Walk animation
+- [x] Stage 4 — Slash + Thrust animations
 - [ ] Stage 5 — PR
 
 ## Current state
 
-Planning complete. Ready to implement Stage 1.
+All implementation stages complete. Opening PR.
 
 ## Key decisions
 
