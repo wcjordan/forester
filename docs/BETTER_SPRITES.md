@@ -29,7 +29,7 @@ Download/generate these before implementing each stage:
 | Adobe building tiles (fallback if cottage too small) | [lpc-adobe-building-set](https://opengameart.org/content/lpc-adobe-building-set) | S4 |
 | Exterior containers (barrels, crates) | [lpc-containers](https://opengameart.org/content/lpc-containers) | S4 |
 
-All sources are CC-BY or CC0 licensed. Add attribution to `assets/sprites/CREDITS.txt` when adding each pack.
+All sources are CC-BY or CC0 licensed. Sprite packs are local-only (gitignored), following the same pattern as `lpc_base_assets`. When adding each pack, document its download instructions and attribution in `README.md` under a new "Additional Sprite Packs" subsection alongside the existing LPC Base Assets setup steps.
 
 ---
 
@@ -52,15 +52,15 @@ Frames 0 and 4 are neutral (feet together); frames 1–3 and 5–7 are walk step
 
 ### Code changes (`render/` only)
 
-- Add `playerDir`, `villagerDirs []int`, `animFrame int`, `animTimer float64` to `EbitenGame`.
-- Derive `playerDir` from the last pressed movement key (W=up, S=down, A=left, D=right) in `Update()`.
+- Add `playerDir`, `villagerDirs []int`, `animFrame int`, `animTimer time.Duration` to `EbitenGame`. Use `time.Duration` to stay consistent with the existing clock/tick-interval patterns in the codebase.
+- Derive `playerDir` from the last pressed movement key (W/UpArrow=up, S/DownArrow=down, A/LeftArrow=left, D/RightArrow=right) in `Update()`.
 - Advance `animFrame` by elapsed time while a movement key is held; reset to 0 when no key is held.
 - Update `spriteForPlayer()` / `spriteForVillager()` to accept direction + frame and return the correct 64×64 `SubImage` crop.
 - For villagers: derive direction from position delta between ticks (store previous position in `EbitenGame`).
 
 ### Exit criteria
 
-- Player animates through walk frames in the correct direction while WASD is held.
+- Player animates through walk frames in the correct direction while WASD or arrow keys are held.
 - Player shows idle (frame 0, facing direction) when no key is held.
 - Villagers animate while moving; idle when standing.
 - `make check` passes.
@@ -164,7 +164,7 @@ In the draw loop, a structure tile should only draw the building sprite if it is
 
 ### Foundation tiles
 
-Foundation tiles (`?`) are single-tile and can keep the current dirt sprite — no change needed.
+Foundation tiles (`?`) are multi-tile — they stamp the full structure footprint (2×2 for house, 4×4 for log storage). Keep the existing per-tile dirt rendering for foundations; the NW-anchor single-draw approach applies only to completed buildings.
 
 ### Code changes
 
