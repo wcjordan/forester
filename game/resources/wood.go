@@ -60,6 +60,7 @@ func (woodDef) Harvest(env *game.Env, now time.Time) {
 		tile.TreeSize -= harvest
 		p.Inventory[game.Wood] += harvest
 		if harvest > 0 {
+			p.LastHarvestAt = now
 			game.AwardXP(env, game.XPPerWoodChopped*harvest)
 		}
 	}

@@ -92,6 +92,7 @@ func houseOnPlayerInteraction(env *game.Env, origin geom.Point, now time.Time) {
 	}
 	env.State.FoundationDeposited[origin]++
 	p.Inventory[game.Wood]--
+	p.LastBuildAt = now
 	p.QueueCooldown(game.Build, now.Add(p.BuildInterval))
 	if env.State.FoundationDeposited[origin] >= houseBuildCost {
 		game.AwardXP(env, game.XPBuildCompletePlayer)

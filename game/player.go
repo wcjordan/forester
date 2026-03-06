@@ -32,6 +32,12 @@ type Player struct {
 	MoveSpeedMultiplier float64
 	Cooldowns           map[CooldownType]time.Time
 	pendingCooldowns    map[CooldownType]time.Time
+	// LastHarvestAt is the last time the player successfully harvested wood (harvest > 0).
+	// Used by the render layer to trigger the slash animation.
+	LastHarvestAt time.Time
+	// LastBuildAt is the last time the player made a build deposit into a foundation.
+	// Used by the render layer to trigger the thrust animation.
+	LastBuildAt time.Time
 }
 
 // NewPlayer creates a player at the given position, facing north.
