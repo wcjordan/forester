@@ -16,6 +16,9 @@ var tilesFS embed.FS
 //go:embed sprites/lpc_base_assets/sprites/people
 var peopleFS embed.FS
 
+//go:embed sprites/player-spritesheet.png
+var playerSheetData []byte
+
 // Sprite sheet images loaded at init time.
 var (
 	GrassTile   *ebiten.Image
@@ -29,6 +32,9 @@ var (
 	Villager    *ebiten.Image
 	TroddenPath *ebiten.Image
 	Road        *ebiten.Image
+	// PlayerSheet is the full Universal LPC character spritesheet for the player.
+	// Contains walk, slash, and thrust animation rows at 64×64 px per frame.
+	PlayerSheet *ebiten.Image
 )
 
 func loadFromFS(fs embed.FS, path string) *ebiten.Image {
@@ -62,4 +68,10 @@ func init() {
 
 	Player = loadFromFS(peopleFS, "sprites/lpc_base_assets/sprites/people/soldier.png")
 	Villager = loadFromFS(peopleFS, "sprites/lpc_base_assets/sprites/people/soldier_altcolor.png")
+
+	img, _, err := image.Decode(bytes.NewReader(playerSheetData))
+	if err != nil {
+		panic("assets: cannot decode player-spritesheet.png: " + err.Error())
+	}
+	PlayerSheet = ebiten.NewImageFromImage(img)
 }

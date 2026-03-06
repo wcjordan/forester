@@ -33,6 +33,18 @@ The Ebitengine renderer uses sprites from the [Liberated Pixel Cup base assets](
 
 This directory is `.gitignore`d and must be populated manually before running.
 
+### Player Spritesheet (required)
+
+The player character uses a custom spritesheet generated from the [Universal LPC Character Generator](https://liberatedpixelcup.github.io/Universal-LPC-Spritesheet-Character-Generator/).
+
+1. Open the generator URL (or re-generate with your preferred layers)
+2. Export and save the PNG as:
+   ```
+   assets/sprites/player-spritesheet.png
+   ```
+
+This file is `.gitignore`d and must be placed manually before running. The spritesheet uses the standard Universal LPC layout (64×64 px per frame): rows 0–3 spellcast, rows 4–7 thrust, rows 8–11 walk, rows 12–15 slash.
+
 ## Quick Start
 
 ```bash
