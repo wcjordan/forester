@@ -119,13 +119,25 @@ func (e *EbitenGame) Update() error {
 		e.lastTick = now
 	}
 
-	// Advance animation cycle anchors only when the previous cycle has completed.
-	// This ensures each animation plays to completion before restarting.
-	if ha := player.LastHarvestAt; !ha.IsZero() && ha.After(e.slashCycleStart.Add(slashAnimDuration)) {
-		e.slashCycleStart = ha
+	// Advance animation cycle anchors, looping seamlessly while the action continues.
+	// If the action fired during the current cycle, restart at the cycle boundary so
+	// there is no idle gap. If the action fired after the cycle ended, restart from
+	// that action time. Looping stops naturally once no new action occurs in a cycle.
+	if ha := player.LastHarvestAt; !ha.IsZero() {
+		cycleEnd := e.slashCycleStart.Add(slashAnimDuration)
+		if ha.After(cycleEnd) {
+			e.slashCycleStart = ha
+		} else if ha.After(e.slashCycleStart) && now.After(cycleEnd) {
+			e.slashCycleStart = cycleEnd
+		}
 	}
-	if ta := player.LastThrustAt; !ta.IsZero() && ta.After(e.thrustCycleStart.Add(thrustAnimDuration)) {
-		e.thrustCycleStart = ta
+	if ta := player.LastThrustAt; !ta.IsZero() {
+		cycleEnd := e.thrustCycleStart.Add(thrustAnimDuration)
+		if ta.After(cycleEnd) {
+			e.thrustCycleStart = ta
+		} else if ta.After(e.thrustCycleStart) && now.After(cycleEnd) {
+			e.thrustCycleStart = cycleEnd
+		}
 	}
 
 	return nil
