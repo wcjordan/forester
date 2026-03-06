@@ -26,3 +26,5 @@ coverage.html
 
 # Assets
 assets/sprites/lpc_base_assets
+assets/sprites/player-spritesheet.*
+
