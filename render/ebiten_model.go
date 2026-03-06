@@ -134,11 +134,8 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 
 	// Compute player animation frame for this draw call.
 	playerDir := dirFrom(player.FacingDX, player.FacingDY)
-	playerWalkFrame := 0
-	if e.playerMoving {
-		// 8 walk frames cycling at ~8fps (advance every 7 Update ticks at 60fps TPS).
-		playerWalkFrame = (e.animTick / 7) % 8
-	}
+	now := e.clock.Now()
+	playerBaseRow, playerFrame := playerAnimFrame(player, now, e.playerMoving, e.animTick)
 
 	vpX := int(e.camX)
 	vpY := int(e.camY)
@@ -180,7 +177,7 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 			}
 
 			if worldX == player.X && worldY == player.Y {
-				drawSprite(spriteForPlayer(lpcWalkBaseRow, playerDir, playerWalkFrame), screenX, screenY)
+				drawSprite(spriteForPlayer(playerBaseRow, playerDir, playerFrame), screenX, screenY)
 			}
 		}
 	}

@@ -2,6 +2,7 @@ package render
 
 import (
 	"image"
+	"time"
 
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 
@@ -93,6 +94,27 @@ func spriteForTile(tile *game.Tile) drawArgs {
 			return drawArgs{grassTileImg, 1.0}
 		}
 	}
+}
+
+// animWindow is the duration a slash or thrust animation plays after the last trigger.
+const animWindow = 500 * time.Millisecond
+
+// playerAnimFrame selects the animation group (baseRow) and frame index for the player.
+// Priority: slash (chopping) > thrust (building) > walk > idle.
+func playerAnimFrame(p *game.Player, now time.Time, moving bool, animTick int) (baseRow, frame int) {
+	if elapsed := now.Sub(p.LastHarvestAt); elapsed >= 0 && elapsed < animWindow {
+		// Slash: 6 frames spread across animWindow.
+		return lpcSlashBaseRow, int(elapsed.Milliseconds()*6/animWindow.Milliseconds()) % 6
+	}
+	if elapsed := now.Sub(p.LastBuildAt); elapsed >= 0 && elapsed < animWindow {
+		// Thrust: 8 frames spread across animWindow.
+		return lpcThrustBaseRow, int(elapsed.Milliseconds()*8/animWindow.Milliseconds()) % 8
+	}
+	if moving {
+		// Walk: 8 frames cycling at ~8fps (advance every 7 Update ticks at 60fps TPS).
+		return lpcWalkBaseRow, (animTick / 7) % 8
+	}
+	return lpcWalkBaseRow, 0
 }
 
 // spriteForPlayer returns drawArgs for the player, selecting the correct frame
