@@ -42,8 +42,11 @@ The player character uses a custom spritesheet generated from the [Universal LPC
    ```
    assets/sprites/player-spritesheet.png
    ```
+3. Save Credits & Attribution to `assets/sprites/player-spritesheet.credits.txt
 
 This file is `.gitignore`d and must be placed manually before running. The spritesheet uses the standard Universal LPC layout (64×64 px per frame): rows 0–3 spellcast, rows 4–7 thrust, rows 8–11 walk, rows 12–15 slash.
+
+Currently prefer: https://liberatedpixelcup.github.io/Universal-LPC-Spritesheet-Character-Generator/#sex=male&expression=Neutral_light&shoes=Basic_Boots_brown&legs=Fur_Pants_fur_tan&apron=Apron_green&overalls=Suspenders_brown&clothes=Longsleeve_brown&bauldron=Bauldron_tan&beard=Winter_Beard_dark%20brown&head=Rabbit_light&shadow=Shadow_shadow&gloves=Gloves_brass&weapon=Smash_axe
 
 ## Quick Start
 
