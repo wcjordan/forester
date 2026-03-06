@@ -54,12 +54,12 @@ const (
 // beyond the character body). All 4 directions are available.
 const (
 	lpcSlash128FrameW = 128
-	lpcSlash128FrameH = 64
+	lpcSlash128FrameH = 128
 	lpcSlash128Frames = 6
 )
 
 // lpcSlash128DirY maps direction index to the y-start of the main-character sub-row.
-var lpcSlash128DirY = [4]int{3520, 3648, 3776, 3904} // up, left, down, right
+var lpcSlash128DirY = [4]int{3488, 3616, 3744, 3872} // up, left, down, right
 
 // dirFrom converts a facing vector to a direction index for spritesheet row selection.
 // Returns 0=up, 1=left, 2=down, 3=right. Defaults to down for a zero vector.
