@@ -33,9 +33,32 @@ var (
 	roadImg             = assets.Road.SubImage(image.Rect(0, 0, 32, 32)).(*ebiten.Image)
 
 	// Characters
-	playerImg   = assets.Player.SubImage(image.Rect(0, 128, 0+64, 128+64)).(*ebiten.Image)
 	villagerImg = assets.Villager.SubImage(image.Rect(0, 128, 0+64, 128+64)).(*ebiten.Image)
 )
+
+// Universal LPC spritesheet constants (64×64 px per frame).
+// Row groups each have 4 rows: +0=up, +1=left, +2=down, +3=right.
+const (
+	lpcFrameSize     = 64
+	lpcWalkBaseRow   = 8  // rows 8–11
+	lpcThrustBaseRow = 4  // rows 4–7
+	lpcSlashBaseRow  = 12 // rows 12–15
+)
+
+// dirFrom converts a facing vector to a direction index for spritesheet row selection.
+// Returns 0=up, 1=left, 2=down, 3=right. Defaults to down for a zero vector.
+func dirFrom(dx, dy int) int {
+	switch {
+	case dy < 0:
+		return 0 // up
+	case dx < 0:
+		return 1 // left
+	case dx > 0:
+		return 3 // right
+	default:
+		return 2 // down
+	}
+}
 
 // spriteForTile returns the drawArgs for a world tile (terrain + structure).
 func spriteForTile(tile *game.Tile) drawArgs {
@@ -72,9 +95,17 @@ func spriteForTile(tile *game.Tile) drawArgs {
 	}
 }
 
-// spriteForPlayer returns drawArgs for the player character.
-func spriteForPlayer() drawArgs {
-	return drawArgs{playerImg, 0.5}
+// spriteForPlayer returns drawArgs for the player, selecting the correct frame
+// from the Universal LPC spritesheet.
+// baseRow selects the animation group (lpcWalkBaseRow, lpcSlashBaseRow, etc.);
+// dir selects the row within that group (0=up,1=left,2=down,3=right);
+// frame selects the column (0-based).
+func spriteForPlayer(baseRow, dir, frame int) drawArgs {
+	row := baseRow + dir
+	x := frame * lpcFrameSize
+	y := row * lpcFrameSize
+	img := assets.PlayerSheet.SubImage(image.Rect(x, y, x+lpcFrameSize, y+lpcFrameSize)).(*ebiten.Image)
+	return drawArgs{img, 0.5}
 }
 
 // spriteForVillager returns drawArgs for a villager character.

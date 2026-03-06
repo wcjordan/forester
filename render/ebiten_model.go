@@ -28,6 +28,8 @@ type EbitenGame struct {
 	hudFace          *textv2.GoXFace
 	debugVillager    bool
 	debugVillagerIdx int
+	playerMoving     bool // true while any movement key is held
+	animTick         int  // increments each Update while playerMoving; resets to 0 when idle
 }
 
 // NewEbitenGame creates an EbitenGame wrapping the given game using the system clock.
@@ -77,6 +79,17 @@ func (e *EbitenGame) Update() error {
 		player.Move(1, 0, world, now)
 	}
 
+	// Track movement key state for walk animation.
+	e.playerMoving = ebiten.IsKeyPressed(ebiten.KeyW) || ebiten.IsKeyPressed(ebiten.KeyArrowUp) ||
+		ebiten.IsKeyPressed(ebiten.KeyS) || ebiten.IsKeyPressed(ebiten.KeyArrowDown) ||
+		ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyArrowLeft) ||
+		ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyArrowRight)
+	if e.playerMoving {
+		e.animTick++
+	} else {
+		e.animTick = 0
+	}
+
 	// Debug villager bar toggle and selection.
 	if inpututil.IsKeyJustPressed(ebiten.KeyBackslash) {
 		e.debugVillager = !e.debugVillager
@@ -119,6 +132,14 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 	world := e.game.State.World
 	player := e.game.State.Player
 
+	// Compute player animation frame for this draw call.
+	playerDir := dirFrom(player.FacingDX, player.FacingDY)
+	playerWalkFrame := 0
+	if e.playerMoving {
+		// 8 walk frames cycling at ~8fps (advance every 7 Update ticks at 60fps TPS).
+		playerWalkFrame = (e.animTick / 7) % 8
+	}
+
 	vpX := int(e.camX)
 	vpY := int(e.camY)
 	viewW := e.screenW / tileSize
@@ -159,7 +180,7 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 			}
 
 			if worldX == player.X && worldY == player.Y {
-				drawSprite(spriteForPlayer(), screenX, screenY)
+				drawSprite(spriteForPlayer(lpcWalkBaseRow, playerDir, playerWalkFrame), screenX, screenY)
 			}
 		}
 	}
