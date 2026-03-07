@@ -50,20 +50,49 @@ Row 3 (y=192) — walk right
 
 Frames 0 and 4 are neutral (feet together); frames 1–3 and 5–7 are walk steps. Cycle frames 0–7 while moving at ~8 FPS; hold frame 0 of the facing row when idle.
 
-### Code changes (`render/` only)
+### Animations included in S1
 
-- Add `playerDir`, `villagerDirs []int`, `animFrame int`, `animTimer time.Duration` to `EbitenGame`. Use `time.Duration` to stay consistent with the existing clock/tick-interval patterns in the codebase.
-- Derive `playerDir` from the last pressed movement key (W/UpArrow=up, S/DownArrow=down, A/LeftArrow=left, D/RightArrow=right) in `Update()`.
-- Advance `animFrame` by elapsed time while a movement key is held; reset to 0 when no key is held.
-- Update `spriteForPlayer()` / `spriteForVillager()` to accept direction + frame and return the correct 64×64 `SubImage` crop.
-- For villagers: derive direction from position delta between ticks (store previous position in `EbitenGame`).
+S1 implements three animations for the **player only** using the Universal LPC spritesheet rows:
+
+| Animation | Rows / Section          | Frames | Trigger |
+|-----------|-------------------------|--------|---------|
+| Walk      | 8–11 (64×64)            | 8 (0–7 cycling) | WASD / arrow key held |
+| Slash     | Slash128 section y=3488+ (128×128) | 6 | `Player.LastHarvestAt`; 750ms cycle, loops while harvesting |
+| Thrust    | 4–7 (64×64)             | 8      | `Player.LastThrustAt`; 1000ms cycle, loops while building/depositing |
+
+Priority: Slash > Thrust > Walk > Idle (frame 0 of current facing row).
+
+### Code changes
+
+- Add `LastHarvestAt time.Time` and `LastThrustAt time.Time` to `Player` in `game/player.go` (small game-layer change; set in `game/resources/wood.go`, `game/structures/house.go`, and `game/structures/log_storage.go`).
+- Add `playerMoving bool`, `animTick int` to `EbitenGame` in `render/ebiten_model.go`.
+- Add `dirFrom(dx, dy int) int` and `spriteForPlayer(baseRow, dir, frame int, slash128 bool) drawArgs` in `render/sprites.go`.
+- Animation state machine in `Draw()` selects slash/thrust/walk/idle based on game state.
+
+**Villagers:** remain static (using existing `soldier_altcolor.png`). Villager animation is a separate future task — see "Future: Villager Animation" below.
 
 ### Exit criteria
 
 - Player animates through walk frames in the correct direction while WASD or arrow keys are held.
 - Player shows idle (frame 0, facing direction) when no key is held.
-- Villagers animate while moving; idle when standing.
+- Slash plays while player is actively chopping a tree.
+- Thrust plays while player is actively building a foundation.
+- Villagers are visually unchanged.
 - `make check` passes.
+
+---
+
+## Future: Villager Animation (post-S1)
+
+Villagers currently render as a static sprite (`soldier_altcolor.png`). To animate them:
+
+- Generate a second spritesheet from the LPC Character Generator with a different outfit/color.
+- Place at `assets/sprites/villager-spritesheet.png` (gitignored, same pattern as player).
+- Add `VillagerDir`, `VillagerPrevPos` tracking in `EbitenGame`; derive direction from position delta between ticks.
+- Reuse the same `dirFrom`, `spriteForPlayer`-style helper for villagers.
+- Villager task state (`VillagerTask`) can optionally drive slash (chopping) and thrust (delivering) animations using the same cycle-based approach as the player.
+
+This was descoped from S1 to keep the first animation pass focused on the player.
 
 ---
 

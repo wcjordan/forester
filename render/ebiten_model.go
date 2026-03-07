@@ -28,6 +28,10 @@ type EbitenGame struct {
 	hudFace          *textv2.GoXFace
 	debugVillager    bool
 	debugVillagerIdx int
+	playerMoving     bool      // true while any movement key is held
+	animTick         int       // increments each Update while playerMoving; resets to 0 when idle
+	slashCycleStart  time.Time // wall-clock start of the current slash cycle; zero = inactive
+	thrustCycleStart time.Time // wall-clock start of the current thrust cycle; zero = inactive
 }
 
 // NewEbitenGame creates an EbitenGame wrapping the given game using the system clock.
@@ -64,17 +68,28 @@ func (e *EbitenGame) Update() error {
 	}
 
 	// Movement: hold-to-move; player's 150ms cooldown throttles actual movement.
+	// Also tracks whether any movement key is held for walk animation.
 	player := e.game.State.Player
 	world := e.game.State.World
+	e.playerMoving = false
 	switch {
 	case ebiten.IsKeyPressed(ebiten.KeyW) || ebiten.IsKeyPressed(ebiten.KeyArrowUp):
 		player.Move(0, -1, world, now)
+		e.playerMoving = true
 	case ebiten.IsKeyPressed(ebiten.KeyS) || ebiten.IsKeyPressed(ebiten.KeyArrowDown):
 		player.Move(0, 1, world, now)
+		e.playerMoving = true
 	case ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyArrowLeft):
 		player.Move(-1, 0, world, now)
+		e.playerMoving = true
 	case ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyArrowRight):
 		player.Move(1, 0, world, now)
+		e.playerMoving = true
+	}
+	if e.playerMoving {
+		e.animTick++
+	} else {
+		e.animTick = 0
 	}
 
 	// Debug villager bar toggle and selection.
@@ -104,6 +119,27 @@ func (e *EbitenGame) Update() error {
 		e.lastTick = now
 	}
 
+	// Advance animation cycle anchors, looping seamlessly while the action continues.
+	// If the action fired during the current cycle, restart at the cycle boundary so
+	// there is no idle gap. If the action fired after the cycle ended, restart from
+	// that action time. Looping stops naturally once no new action occurs in a cycle.
+	if ha := player.LastHarvestAt; !ha.IsZero() {
+		cycleEnd := e.slashCycleStart.Add(slashAnimDuration)
+		if ha.After(cycleEnd) {
+			e.slashCycleStart = ha
+		} else if ha.After(e.slashCycleStart) && now.After(cycleEnd) {
+			e.slashCycleStart = cycleEnd
+		}
+	}
+	if ta := player.LastThrustAt; !ta.IsZero() {
+		cycleEnd := e.thrustCycleStart.Add(thrustAnimDuration)
+		if ta.After(cycleEnd) {
+			e.thrustCycleStart = ta
+		} else if ta.After(e.thrustCycleStart) && now.After(cycleEnd) {
+			e.thrustCycleStart = cycleEnd
+		}
+	}
+
 	return nil
 }
 
@@ -118,6 +154,11 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 
 	world := e.game.State.World
 	player := e.game.State.Player
+
+	// Compute player animation frame for this draw call.
+	playerDir := dirFrom(player.FacingDX, player.FacingDY)
+	now := e.clock.Now()
+	playerBaseRow, playerFrame, playerSlash128 := playerAnimFrame(e.slashCycleStart, e.thrustCycleStart, now, e.playerMoving, e.animTick)
 
 	vpX := int(e.camX)
 	vpY := int(e.camY)
@@ -136,7 +177,7 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 	drawSprite := func(da drawArgs, screenX, screenY float64) {
 		opts.GeoM.Reset()
 		opts.GeoM.Scale(da.scale, da.scale)
-		opts.GeoM.Translate(screenX, screenY)
+		opts.GeoM.Translate(screenX+da.offsetX, screenY+da.offsetY)
 		screen.DrawImage(da.img, &opts)
 	}
 
@@ -159,7 +200,7 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 			}
 
 			if worldX == player.X && worldY == player.Y {
-				drawSprite(spriteForPlayer(), screenX, screenY)
+				drawSprite(spriteForPlayer(playerBaseRow, playerDir, playerFrame, playerSlash128), screenX, screenY)
 			}
 		}
 	}

@@ -238,6 +238,32 @@ func TestHarvestWood(t *testing.T) {
 	})
 }
 
+func TestHarvestSetsLastHarvestAt(t *testing.T) {
+	t.Run("set when wood harvested", func(t *testing.T) {
+		w := game.NewWorld(5, 5)
+		w.Tiles[1][2] = game.Tile{Terrain: game.Forest, TreeSize: 5}
+		env, p := makeEnv(w, 2, 2)
+		now := time.Now()
+		woodDef{}.Harvest(env, now)
+		if p.LastHarvestAt.IsZero() {
+			t.Error("LastHarvestAt should be set after harvesting wood")
+		}
+		if !p.LastHarvestAt.Equal(now) {
+			t.Errorf("LastHarvestAt = %v, want %v", p.LastHarvestAt, now)
+		}
+	})
+
+	t.Run("not set when no wood available (cut tree)", func(t *testing.T) {
+		w := game.NewWorld(5, 5)
+		w.Tiles[1][2] = game.Tile{Terrain: game.Forest, TreeSize: 0}
+		env, p := makeEnv(w, 2, 2)
+		woodDef{}.Harvest(env, time.Now())
+		if !p.LastHarvestAt.IsZero() {
+			t.Error("LastHarvestAt should not be set when no wood was harvested")
+		}
+	})
+}
+
 func TestHarvestCapacityWood(t *testing.T) {
 	t.Run("harvest stops at InitialCarryingCapacity", func(t *testing.T) {
 		w := game.NewWorld(5, 5)

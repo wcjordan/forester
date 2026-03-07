@@ -39,6 +39,46 @@ func buildHouseAt(g *game.Game, ox, oy, playerX, playerY int) {
 	}
 }
 
+// TestBuildSetsLastThrustAt verifies that depositing wood into a house foundation
+// sets Player.LastThrustAt on the tick when the deposit fires.
+func TestBuildSetsLastThrustAt(t *testing.T) {
+	g := makeHouseGame()
+	origin := geom.Point{X: 10, Y: 10}
+	g.State.World.PlaceFoundation(origin.X, origin.Y, houseDef{})
+	g.State.Player.X = 9
+	g.State.Player.Y = 10
+	g.State.Player.Inventory[game.Wood] = 5
+	g.State.Player.SetCooldown(game.Build, time.Time{})
+
+	t0 := time.Now()
+	g.TickAdjacentStructures(t0)
+
+	if g.State.Player.LastThrustAt.IsZero() {
+		t.Error("LastThrustAt should be set after a build deposit")
+	}
+	if !g.State.Player.LastThrustAt.Equal(t0) {
+		t.Errorf("LastThrustAt = %v, want %v", g.State.Player.LastThrustAt, t0)
+	}
+}
+
+// TestLastThrustAtNotSetWhenNoWood verifies that LastThrustAt is not touched when
+// the player has no wood to deposit.
+func TestLastThrustAtNotSetWhenNoWood(t *testing.T) {
+	g := makeHouseGame()
+	origin := geom.Point{X: 10, Y: 10}
+	g.State.World.PlaceFoundation(origin.X, origin.Y, houseDef{})
+	g.State.Player.X = 9
+	g.State.Player.Y = 10
+	g.State.Player.Inventory[game.Wood] = 0
+	g.State.Player.SetCooldown(game.Build, time.Time{})
+
+	g.TickAdjacentStructures(time.Now())
+
+	if !g.State.Player.LastThrustAt.IsZero() {
+		t.Error("LastThrustAt should not be set when player has no wood")
+	}
+}
+
 // TestHouseBuiltMarkedUnoccupied verifies that completing a house registers it as
 // unoccupied in HouseOccupancy (villager spawning is now card-gated, not automatic).
 func TestHouseBuiltMarkedUnoccupied(t *testing.T) {

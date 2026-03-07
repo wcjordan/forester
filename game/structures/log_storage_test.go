@@ -278,6 +278,59 @@ func TestStorageManagerRoundTrip(t *testing.T) {
 	}
 }
 
+func TestDepositSetsLastThrustAt(t *testing.T) {
+	t.Run("set on resource deposit into built storage", func(t *testing.T) {
+		w := game.NewWorld(10, 10)
+		origin := geom.Point{X: 5, Y: 0}
+		w.PlaceBuilt(origin.X, origin.Y, logStorageDef{})
+		p := game.NewPlayer(5, 4)
+		p.Inventory[game.Wood] = 3
+		s := &game.State{Player: p, World: w, FoundationDeposited: make(map[geom.Point]int)}
+		stores := game.NewStorageManager()
+		stores.Register(origin, game.Wood, logStorageCapacity)
+		g := &game.Game{State: s, Stores: stores}
+		t0 := time.Now()
+		g.TickAdjacentStructures(t0)
+		if p.LastThrustAt.IsZero() {
+			t.Error("LastThrustAt should be set after depositing into storage")
+		}
+		if !p.LastThrustAt.Equal(t0) {
+			t.Errorf("LastThrustAt = %v, want %v", p.LastThrustAt, t0)
+		}
+	})
+
+	t.Run("set on foundation build deposit", func(t *testing.T) {
+		w := game.NewWorld(10, 10)
+		w.PlaceFoundation(5, 5, logStorageDef{})
+		p := game.NewPlayer(4, 5)
+		p.Inventory[game.Wood] = 3
+		s := &game.State{Player: p, World: w, FoundationDeposited: make(map[geom.Point]int)}
+		stores := game.NewStorageManager()
+		g := &game.Game{State: s, Stores: stores}
+		t0 := time.Now()
+		g.TickAdjacentStructures(t0)
+		if p.LastThrustAt.IsZero() {
+			t.Error("LastThrustAt should be set after a foundation build deposit")
+		}
+	})
+
+	t.Run("not set when nothing deposited", func(t *testing.T) {
+		w := game.NewWorld(10, 10)
+		origin := geom.Point{X: 5, Y: 0}
+		w.PlaceBuilt(origin.X, origin.Y, logStorageDef{})
+		p := game.NewPlayer(5, 4)
+		p.Inventory[game.Wood] = 0
+		s := &game.State{Player: p, World: w, FoundationDeposited: make(map[geom.Point]int)}
+		stores := game.NewStorageManager()
+		stores.Register(origin, game.Wood, logStorageCapacity)
+		g := &game.Game{State: s, Stores: stores}
+		g.TickAdjacentStructures(time.Now())
+		if !p.LastThrustAt.IsZero() {
+			t.Error("LastThrustAt should not be set when nothing was deposited")
+		}
+	})
+}
+
 func TestDepositCooldown(t *testing.T) {
 	makeDepositState := func(wood int) (*game.State, *game.StorageManager) {
 		w := game.NewWorld(10, 10)
