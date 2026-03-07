@@ -48,6 +48,30 @@ This file is `.gitignore`d and must be present before `make build` / `make test`
 
 Currently prefer: https://liberatedpixelcup.github.io/Universal-LPC-Spritesheet-Character-Generator/#sex=male&expression=Neutral_light&shoes=Basic_Boots_brown&legs=Fur_Pants_fur_tan&apron=Apron_green&overalls=Suspenders_brown&clothes=Longsleeve_brown&bauldron=Bauldron_tan&beard=Winter_Beard_dark%20brown&head=Rabbit_light&shadow=Shadow_shadow&gloves=Gloves_brass&weapon=Smash_axe
 
+### LPC Trees (required)
+
+Tree sprites use the [LPC Trees pack](https://opengameart.org/content/lpc-trees).
+
+1. Download the archive from the link above
+2. Extract it so the tree PNGs land at:
+   ```
+   assets/sprites/lpc-trees/
+   ```
+   Expected layout:
+   ```
+   assets/sprites/lpc-trees/
+     trees-green.png
+     trees-brown.png
+     trees-dead.png
+     trees-orange.png
+     trees-pale.png
+     CREDITS-trees.txt
+   ```
+
+This directory is `.gitignore`d and must be populated manually before running.
+
+**Attribution:** See `assets/sprites/lpc-trees/CREDITS-trees.txt` for full attribution.
+
 ## Quick Start
 
 ```bash
