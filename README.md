@@ -61,16 +61,32 @@ Tree sprites use the [LPC Trees pack](https://opengameart.org/content/lpc-trees)
    ```
    assets/sprites/lpc-trees/
      trees-green.png
-     trees-brown.png
-     trees-dead.png
-     trees-orange.png
-     trees-pale.png
      CREDITS-trees.txt
    ```
 
 This directory is `.gitignore`d and must be populated manually before running.
 
 **Attribution:** See `assets/sprites/lpc-trees/CREDITS-trees.txt` for full attribution.
+
+### LPC Terrains (required)
+
+Road and trodden-path tiles use the [LPC Terrains pack](https://opengameart.org/content/lpc-terrains).
+
+1. Download the archive from the link above
+2. Extract it so the terrain PNGs land at:
+   ```
+   assets/sprites/lpc-terrains/
+   ```
+   Expected layout:
+   ```
+   assets/sprites/lpc-terrains/
+     terrain-v7.png
+     CREDITS-terrain.txt
+   ```
+
+This directory is `.gitignore`d and must be populated manually before running.
+
+**Attribution:** See `assets/sprites/lpc-terrains/CREDITS.txt` for full attribution.
 
 ## Quick Start
 
