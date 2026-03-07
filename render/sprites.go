@@ -29,12 +29,14 @@ var (
 	barrelLogStorageImg = assets.Barrel.SubImage(image.Rect(0, 0, 0+64, 0+64)).(*ebiten.Image)
 	houseImg            = assets.House.SubImage(image.Rect(0, 0, 0+96, 0+96)).(*ebiten.Image)
 	trunkSmallImg       = assets.Trunk.SubImage(image.Rect(0, 0, 0+96, 0+96)).(*ebiten.Image)
-	treetopMatureImg    = assets.Treetop.SubImage(image.Rect(96, 112, 96+96, 112+112)).(*ebiten.Image)
-	treetopYoungImg     = assets.Treetop.SubImage(image.Rect(0, 0, 0+96, 0+112)).(*ebiten.Image)
-	grassForestImg      = assets.Grass.SubImage(image.Rect(0, 0, 0+32, 0+32)).(*ebiten.Image)
 	grassTileImg        = assets.GrassTile.SubImage(image.Rect(0, 0, 0+32, 0+32)).(*ebiten.Image)
 	troddenPathImg      = assets.TroddenPath.SubImage(image.Rect(0, 0, 32, 32)).(*ebiten.Image)
 	roadImg             = assets.Road.SubImage(image.Rect(0, 0, 32, 32)).(*ebiten.Image)
+
+	// lpc-trees: sapling (32×32), young (96×96), mature (192×192)
+	lpcTreesSaplingImg = assets.TreesGreen.SubImage(image.Rect(0, 64, 32, 96)).(*ebiten.Image)
+	lpcTreesYoungImg   = assets.TreesGreen.SubImage(image.Rect(128, 128, 224, 224)).(*ebiten.Image)
+	lpcTreesMatureImg  = assets.TreesGreen.SubImage(image.Rect(0, 512, 192, 704)).(*ebiten.Image)
 
 	// Characters
 	villagerImg = assets.Villager.SubImage(image.Rect(0, 128, 0+64, 128+64)).(*ebiten.Image)
@@ -101,37 +103,44 @@ func dirFrom(dx, dy int) int {
 	}
 }
 
-// spriteForTile returns the drawArgs for a world tile (terrain + structure).
-func spriteForTile(tile *game.Tile) drawArgs {
+// spriteForTile returns the draw layers for a world tile (terrain + structure).
+// Each layer is drawn in order; forest tiles always start with a grass base.
+func spriteForTile(tile *game.Tile) []drawArgs {
 	switch tile.Structure {
 	case structures.FoundationLogStorage, structures.FoundationHouse:
-		return drawArgs{img: dirtFoundationImg, scale: 1.0}
+		return []drawArgs{{img: dirtFoundationImg, scale: 1.0}}
 	case structures.LogStorage:
-		return drawArgs{img: barrelLogStorageImg, scale: 0.5}
+		return []drawArgs{{img: barrelLogStorageImg, scale: 0.5}}
 	case structures.House:
-		return drawArgs{img: houseImg, scale: 1.0 / 3.0}
+		return []drawArgs{{img: houseImg, scale: 1.0 / 3.0}}
 	}
 
 	switch tile.Terrain {
 	case game.Forest:
+		base := drawArgs{img: grassTileImg, scale: 1.0}
 		switch {
 		case tile.TreeSize == 0:
-			return drawArgs{img: trunkSmallImg, scale: 1.0 / 3.0}
+			// Stump: grass base + trunk sprite.
+			return []drawArgs{base, {img: trunkSmallImg, scale: 1.0 / 3.0}}
 		case tile.TreeSize >= 7:
-			return drawArgs{img: treetopMatureImg, scale: 1.0 / 3.0}
+			// Mature: grass base + large tree scaled to 64px, offset up so the
+			// canopy overhangs the tile above (drawn after that row, so it renders on top).
+			return []drawArgs{base, {img: lpcTreesMatureImg, scale: 1.0 / 3.0, offsetY: -float64(tileSize)}}
 		case tile.TreeSize >= 4:
-			return drawArgs{img: treetopYoungImg, scale: 1.0 / 3.0}
+			// Young: grass base + medium tree scaled to 32px.
+			return []drawArgs{base, {img: lpcTreesYoungImg, scale: 1.0 / 3.0}}
 		default:
-			return drawArgs{img: grassForestImg, scale: 1.0}
+			// Sapling: grass base + small bush sprite.
+			return []drawArgs{base, {img: lpcTreesSaplingImg, scale: 1.0}}
 		}
 	default:
 		switch game.RoadLevelFor(tile) {
 		case 2:
-			return drawArgs{img: roadImg, scale: 1.0}
+			return []drawArgs{{img: roadImg, scale: 1.0}}
 		case 1:
-			return drawArgs{img: troddenPathImg, scale: 1.0}
+			return []drawArgs{{img: troddenPathImg, scale: 1.0}}
 		default:
-			return drawArgs{img: grassTileImg, scale: 1.0}
+			return []drawArgs{{img: grassTileImg, scale: 1.0}}
 		}
 	}
 }

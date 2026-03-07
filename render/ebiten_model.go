@@ -193,7 +193,9 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 			screenX := float64(col * tileSize)
 			screenY := float64(row * tileSize)
 
-			drawSprite(spriteForTile(tile), screenX, screenY)
+			for _, da := range spriteForTile(tile) {
+				drawSprite(da, screenX, screenY)
+			}
 
 			if _, ok := villagerPos[geom.Point{X: worldX, Y: worldY}]; ok {
 				drawSprite(spriteForVillager(), screenX, screenY)
