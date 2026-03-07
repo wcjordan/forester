@@ -103,44 +103,46 @@ func dirFrom(dx, dy int) int {
 	}
 }
 
-// spriteForTile returns the draw layers for a world tile (terrain + structure).
-// Each layer is drawn in order; forest tiles always start with a grass base.
-func spriteForTile(tile *game.Tile) []drawArgs {
+// spriteForTile returns the base terrain sprite and any overlay sprites for a
+// world tile. The base is drawn in pass 1 (all tiles); overlays are drawn in
+// pass 2 (after all bases) so overflowing sprites are never masked by a
+// neighbouring tile's ground layer.
+func spriteForTile(tile *game.Tile) (base drawArgs, overlays []drawArgs) {
 	switch tile.Structure {
 	case structures.FoundationLogStorage, structures.FoundationHouse:
-		return []drawArgs{{img: dirtFoundationImg, scale: 1.0}}
+		return drawArgs{img: dirtFoundationImg, scale: 1.0}, nil
 	case structures.LogStorage:
-		return []drawArgs{{img: barrelLogStorageImg, scale: 0.5}}
+		return drawArgs{img: barrelLogStorageImg, scale: 0.5}, nil
 	case structures.House:
-		return []drawArgs{{img: houseImg, scale: 1.0 / 3.0}}
+		return drawArgs{img: houseImg, scale: 1.0 / 3.0}, nil
 	}
 
 	switch tile.Terrain {
 	case game.Forest:
-		base := drawArgs{img: grassTileImg, scale: 1.0}
+		base = drawArgs{img: grassTileImg, scale: 1.0}
 		switch {
 		case tile.TreeSize == 0:
-			// Stump: grass base + trunk sprite.
-			return []drawArgs{base, {img: lpcTreesTrunkImg, scale: 1.0 / 3.0}}
+			// Stump: trunk sprite over grass.
+			return base, []drawArgs{{img: lpcTreesTrunkImg, scale: 1.0 / 3.0}}
 		case tile.TreeSize >= 7:
-			// Mature: grass base + large tree scaled to 64px, offset up so the
-			// canopy overhangs the tile above (drawn after that row, so it renders on top).
-			return []drawArgs{base, {img: lpcTreesMatureImg, scale: 1.0 / 3.0, offsetY: -float64(tileSize)}}
+			// Mature: large tree scaled to 64px, offset up so the canopy overhangs
+			// the tile above (rendered on top because pass 2 draws after all bases).
+			return base, []drawArgs{{img: lpcTreesMatureImg, scale: 1.0 / 3.0, offsetY: -float64(tileSize)}}
 		case tile.TreeSize >= 4:
-			// Young: grass base + medium tree scaled to 32px.
-			return []drawArgs{base, {img: lpcTreesYoungImg, scale: 0.4}}
+			// Young: medium tree.
+			return base, []drawArgs{{img: lpcTreesYoungImg, scale: 0.4}}
 		default:
-			// Sapling: grass base + small bush sprite.
-			return []drawArgs{base, {img: lpcTreesSaplingImg, scale: 0.25}}
+			// Sapling: small bush sprite.
+			return base, []drawArgs{{img: lpcTreesSaplingImg, scale: 0.25}}
 		}
 	default:
 		switch game.RoadLevelFor(tile) {
 		case 2:
-			return []drawArgs{{img: roadImg, scale: 1.0}}
+			return drawArgs{img: roadImg, scale: 1.0}, nil
 		case 1:
-			return []drawArgs{{img: troddenPathImg, scale: 1.0}}
+			return drawArgs{img: troddenPathImg, scale: 1.0}, nil
 		default:
-			return []drawArgs{{img: grassTileImg, scale: 1.0}}
+			return drawArgs{img: grassTileImg, scale: 1.0}, nil
 		}
 	}
 }

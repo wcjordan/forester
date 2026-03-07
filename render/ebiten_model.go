@@ -190,8 +190,8 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 			if tile == nil {
 				continue
 			}
-			layers := spriteForTile(tile)
-			drawSprite(layers[0], float64(col*tileSize), float64(row*tileSize))
+			base, _ := spriteForTile(tile)
+			drawSprite(base, float64(col*tileSize), float64(row*tileSize))
 		}
 	}
 
@@ -208,7 +208,8 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 			screenX := float64(col * tileSize)
 			screenY := float64(row * tileSize)
 
-			for _, da := range spriteForTile(tile)[1:] {
+			_, overlays := spriteForTile(tile)
+			for _, da := range overlays {
 				drawSprite(da, screenX, screenY)
 			}
 
