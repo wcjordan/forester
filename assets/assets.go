@@ -16,15 +16,15 @@ var tilesFS embed.FS
 //go:embed sprites/lpc_base_assets/sprites/people
 var peopleFS embed.FS
 
+//go:embed sprites/lpc-trees
+var lpcTreesFS embed.FS
+
 //go:embed sprites/player-spritesheet.png
 var playerSheetData []byte
 
 // Sprite sheet images loaded at init time.
 var (
 	GrassTile   *ebiten.Image
-	Treetop     *ebiten.Image
-	Trunk       *ebiten.Image
-	Grass       *ebiten.Image
 	Dirt        *ebiten.Image
 	House       *ebiten.Image
 	Barrel      *ebiten.Image
@@ -32,6 +32,8 @@ var (
 	Villager    *ebiten.Image
 	TroddenPath *ebiten.Image
 	Road        *ebiten.Image
+	// TreesGreen is the LPC Trees Mega-Pack green variant sheet (1024×1024).
+	TreesGreen *ebiten.Image
 	// PlayerSheet is the full Universal LPC character spritesheet for the player.
 	// Contains walk, slash, and thrust animation rows at 64×64 px per frame.
 	PlayerSheet *ebiten.Image
@@ -59,15 +61,13 @@ func init() {
 	Road = ebiten.NewImage(32, 32)
 	Road.Fill(color.RGBA{R: 0x90, G: 0x78, B: 0x60, A: 0xFF}) // gray-brown packed dirt
 
-	Treetop = loadFromFS(tilesFS, "sprites/lpc_base_assets/tiles/treetop.png")
-	Trunk = loadFromFS(tilesFS, "sprites/lpc_base_assets/tiles/trunk.png")
-	Grass = loadFromFS(tilesFS, "sprites/lpc_base_assets/tiles/grass.png")
 	Dirt = loadFromFS(tilesFS, "sprites/lpc_base_assets/tiles/dirt.png")
 	House = loadFromFS(tilesFS, "sprites/lpc_base_assets/tiles/house.png")
 	Barrel = loadFromFS(tilesFS, "sprites/lpc_base_assets/tiles/barrel.png")
 
 	Player = loadFromFS(peopleFS, "sprites/lpc_base_assets/sprites/people/soldier.png")
 	Villager = loadFromFS(peopleFS, "sprites/lpc_base_assets/sprites/people/soldier_altcolor.png")
+	TreesGreen = loadFromFS(lpcTreesFS, "sprites/lpc-trees/trees-green.png")
 
 	img, _, err := image.Decode(bytes.NewReader(playerSheetData))
 	if err != nil {
