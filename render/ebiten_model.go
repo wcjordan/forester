@@ -186,11 +186,13 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 	// neighbouring tile's ground layer.
 	for row := 0; row < viewH; row++ {
 		for col := 0; col < viewW; col++ {
-			tile := world.TileAt(vpX+col, vpY+row)
+			worldX := vpX + col
+			worldY := vpY + row
+			tile := world.TileAt(worldX, worldY)
 			if tile == nil {
 				continue
 			}
-			base, _ := spriteForTile(tile)
+			base, _ := spriteForTile(tile, world, worldX, worldY)
 			drawSprite(base, float64(col*tileSize), float64(row*tileSize))
 		}
 	}
@@ -208,7 +210,7 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 			screenX := float64(col * tileSize)
 			screenY := float64(row * tileSize)
 
-			_, overlays := spriteForTile(tile)
+			_, overlays := spriteForTile(tile, world, worldX, worldY)
 			for _, da := range overlays {
 				drawSprite(da, screenX, screenY)
 			}

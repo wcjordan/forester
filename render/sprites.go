@@ -21,6 +21,13 @@ type drawArgs struct {
 	offsetY float64
 }
 
+// terrainTile slices a single 32×32 tile from the lpc-terrains sheet by tile ID.
+// The sheet is 32 tiles wide; tile pixel origin = (id%32 * 32, id/32 * 32).
+func terrainTile(id int) *ebiten.Image {
+	x, y := (id%32)*32, (id/32)*32
+	return assets.TerrainSheet.SubImage(image.Rect(x, y, x+32, y+32)).(*ebiten.Image)
+}
+
 // Pre-sliced sprite frames cached at package scope to avoid repeated SubImage calls
 // in the per-tile draw loop.
 var (
@@ -29,8 +36,12 @@ var (
 	barrelLogStorageImg = assets.Barrel.SubImage(image.Rect(0, 0, 0+64, 0+64)).(*ebiten.Image)
 	houseImg            = assets.House.SubImage(image.Rect(0, 0, 0+96, 0+96)).(*ebiten.Image)
 	grassTileImg        = assets.GrassTile.SubImage(image.Rect(0, 0, 0+32, 0+32)).(*ebiten.Image)
-	troddenPathImg      = assets.TroddenPath.SubImage(image.Rect(0, 0, 32, 32)).(*ebiten.Image)
-	roadImg             = assets.Road.SubImage(image.Rect(0, 0, 32, 32)).(*ebiten.Image)
+
+	// Road autotile arrays indexed by 4-bit neighbor bitmask (bit0=N, bit1=E, bit2=S, bit3=W).
+	// Corner assignment: TL=road if N|W, TR=road if N|E, BL=road if S|W, BR=road if S|E.
+	// Tile IDs verified against terrain-v7.tsx (terrain 14=Soil, terrain 18=Gravel_1).
+	soilAutotile   [16]*ebiten.Image // trodden path (level 1)
+	gravelAutotile [16]*ebiten.Image // road (level 2)
 
 	// lpc-trees: sapling (128×96), young (128×128), mature (160×192), trunk (80x50)
 	lpcTreesSaplingImg = assets.TreesGreen.SubImage(image.Rect(64, 226, 64+96, 226+128)).(*ebiten.Image)
@@ -48,6 +59,19 @@ var (
 )
 
 func init() {
+	// Soil autotile (terrain 14, trodden paths). Mapping derived from corner rules:
+	// bitmask → tile ID (center tile 333 used for all-corners-road cases and isolated fallback).
+	soilIDs := [16]int{333, 365, 332, 238, 301, 333, 270, 333, 334, 237, 333, 333, 269, 333, 333, 333}
+	for i, id := range soilIDs {
+		soilAutotile[i] = terrainTile(id)
+	}
+
+	// Gravel autotile (terrain 18, roads). Same corner logic, different terrain.
+	gravelIDs := [16]int{345, 377, 344, 250, 313, 345, 282, 345, 346, 249, 345, 345, 281, 345, 345, 345}
+	for i, id := range gravelIDs {
+		gravelAutotile[i] = terrainTile(id)
+	}
+
 	for dir := 0; dir < 4; dir++ {
 		walkY := (lpcWalkBaseRow + dir) * lpcFrameSize
 		thrustY := (lpcThrustBaseRow + dir) * lpcFrameSize
@@ -103,11 +127,25 @@ func dirFrom(dx, dy int) int {
 	}
 }
 
+// roadNeighborMask returns a 4-bit mask indicating which cardinal neighbors of
+// (x, y) have a road level >= level. Bit 0=N, bit 1=E, bit 2=S, bit 3=W.
+func roadNeighborMask(world *game.World, x, y, level int) int {
+	dirs := [4][2]int{{0, -1}, {1, 0}, {0, 1}, {-1, 0}} // N, E, S, W
+	mask := 0
+	for i, d := range dirs {
+		t := world.TileAt(x+d[0], y+d[1])
+		if t != nil && game.RoadLevelFor(t) >= level {
+			mask |= 1 << i
+		}
+	}
+	return mask
+}
+
 // spriteForTile returns the base terrain sprite and any overlay sprites for a
 // world tile. The base is drawn in pass 1 (all tiles); overlays are drawn in
 // pass 2 (after all bases) so overflowing sprites are never masked by a
 // neighbouring tile's ground layer.
-func spriteForTile(tile *game.Tile) (base drawArgs, overlays []drawArgs) {
+func spriteForTile(tile *game.Tile, world *game.World, x, y int) (base drawArgs, overlays []drawArgs) {
 	switch tile.Structure {
 	case structures.FoundationLogStorage, structures.FoundationHouse:
 		return drawArgs{img: dirtFoundationImg, scale: 1.0}, nil
@@ -138,9 +176,9 @@ func spriteForTile(tile *game.Tile) (base drawArgs, overlays []drawArgs) {
 	default:
 		switch game.RoadLevelFor(tile) {
 		case 2:
-			return drawArgs{img: roadImg, scale: 1.0}, nil
+			return drawArgs{img: gravelAutotile[roadNeighborMask(world, x, y, 2)], scale: 1.0}, nil
 		case 1:
-			return drawArgs{img: troddenPathImg, scale: 1.0}, nil
+			return drawArgs{img: soilAutotile[roadNeighborMask(world, x, y, 1)], scale: 1.0}, nil
 		default:
 			return drawArgs{img: grassTileImg, scale: 1.0}, nil
 		}
