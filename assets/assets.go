@@ -25,7 +25,6 @@ var playerSheetData []byte
 // Sprite sheet images loaded at init time.
 var (
 	GrassTile   *ebiten.Image
-	Trunk       *ebiten.Image
 	Dirt        *ebiten.Image
 	House       *ebiten.Image
 	Barrel      *ebiten.Image
@@ -62,7 +61,6 @@ func init() {
 	Road = ebiten.NewImage(32, 32)
 	Road.Fill(color.RGBA{R: 0x90, G: 0x78, B: 0x60, A: 0xFF}) // gray-brown packed dirt
 
-	Trunk = loadFromFS(tilesFS, "sprites/lpc_base_assets/tiles/trunk.png")
 	Dirt = loadFromFS(tilesFS, "sprites/lpc_base_assets/tiles/dirt.png")
 	House = loadFromFS(tilesFS, "sprites/lpc_base_assets/tiles/house.png")
 	Barrel = loadFromFS(tilesFS, "sprites/lpc_base_assets/tiles/barrel.png")

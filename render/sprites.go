@@ -28,15 +28,15 @@ var (
 	dirtFoundationImg   = assets.Dirt.SubImage(image.Rect(32, 64, 32+32, 64+32)).(*ebiten.Image)
 	barrelLogStorageImg = assets.Barrel.SubImage(image.Rect(0, 0, 0+64, 0+64)).(*ebiten.Image)
 	houseImg            = assets.House.SubImage(image.Rect(0, 0, 0+96, 0+96)).(*ebiten.Image)
-	trunkSmallImg       = assets.Trunk.SubImage(image.Rect(0, 0, 0+96, 0+96)).(*ebiten.Image)
 	grassTileImg        = assets.GrassTile.SubImage(image.Rect(0, 0, 0+32, 0+32)).(*ebiten.Image)
 	troddenPathImg      = assets.TroddenPath.SubImage(image.Rect(0, 0, 32, 32)).(*ebiten.Image)
 	roadImg             = assets.Road.SubImage(image.Rect(0, 0, 32, 32)).(*ebiten.Image)
 
-	// lpc-trees: sapling (128×96), young (128×128), mature (160×192)
+	// lpc-trees: sapling (128×96), young (128×128), mature (160×192), trunk (80x50)
 	lpcTreesSaplingImg = assets.TreesGreen.SubImage(image.Rect(64, 226, 64+96, 226+128)).(*ebiten.Image)
 	lpcTreesYoungImg   = assets.TreesGreen.SubImage(image.Rect(256, 224, 256+128, 224+128)).(*ebiten.Image)
 	lpcTreesMatureImg  = assets.TreesGreen.SubImage(image.Rect(0, 512, 0+160, 512+192)).(*ebiten.Image)
+	lpcTreesTrunkImg   = assets.TreesGreen.SubImage(image.Rect(36, 655, 36+80, 655+50)).(*ebiten.Image)
 
 	// Characters
 	villagerImg = assets.Villager.SubImage(image.Rect(0, 128, 0+64, 128+64)).(*ebiten.Image)
@@ -121,7 +121,7 @@ func spriteForTile(tile *game.Tile) []drawArgs {
 		switch {
 		case tile.TreeSize == 0:
 			// Stump: grass base + trunk sprite.
-			return []drawArgs{base, {img: trunkSmallImg, scale: 1.0 / 3.0}}
+			return []drawArgs{base, {img: lpcTreesTrunkImg, scale: 1.0 / 3.0}}
 		case tile.TreeSize >= 7:
 			// Mature: grass base + large tree scaled to 64px, offset up so the
 			// canopy overhangs the tile above (drawn after that row, so it renders on top).
