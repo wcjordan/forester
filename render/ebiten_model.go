@@ -181,6 +181,21 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 		screen.DrawImage(da.img, &opts)
 	}
 
+	// Pass 1: terrain bases. All base tiles are painted before any sprite overlay
+	// so that overflowing sprites (e.g. mature tree canopy) are never masked by a
+	// neighbouring tile's ground layer.
+	for row := 0; row < viewH; row++ {
+		for col := 0; col < viewW; col++ {
+			tile := world.TileAt(vpX+col, vpY+row)
+			if tile == nil {
+				continue
+			}
+			layers := spriteForTile(tile)
+			drawSprite(layers[0], float64(col*tileSize), float64(row*tileSize))
+		}
+	}
+
+	// Pass 2: sprite overlays (trees, structures, villagers, player).
 	for row := 0; row < viewH; row++ {
 		for col := 0; col < viewW; col++ {
 			worldX := vpX + col
@@ -193,7 +208,7 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 			screenX := float64(col * tileSize)
 			screenY := float64(row * tileSize)
 
-			for _, da := range spriteForTile(tile) {
+			for _, da := range spriteForTile(tile)[1:] {
 				drawSprite(da, screenX, screenY)
 			}
 
