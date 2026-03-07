@@ -33,9 +33,9 @@ var (
 	troddenPathImg      = assets.TroddenPath.SubImage(image.Rect(0, 0, 32, 32)).(*ebiten.Image)
 	roadImg             = assets.Road.SubImage(image.Rect(0, 0, 32, 32)).(*ebiten.Image)
 
-	// lpc-trees: sapling (32×32), young (96×96), mature (192×192)
-	lpcTreesSaplingImg = assets.TreesGreen.SubImage(image.Rect(0, 64, 32, 96)).(*ebiten.Image)
-	lpcTreesYoungImg   = assets.TreesGreen.SubImage(image.Rect(128, 128, 224, 224)).(*ebiten.Image)
+	// lpc-trees: sapling (128×96), young (128×128), mature (160×192)
+	lpcTreesSaplingImg = assets.TreesGreen.SubImage(image.Rect(64, 208, 64+96, 208+128)).(*ebiten.Image)
+	lpcTreesYoungImg   = assets.TreesGreen.SubImage(image.Rect(260, 220, 260+128, 220+128)).(*ebiten.Image)
 	lpcTreesMatureImg  = assets.TreesGreen.SubImage(image.Rect(0, 512, 0+160, 512+192)).(*ebiten.Image)
 
 	// Characters
@@ -128,10 +128,10 @@ func spriteForTile(tile *game.Tile) []drawArgs {
 			return []drawArgs{base, {img: lpcTreesMatureImg, scale: 1.0 / 3.0, offsetY: -float64(tileSize)}}
 		case tile.TreeSize >= 4:
 			// Young: grass base + medium tree scaled to 32px.
-			return []drawArgs{base, {img: lpcTreesYoungImg, scale: 1.0 / 3.0}}
+			return []drawArgs{base, {img: lpcTreesYoungImg, scale: 0.4}}
 		default:
 			// Sapling: grass base + small bush sprite.
-			return []drawArgs{base, {img: lpcTreesSaplingImg, scale: 1.0}}
+			return []drawArgs{base, {img: lpcTreesSaplingImg, scale: 0.25}}
 		}
 	default:
 		switch game.RoadLevelFor(tile) {
