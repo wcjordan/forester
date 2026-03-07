@@ -36,7 +36,7 @@ var (
 	// lpc-trees: sapling (32×32), young (96×96), mature (192×192)
 	lpcTreesSaplingImg = assets.TreesGreen.SubImage(image.Rect(0, 64, 32, 96)).(*ebiten.Image)
 	lpcTreesYoungImg   = assets.TreesGreen.SubImage(image.Rect(128, 128, 224, 224)).(*ebiten.Image)
-	lpcTreesMatureImg  = assets.TreesGreen.SubImage(image.Rect(0, 512, 192, 704)).(*ebiten.Image)
+	lpcTreesMatureImg  = assets.TreesGreen.SubImage(image.Rect(0, 512, 0+160, 512+192)).(*ebiten.Image)
 
 	// Characters
 	villagerImg = assets.Villager.SubImage(image.Rect(0, 128, 0+64, 128+64)).(*ebiten.Image)
