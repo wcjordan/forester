@@ -44,7 +44,7 @@ The player character uses a custom spritesheet generated from the [Universal LPC
    ```
 3. Save Credits & Attribution to `assets/sprites/player-spritesheet.credits.txt
 
-This file is `.gitignore`d and must be placed manually before running. The spritesheet uses the standard Universal LPC layout (64×64 px per frame): rows 0–3 spellcast, rows 4–7 thrust, rows 8–11 walk, rows 12–15 slash.
+This file is `.gitignore`d and must be present before `make build` / `make test` (it is embedded at compile time via `//go:embed`). The spritesheet uses the Universal LPC layout: rows 4–7 thrust (64×64), rows 8–11 walk (64×64), and the Slash128 section at y≈3488+ (128×128 frames, 6 per direction) for the axe-chop animation.
 
 Currently prefer: https://liberatedpixelcup.github.io/Universal-LPC-Spritesheet-Character-Generator/#sex=male&expression=Neutral_light&shoes=Basic_Boots_brown&legs=Fur_Pants_fur_tan&apron=Apron_green&overalls=Suspenders_brown&clothes=Longsleeve_brown&bauldron=Bauldron_tan&beard=Winter_Beard_dark%20brown&head=Rabbit_light&shadow=Shadow_shadow&gloves=Gloves_brass&weapon=Smash_axe
 

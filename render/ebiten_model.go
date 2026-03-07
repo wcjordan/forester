@@ -68,24 +68,24 @@ func (e *EbitenGame) Update() error {
 	}
 
 	// Movement: hold-to-move; player's 150ms cooldown throttles actual movement.
+	// Also tracks whether any movement key is held for walk animation.
 	player := e.game.State.Player
 	world := e.game.State.World
+	e.playerMoving = false
 	switch {
 	case ebiten.IsKeyPressed(ebiten.KeyW) || ebiten.IsKeyPressed(ebiten.KeyArrowUp):
 		player.Move(0, -1, world, now)
+		e.playerMoving = true
 	case ebiten.IsKeyPressed(ebiten.KeyS) || ebiten.IsKeyPressed(ebiten.KeyArrowDown):
 		player.Move(0, 1, world, now)
+		e.playerMoving = true
 	case ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyArrowLeft):
 		player.Move(-1, 0, world, now)
+		e.playerMoving = true
 	case ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyArrowRight):
 		player.Move(1, 0, world, now)
+		e.playerMoving = true
 	}
-
-	// Track movement key state for walk animation.
-	e.playerMoving = ebiten.IsKeyPressed(ebiten.KeyW) || ebiten.IsKeyPressed(ebiten.KeyArrowUp) ||
-		ebiten.IsKeyPressed(ebiten.KeyS) || ebiten.IsKeyPressed(ebiten.KeyArrowDown) ||
-		ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyArrowLeft) ||
-		ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyArrowRight)
 	if e.playerMoving {
 		e.animTick++
 	} else {

@@ -38,7 +38,32 @@ var (
 
 	// Characters
 	villagerImg = assets.Villager.SubImage(image.Rect(0, 128, 0+64, 128+64)).(*ebiten.Image)
+
+	// Player animation frames: [direction][frame], direction 0=up 1=left 2=down 3=right.
+	playerWalkFrames     [4][8]*ebiten.Image
+	playerThrustFrames   [4][8]*ebiten.Image
+	playerSlash128Frames [4][lpcSlash128Frames]*ebiten.Image
 )
+
+func init() {
+	for dir := 0; dir < 4; dir++ {
+		walkY := (lpcWalkBaseRow + dir) * lpcFrameSize
+		thrustY := (lpcThrustBaseRow + dir) * lpcFrameSize
+		for frame := 0; frame < 8; frame++ {
+			x := frame * lpcFrameSize
+			playerWalkFrames[dir][frame] = assets.PlayerSheet.SubImage(
+				image.Rect(x, walkY, x+lpcFrameSize, walkY+lpcFrameSize)).(*ebiten.Image)
+			playerThrustFrames[dir][frame] = assets.PlayerSheet.SubImage(
+				image.Rect(x, thrustY, x+lpcFrameSize, thrustY+lpcFrameSize)).(*ebiten.Image)
+		}
+		dirY := lpcSlash128DirY[dir]
+		for frame := 0; frame < lpcSlash128Frames; frame++ {
+			x := frame * lpcSlash128FrameW
+			playerSlash128Frames[dir][frame] = assets.PlayerSheet.SubImage(
+				image.Rect(x, dirY, x+lpcSlash128FrameW, dirY+lpcSlash128FrameH)).(*ebiten.Image)
+		}
+	}
+}
 
 // Universal LPC spritesheet constants (64×64 px per frame).
 // Row groups each have 4 rows: +0=up, +1=left, +2=down, +3=right.
@@ -150,17 +175,12 @@ func playerAnimFrame(slashCycleStart, thrustCycleStart, now time.Time, moving bo
 // (0=up,1=left,2=down,3=right), and frame the column (0-based).
 func spriteForPlayer(baseRow, dir, frame int, slash128 bool) drawArgs {
 	if slash128 {
-		dirY := lpcSlash128DirY[dir]
-		x := frame * lpcSlash128FrameW
-		img := assets.PlayerSheet.SubImage(image.Rect(x, dirY, x+lpcSlash128FrameW, dirY+lpcSlash128FrameH)).(*ebiten.Image)
-		// 128×64 at scale 0.5 → 64×32 rendered; same height as the tile, wider for the axe arc.
-		return drawArgs{img: img, scale: 0.5, offsetX: -16, offsetY: 0}
+		return drawArgs{img: playerSlash128Frames[dir][frame], scale: 0.5, offsetX: -16, offsetY: 0}
 	}
-	row := baseRow + dir
-	x := frame * lpcFrameSize
-	y := row * lpcFrameSize
-	img := assets.PlayerSheet.SubImage(image.Rect(x, y, x+lpcFrameSize, y+lpcFrameSize)).(*ebiten.Image)
-	return drawArgs{img: img, scale: 0.5}
+	if baseRow == lpcThrustBaseRow {
+		return drawArgs{img: playerThrustFrames[dir][frame], scale: 0.5}
+	}
+	return drawArgs{img: playerWalkFrames[dir][frame], scale: 0.5}
 }
 
 // spriteForVillager returns drawArgs for a villager character.
