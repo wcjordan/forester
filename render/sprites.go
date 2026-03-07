@@ -34,8 +34,8 @@ var (
 	roadImg             = assets.Road.SubImage(image.Rect(0, 0, 32, 32)).(*ebiten.Image)
 
 	// lpc-trees: sapling (128×96), young (128×128), mature (160×192)
-	lpcTreesSaplingImg = assets.TreesGreen.SubImage(image.Rect(64, 208, 64+96, 208+128)).(*ebiten.Image)
-	lpcTreesYoungImg   = assets.TreesGreen.SubImage(image.Rect(260, 220, 260+128, 220+128)).(*ebiten.Image)
+	lpcTreesSaplingImg = assets.TreesGreen.SubImage(image.Rect(64, 226, 64+96, 226+128)).(*ebiten.Image)
+	lpcTreesYoungImg   = assets.TreesGreen.SubImage(image.Rect(256, 224, 256+128, 224+128)).(*ebiten.Image)
 	lpcTreesMatureImg  = assets.TreesGreen.SubImage(image.Rect(0, 512, 0+160, 512+192)).(*ebiten.Image)
 
 	// Characters
