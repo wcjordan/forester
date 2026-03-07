@@ -86,7 +86,7 @@ Road and trodden-path tiles use the [LPC Terrains pack](https://opengameart.org/
 
 This directory is `.gitignore`d and must be populated manually before running.
 
-**Attribution:** See `assets/sprites/lpc-terrains/CREDITS.txt` for full attribution.
+**Attribution:** See `assets/sprites/lpc-terrains/CREDITS-terrain.txt` for full attribution.
 
 ## Quick Start
 
