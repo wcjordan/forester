@@ -53,11 +53,11 @@ var (
 )
 
 func init() {
-	for i, id := range roads.SoilTileIDs {
-		soilAutotile[i] = roads.TileFromSheet(assets.TerrainSheet, id)
+	for i, pos := range roads.SoilTileIDs {
+		soilAutotile[i] = roads.TileFromSheet(assets.TerrainSheet, pos)
 	}
-	for i, id := range roads.GravelTileIDs {
-		gravelAutotile[i] = roads.TileFromSheet(assets.TerrainSheet, id)
+	for i, pos := range roads.GravelTileIDs {
+		gravelAutotile[i] = roads.TileFromSheet(assets.TerrainSheet, pos)
 	}
 
 	for dir := 0; dir < 4; dir++ {

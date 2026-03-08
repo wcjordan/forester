@@ -54,7 +54,7 @@ func (g *Game) Update() error {
 }
 
 // drawSection renders a 4×4 grid of 3×3-context cells for one mapping.
-func (g *Game) drawSection(screen *ebiten.Image, mapping [16]int, ox, oy int) {
+func (g *Game) drawSection(screen *ebiten.Image, mapping [16]roads.Pos, ox, oy int) {
 	cellW := 3*tileSize + cellPad*2
 	cellH := 3*tileSize + cellPad*2 + labelH
 
@@ -105,7 +105,8 @@ func (g *Game) drawSection(screen *ebiten.Image, mapping [16]int, ox, oy int) {
 			}
 		}
 
-		label := fmt.Sprintf("%d:%s t%d", mask, maskNames[mask], mapping[mask])
+		p := mapping[mask]
+		label := fmt.Sprintf("%d:%s {%d,%d}", mask, maskNames[mask], p.X, p.Y)
 		ebitenutil.DebugPrintAt(screen, label, cellX+cellPad, cellY+cellPad+3*tileSize+2)
 	}
 }
