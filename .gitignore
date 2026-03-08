@@ -2,6 +2,7 @@
 forester
 forester.wasm
 *.exe
+road-preview
 
 # Air hot-reload
 tmp/
