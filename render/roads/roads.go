@@ -1,5 +1,5 @@
-// Package autotile provides the tile ID mappings and sheet-slicing helper for
-// the lpc-terrains road/path autotile system.
+// Package roads provides the tile ID mappings and sheet-slicing helper for
+// lpc-terrains road and trodden-path rendering.
 //
 // Bitmask convention: bit0=N  bit1=E  bit2=S  bit3=W.
 // A bit is set when the cardinal neighbour in that direction is at the same
@@ -22,7 +22,7 @@
 //
 //	345=fill  377=N-cap  344=E-cap  313=S-cap  346=W-cap
 //	249=NW    250=NE     281=SW     282=SE
-package autotile
+package roads
 
 import (
 	"image"

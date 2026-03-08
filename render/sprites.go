@@ -9,7 +9,7 @@ import (
 	"forester/assets"
 	"forester/game"
 	"forester/game/structures"
-	"forester/render/autotile"
+	"forester/render/roads"
 )
 
 // drawArgs bundles a pre-sliced sprite image, its display scale, and optional
@@ -53,11 +53,11 @@ var (
 )
 
 func init() {
-	for i, id := range autotile.SoilTileIDs {
-		soilAutotile[i] = autotile.TileFromSheet(assets.TerrainSheet, id)
+	for i, id := range roads.SoilTileIDs {
+		soilAutotile[i] = roads.TileFromSheet(assets.TerrainSheet, id)
 	}
-	for i, id := range autotile.GravelTileIDs {
-		gravelAutotile[i] = autotile.TileFromSheet(assets.TerrainSheet, id)
+	for i, id := range roads.GravelTileIDs {
+		gravelAutotile[i] = roads.TileFromSheet(assets.TerrainSheet, id)
 	}
 
 	for dir := 0; dir < 4; dir++ {

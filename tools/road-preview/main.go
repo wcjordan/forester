@@ -1,5 +1,5 @@
 // road-preview renders all 16 autotile mask combinations for road and
-// trodden-path terrain.  To change a mapping, edit render/autotile/autotile.go
+// trodden-path terrain.  To change a mapping, edit render/autotile/roads.go
 // and rerun:
 //
 //	go run ./tools/road-preview   (from repo root)
@@ -20,7 +20,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 
-	"forester/render/autotile"
+	"forester/render/roads"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -59,14 +59,14 @@ func (g *Game) drawSection(screen *ebiten.Image, mapping [16]int, ox, oy int) {
 	cellH := 3*tileSize + cellPad*2 + labelH
 
 	// Use mask-15 tile (all neighbours road) as the fill for road neighbours in context.
-	fillTile := autotile.TileFromSheet(g.sheet, mapping[15])
+	fillTile := roads.TileFromSheet(g.sheet, mapping[15])
 
 	var opts ebiten.DrawImageOptions
 	for mask := 0; mask < 16; mask++ {
 		cellX := ox + (mask%gridCols)*cellW
 		cellY := oy + (mask/gridCols)*cellH
 
-		center := autotile.TileFromSheet(g.sheet, mapping[mask])
+		center := roads.TileFromSheet(g.sheet, mapping[mask])
 		nBit := (mask>>0)&1 == 1
 		eBit := (mask>>1)&1 == 1
 		sBit := (mask>>2)&1 == 1
@@ -111,10 +111,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	gap := 16
 
 	ebitenutil.DebugPrintAt(screen, "SOIL — trodden path (level 1)", 0, 0)
-	g.drawSection(screen, autotile.SoilTileIDs, 0, 14)
+	g.drawSection(screen, roads.SoilTileIDs, 0, 14)
 
 	ebitenutil.DebugPrintAt(screen, "GRAVEL — road (level 2)", sectionW+gap, 0)
-	g.drawSection(screen, autotile.GravelTileIDs, sectionW+gap, 14)
+	g.drawSection(screen, roads.GravelTileIDs, sectionW+gap, 14)
 }
 
 func (g *Game) Layout(outsideW, outsideH int) (w, h int) { return outsideW, outsideH }
