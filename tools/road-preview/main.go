@@ -58,8 +58,15 @@ func (g *Game) drawSection(screen *ebiten.Image, mapping [16]int, ox, oy int) {
 	cellW := 3*tileSize + cellPad*2
 	cellH := 3*tileSize + cellPad*2 + labelH
 
-	// Use mask-15 tile (all neighbours road) as the fill for road neighbours in context.
-	fillTile := roads.TileFromSheet(g.sheet, mapping[15])
+	// Each cardinal neighbour shows the dead-end tile facing back toward the center:
+	//   N-neighbour has only a S-connection (bitmask 4)
+	//   E-neighbour has only a W-connection (bitmask 8)
+	//   S-neighbour has only a N-connection (bitmask 1)
+	//   W-neighbour has only a E-connection (bitmask 2)
+	nNeighbor := roads.TileFromSheet(g.sheet, mapping[4]) // S-cap
+	eNeighbor := roads.TileFromSheet(g.sheet, mapping[8]) // W-cap
+	sNeighbor := roads.TileFromSheet(g.sheet, mapping[1]) // N-cap
+	wNeighbor := roads.TileFromSheet(g.sheet, mapping[2]) // E-cap
 
 	var opts ebiten.DrawImageOptions
 	for mask := 0; mask < 16; mask++ {
@@ -79,13 +86,13 @@ func (g *Game) drawSection(screen *ebiten.Image, mapping [16]int, ox, oy int) {
 				case cx == 1 && cy == 1:
 					img = center
 				case cx == 1 && cy == 0 && nBit:
-					img = fillTile
+					img = nNeighbor
 				case cx == 2 && cy == 1 && eBit:
-					img = fillTile
+					img = eNeighbor
 				case cx == 1 && cy == 2 && sBit:
-					img = fillTile
+					img = sNeighbor
 				case cx == 0 && cy == 1 && wBit:
-					img = fillTile
+					img = wNeighbor
 				default:
 					img = g.grassImg
 				}
