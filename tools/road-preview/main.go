@@ -1,11 +1,13 @@
 // road-preview renders all 16 autotile mask combinations for road and
-// trodden-path terrain.  To change a mapping, edit render/autotile/roads.go
-// and rerun:
+// trodden-path terrain using quadrant-composed tiles.
+//
+// To change a mapping, edit SoilComposed / GravelComposed in
+// render/roads/roads.go and rerun:
 //
 //	go run ./tools/road-preview   (from repo root)
 //
 // Each cell shows a 3×3 context: road neighbours where the bitmask bit is set,
-// grass everywhere else, and the mapped tile at the centre.
+// grass everywhere else, and the composed tile at the centre.
 // Q or Escape to quit.
 package main
 
@@ -42,8 +44,9 @@ var maskNames = [16]string{
 
 // Game implements ebiten.Game.
 type Game struct {
-	sheet    *ebiten.Image
-	grassImg *ebiten.Image
+	grassImg       *ebiten.Image
+	soilComposed   [16]*ebiten.Image
+	gravelComposed [16]*ebiten.Image
 }
 
 func (g *Game) Update() error {
@@ -53,27 +56,24 @@ func (g *Game) Update() error {
 	return nil
 }
 
-// drawSection renders a 4×4 grid of 3×3-context cells for one mapping.
-func (g *Game) drawSection(screen *ebiten.Image, mapping [16]roads.Pos, ox, oy int) {
+// drawComposedSection renders a 4×4 grid of 3×3-context cells for a
+// ComposedTile-based mapping.  Neighbour tiles are taken from the composed
+// images for masks 4 (S-cap), 8 (W-cap), 1 (N-cap), 2 (E-cap).
+func (g *Game) drawComposedSection(screen *ebiten.Image, tiles [16]*ebiten.Image, mapping [16]roads.ComposedTile, ox, oy int) {
 	cellW := 3*tileSize + cellPad*2
 	cellH := 3*tileSize + cellPad*2 + labelH
 
-	// Each cardinal neighbour shows the dead-end tile facing back toward the center:
-	//   N-neighbour has only a S-connection (bitmask 4)
-	//   E-neighbour has only a W-connection (bitmask 8)
-	//   S-neighbour has only a N-connection (bitmask 1)
-	//   W-neighbour has only a E-connection (bitmask 2)
-	nNeighbor := roads.TileFromSheet(g.sheet, mapping[4]) // S-cap
-	eNeighbor := roads.TileFromSheet(g.sheet, mapping[8]) // W-cap
-	sNeighbor := roads.TileFromSheet(g.sheet, mapping[1]) // N-cap
-	wNeighbor := roads.TileFromSheet(g.sheet, mapping[2]) // E-cap
+	nNeighbor := tiles[4] // S-cap
+	eNeighbor := tiles[8] // W-cap
+	sNeighbor := tiles[1] // N-cap
+	wNeighbor := tiles[2] // E-cap
 
 	var opts ebiten.DrawImageOptions
 	for mask := 0; mask < 16; mask++ {
 		cellX := ox + (mask%gridCols)*cellW
 		cellY := oy + (mask/gridCols)*cellH
 
-		center := roads.TileFromSheet(g.sheet, mapping[mask])
+		center := tiles[mask]
 		nBit := (mask>>0)&1 == 1
 		eBit := (mask>>1)&1 == 1
 		sBit := (mask>>2)&1 == 1
@@ -105,8 +105,8 @@ func (g *Game) drawSection(screen *ebiten.Image, mapping [16]roads.Pos, ox, oy i
 			}
 		}
 
-		p := mapping[mask]
-		label := fmt.Sprintf("%d:%s {%d,%d}", mask, maskNames[mask], p.X, p.Y)
+		c := mapping[mask]
+		label := fmt.Sprintf("%d:%s TL{%d,%d}", mask, maskNames[mask], c.TL.X, c.TL.Y)
 		ebitenutil.DebugPrintAt(screen, label, cellX+cellPad, cellY+cellPad+3*tileSize+2)
 	}
 }
@@ -118,11 +118,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	sectionW := gridCols * cellW
 	gap := 16
 
-	ebitenutil.DebugPrintAt(screen, "SOIL — trodden path (level 1)", 0, 0)
-	g.drawSection(screen, roads.SoilTileIDs, 0, 14)
+	ebitenutil.DebugPrintAt(screen, "SOIL composed (edit SoilComposed in roads.go)", 0, 0)
+	g.drawComposedSection(screen, g.soilComposed, roads.SoilComposed, 0, 14)
 
-	ebitenutil.DebugPrintAt(screen, "GRAVEL — road (level 2)", sectionW+gap, 0)
-	g.drawSection(screen, roads.GravelTileIDs, sectionW+gap, 14)
+	ebitenutil.DebugPrintAt(screen, "GRAVEL composed (edit GravelComposed in roads.go)", sectionW+gap, 0)
+	g.drawComposedSection(screen, g.gravelComposed, roads.GravelComposed, sectionW+gap, 14)
 }
 
 func (g *Game) Layout(outsideW, outsideH int) (w, h int) { return outsideW, outsideH }
@@ -143,17 +143,31 @@ func main() {
 	grassImg := ebiten.NewImage(tileSize, tileSize)
 	grassImg.Fill(color.RGBA{R: 0x7E, G: 0xC8, B: 0x50, A: 0xFF})
 
-	cellW := 3*tileSize + cellPad*2
+	// Pre-compose all tiles from the quadrant mappings.
+	var soilComposed [16]*ebiten.Image
+	var gravelComposed [16]*ebiten.Image
+	for i, c := range roads.SoilComposed {
+		soilComposed[i] = roads.ComposeFromSheet(sheet, c)
+	}
+	for i, c := range roads.GravelComposed {
+		gravelComposed[i] = roads.ComposeFromSheet(sheet, c)
+	}
+
 	cellH := 3*tileSize + cellPad*2 + labelH
-	sectionW := gridCols * cellW
-	winW := sectionW*2 + 16 + 8
+	sectionW := gridCols * (3*tileSize + cellPad*2)
+	gap := 16
+	winW := sectionW*2 + gap + 8
 	winH := gridRows*cellH + 14 + 8
 
 	ebiten.SetWindowSize(winW, winH)
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetWindowTitle("Road Autotile Preview — Q to quit")
 
-	g := &Game{sheet: sheet, grassImg: grassImg}
+	g := &Game{
+		grassImg:       grassImg,
+		soilComposed:   soilComposed,
+		gravelComposed: gravelComposed,
+	}
 	if err := ebiten.RunGame(g); err != nil && err != ebiten.Termination {
 		panic(err)
 	}
