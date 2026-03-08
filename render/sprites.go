@@ -9,6 +9,7 @@ import (
 	"forester/assets"
 	"forester/game"
 	"forester/game/structures"
+	"forester/render/autotile"
 )
 
 // drawArgs bundles a pre-sliced sprite image, its display scale, and optional
@@ -19,13 +20,6 @@ type drawArgs struct {
 	scale   float64
 	offsetX float64
 	offsetY float64
-}
-
-// terrainTile slices a single 32×32 tile from the lpc-terrains sheet by tile ID.
-// The sheet is 32 tiles wide; tile pixel origin = (id%32 * 32, id/32 * 32).
-func terrainTile(id int) *ebiten.Image {
-	x, y := (id%32)*32, (id/32)*32
-	return assets.TerrainSheet.SubImage(image.Rect(x, y, x+32, y+32)).(*ebiten.Image)
 }
 
 // Pre-sliced sprite frames cached at package scope to avoid repeated SubImage calls
@@ -59,17 +53,11 @@ var (
 )
 
 func init() {
-	// Soil autotile (terrain 14, trodden paths). Mapping derived from corner rules:
-	// bitmask → tile ID (center tile 333 used for all-corners-road cases and isolated fallback).
-	soilIDs := [16]int{333, 365, 332, 238, 301, 333, 270, 333, 334, 237, 333, 333, 269, 333, 333, 333}
-	for i, id := range soilIDs {
-		soilAutotile[i] = terrainTile(id)
+	for i, id := range autotile.SoilTileIDs {
+		soilAutotile[i] = autotile.TileFromSheet(assets.TerrainSheet, id)
 	}
-
-	// Gravel autotile (terrain 18, roads). Same corner logic, different terrain.
-	gravelIDs := [16]int{345, 377, 344, 250, 313, 345, 282, 345, 346, 249, 345, 345, 281, 345, 345, 345}
-	for i, id := range gravelIDs {
-		gravelAutotile[i] = terrainTile(id)
+	for i, id := range autotile.GravelTileIDs {
+		gravelAutotile[i] = autotile.TileFromSheet(assets.TerrainSheet, id)
 	}
 
 	for dir := 0; dir < 4; dir++ {

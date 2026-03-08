@@ -1,5 +1,6 @@
 // road-preview renders all 16 autotile mask combinations for road and
-// trodden-path terrain.  Edit the mappings below and run:
+// trodden-path terrain.  To change a mapping, edit render/autotile/autotile.go
+// and rerun:
 //
 //	go run ./tools/road-preview   (from repo root)
 //
@@ -18,39 +19,9 @@ import (
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+
+	"forester/render/autotile"
 )
-
-// ── Edit these mappings to experiment ────────────────────────────────────────
-//
-// Bitmask layout: bit0=N  bit1=E  bit2=S  bit3=W
-//
-// Tile ID → pixel in terrain-v7.png (1024×2048, 32×32 tiles, 32 columns):
-//
-//	x = (id % 32) * 32
-//	y = (id / 32) * 32
-//
-// Handy Soil tile IDs (terrain 14):
-//
-//	333=fill  365=N-cap  332=E-cap  301=S-cap  334=W-cap
-//	237=NW    238=NE     269=SW     270=SE
-//
-// Handy Gravel tile IDs (terrain 18):
-//
-//	345=fill  377=N-cap  344=E-cap  313=S-cap  346=W-cap
-//	249=NW    250=NE     281=SW     282=SE
-var soilMapping = [16]int{
-	333, 365, 332, 238, //  0:isolated   1:N      2:E      3:N+E
-	301, 333, 270, 333, //  4:S          5:N+S    6:E+S    7:N+E+S
-	334, 237, 333, 333, //  8:W          9:N+W   10:E+W   11:N+E+W
-	269, 333, 333, 333, // 12:S+W       13:N+S+W 14:E+S+W 15:all
-}
-
-var gravelMapping = [16]int{
-	345, 377, 344, 250, //  0:isolated   1:N      2:E      3:N+E
-	313, 345, 282, 345, //  4:S          5:N+S    6:E+S    7:N+E+S
-	346, 249, 345, 345, //  8:W          9:N+W   10:E+W   11:N+E+W
-	281, 345, 345, 345, // 12:S+W       13:N+S+W 14:E+S+W 15:all
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -75,12 +46,6 @@ type Game struct {
 	grassImg *ebiten.Image
 }
 
-// tileAt returns a SubImage for the given tile ID from the terrain sheet.
-func tileAt(sheet *ebiten.Image, id int) *ebiten.Image {
-	x, y := (id%32)*tileSize, (id/32)*tileSize
-	return sheet.SubImage(image.Rect(x, y, x+tileSize, y+tileSize)).(*ebiten.Image)
-}
-
 func (g *Game) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyQ) || inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		return ebiten.Termination
@@ -94,14 +59,14 @@ func (g *Game) drawSection(screen *ebiten.Image, mapping [16]int, ox, oy int) {
 	cellH := 3*tileSize + cellPad*2 + labelH
 
 	// Use mask-15 tile (all neighbours road) as the fill for road neighbours in context.
-	fillTile := tileAt(g.sheet, mapping[15])
+	fillTile := autotile.TileFromSheet(g.sheet, mapping[15])
 
 	var opts ebiten.DrawImageOptions
 	for mask := 0; mask < 16; mask++ {
 		cellX := ox + (mask%gridCols)*cellW
 		cellY := oy + (mask/gridCols)*cellH
 
-		center := tileAt(g.sheet, mapping[mask])
+		center := autotile.TileFromSheet(g.sheet, mapping[mask])
 		nBit := (mask>>0)&1 == 1
 		eBit := (mask>>1)&1 == 1
 		sBit := (mask>>2)&1 == 1
@@ -146,10 +111,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	gap := 16
 
 	ebitenutil.DebugPrintAt(screen, "SOIL — trodden path (level 1)", 0, 0)
-	g.drawSection(screen, soilMapping, 0, 14)
+	g.drawSection(screen, autotile.SoilTileIDs, 0, 14)
 
 	ebitenutil.DebugPrintAt(screen, "GRAVEL — road (level 2)", sectionW+gap, 0)
-	g.drawSection(screen, gravelMapping, sectionW+gap, 14)
+	g.drawSection(screen, autotile.GravelTileIDs, sectionW+gap, 14)
 }
 
 func (g *Game) Layout(outsideW, outsideH int) (w, h int) { return outsideW, outsideH }
