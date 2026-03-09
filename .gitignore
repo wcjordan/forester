@@ -2,6 +2,7 @@
 forester
 forester.wasm
 *.exe
+/road-preview
 
 # Air hot-reload
 tmp/
@@ -25,7 +26,6 @@ coverage.html
 # docs/in_progress/
 
 # Assets
-assets/sprites/lpc_base_assets
-assets/sprites/lpc-trees
+assets/sprites/lpc*
 assets/sprites/player-spritesheet.*
 

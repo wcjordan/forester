@@ -9,6 +9,7 @@ import (
 	"forester/assets"
 	"forester/game"
 	"forester/game/structures"
+	"forester/render/roads"
 )
 
 // drawArgs bundles a pre-sliced sprite image, its display scale, and optional
@@ -29,8 +30,12 @@ var (
 	barrelLogStorageImg = assets.Barrel.SubImage(image.Rect(0, 0, 0+64, 0+64)).(*ebiten.Image)
 	houseImg            = assets.House.SubImage(image.Rect(0, 0, 0+96, 0+96)).(*ebiten.Image)
 	grassTileImg        = assets.GrassTile.SubImage(image.Rect(0, 0, 0+32, 0+32)).(*ebiten.Image)
-	troddenPathImg      = assets.TroddenPath.SubImage(image.Rect(0, 0, 32, 32)).(*ebiten.Image)
-	roadImg             = assets.Road.SubImage(image.Rect(0, 0, 32, 32)).(*ebiten.Image)
+
+	// Road autotile arrays indexed by 4-bit neighbor bitmask (bit0=N, bit1=E, bit2=S, bit3=W).
+	// Tiles are composed from four 16×16 quadrants; mappings are in roads.SoilComposed /
+	// roads.GravelComposed.
+	soilAutotile   [16]*ebiten.Image // trodden path (level 1)
+	gravelAutotile [16]*ebiten.Image // road (level 2)
 
 	// lpc-trees: sapling (128×96), young (128×128), mature (160×192), trunk (80x50)
 	lpcTreesSaplingImg = assets.TreesGreen.SubImage(image.Rect(64, 226, 64+96, 226+128)).(*ebiten.Image)
@@ -48,6 +53,13 @@ var (
 )
 
 func init() {
+	for i, c := range roads.SoilComposed {
+		soilAutotile[i] = roads.ComposeFromSheet(assets.TerrainSheet, c)
+	}
+	for i, c := range roads.GravelComposed {
+		gravelAutotile[i] = roads.ComposeFromSheet(assets.TerrainSheet, c)
+	}
+
 	for dir := 0; dir < 4; dir++ {
 		walkY := (lpcWalkBaseRow + dir) * lpcFrameSize
 		thrustY := (lpcThrustBaseRow + dir) * lpcFrameSize
@@ -103,11 +115,26 @@ func dirFrom(dx, dy int) int {
 	}
 }
 
+// roadNeighborMask returns a 4-bit mask indicating which cardinal neighbors of
+// (x, y) have any road (any level) or a building. Bit 0=N, bit 1=E, bit 2=S, bit 3=W.
+// Roads of all levels are treated as connected to each other.
+func roadNeighborMask(world *game.World, x, y int) int {
+	dirs := [4][2]int{{0, -1}, {1, 0}, {0, 1}, {-1, 0}} // N, E, S, W
+	mask := 0
+	for i, d := range dirs {
+		t := world.TileAt(x+d[0], y+d[1])
+		if t != nil && (game.RoadLevelFor(t) > 0 || t.Structure != game.NoStructure) {
+			mask |= 1 << i
+		}
+	}
+	return mask
+}
+
 // spriteForTile returns the base terrain sprite and any overlay sprites for a
 // world tile. The base is drawn in pass 1 (all tiles); overlays are drawn in
 // pass 2 (after all bases) so overflowing sprites are never masked by a
 // neighbouring tile's ground layer.
-func spriteForTile(tile *game.Tile) (base drawArgs, overlays []drawArgs) {
+func spriteForTile(tile *game.Tile, world *game.World, x, y int) (base drawArgs, overlays []drawArgs) {
 	switch tile.Structure {
 	case structures.FoundationLogStorage, structures.FoundationHouse:
 		return drawArgs{img: dirtFoundationImg, scale: 1.0}, nil
@@ -138,9 +165,9 @@ func spriteForTile(tile *game.Tile) (base drawArgs, overlays []drawArgs) {
 	default:
 		switch game.RoadLevelFor(tile) {
 		case 2:
-			return drawArgs{img: roadImg, scale: 1.0}, nil
+			return drawArgs{img: grassTileImg, scale: 1.0}, []drawArgs{{img: gravelAutotile[roadNeighborMask(world, x, y)], scale: 1.0}}
 		case 1:
-			return drawArgs{img: troddenPathImg, scale: 1.0}, nil
+			return drawArgs{img: grassTileImg, scale: 1.0}, []drawArgs{{img: soilAutotile[roadNeighborMask(world, x, y)], scale: 1.0}}
 		default:
 			return drawArgs{img: grassTileImg, scale: 1.0}, nil
 		}

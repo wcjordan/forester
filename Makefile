@@ -1,4 +1,4 @@
-.PHONY: build test lint run dev clean check format e2e_viz wasm
+.PHONY: build test lint run dev clean check format e2e_viz wasm road_preview
 
 BINARY := forester
 
@@ -34,3 +34,6 @@ TESTNAME := TestLogStorageWorkflow
 e2e_viz:
 	go clean -testcache
 	E2E_VISUAL=1 E2E_VISUAL_DELAY=150ms go test ./e2e_tests/ -run $(TESTNAME) -v
+
+road_preview:
+	go run ./tools/road-preview
