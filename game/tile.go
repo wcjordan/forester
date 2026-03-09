@@ -20,10 +20,10 @@ type StructureType = core.StructureType
 const NoStructure = core.NoStructure
 
 // WalkCountTrodden is the WalkCount threshold at which a Grassland tile becomes a trodden path.
-const WalkCountTrodden = 5
+const WalkCountTrodden = 20
 
 // WalkCountRoad is the WalkCount threshold at which a trodden tile becomes a road.
-const WalkCountRoad = 10
+const WalkCountRoad = 100
 
 // Tile represents a single cell in the world grid.
 type Tile struct {
