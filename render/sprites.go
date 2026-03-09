@@ -116,13 +116,14 @@ func dirFrom(dx, dy int) int {
 }
 
 // roadNeighborMask returns a 4-bit mask indicating which cardinal neighbors of
-// (x, y) have a road level >= level. Bit 0=N, bit 1=E, bit 2=S, bit 3=W.
-func roadNeighborMask(world *game.World, x, y, level int) int {
+// (x, y) have any road (any level) or a building. Bit 0=N, bit 1=E, bit 2=S, bit 3=W.
+// Roads of all levels are treated as connected to each other.
+func roadNeighborMask(world *game.World, x, y int) int {
 	dirs := [4][2]int{{0, -1}, {1, 0}, {0, 1}, {-1, 0}} // N, E, S, W
 	mask := 0
 	for i, d := range dirs {
 		t := world.TileAt(x+d[0], y+d[1])
-		if t != nil && game.RoadLevelFor(t) >= level {
+		if t != nil && (game.RoadLevelFor(t) > 0 || t.Structure != game.NoStructure) {
 			mask |= 1 << i
 		}
 	}
@@ -164,9 +165,9 @@ func spriteForTile(tile *game.Tile, world *game.World, x, y int) (base drawArgs,
 	default:
 		switch game.RoadLevelFor(tile) {
 		case 2:
-			return drawArgs{img: gravelAutotile[roadNeighborMask(world, x, y, 2)], scale: 1.0}, nil
+			return drawArgs{img: grassTileImg, scale: 1.0}, []drawArgs{{img: gravelAutotile[roadNeighborMask(world, x, y)], scale: 1.0}}
 		case 1:
-			return drawArgs{img: soilAutotile[roadNeighborMask(world, x, y, 1)], scale: 1.0}, nil
+			return drawArgs{img: grassTileImg, scale: 1.0}, []drawArgs{{img: soilAutotile[roadNeighborMask(world, x, y)], scale: 1.0}}
 		default:
 			return drawArgs{img: grassTileImg, scale: 1.0}, nil
 		}
