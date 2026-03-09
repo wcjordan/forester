@@ -32,8 +32,8 @@ var (
 	grassTileImg        = assets.GrassTile.SubImage(image.Rect(0, 0, 0+32, 0+32)).(*ebiten.Image)
 
 	// Road autotile arrays indexed by 4-bit neighbor bitmask (bit0=N, bit1=E, bit2=S, bit3=W).
-	// Corner assignment: TL=road if N|W, TR=road if N|E, BL=road if S|W, BR=road if S|E.
-	// Tile IDs verified against terrain-v7.tsx (terrain 14=Soil, terrain 18=Gravel_1).
+	// Tiles are composed from four 16×16 quadrants; mappings are in roads.SoilComposed /
+	// roads.GravelComposed.
 	soilAutotile   [16]*ebiten.Image // trodden path (level 1)
 	gravelAutotile [16]*ebiten.Image // road (level 2)
 
@@ -53,11 +53,11 @@ var (
 )
 
 func init() {
-	for i, pos := range roads.SoilTileIDs {
-		soilAutotile[i] = roads.TileFromSheet(assets.TerrainSheet, pos)
+	for i, c := range roads.SoilComposed {
+		soilAutotile[i] = roads.ComposeFromSheet(assets.TerrainSheet, c)
 	}
-	for i, pos := range roads.GravelTileIDs {
-		gravelAutotile[i] = roads.TileFromSheet(assets.TerrainSheet, pos)
+	for i, c := range roads.GravelComposed {
+		gravelAutotile[i] = roads.ComposeFromSheet(assets.TerrainSheet, c)
 	}
 
 	for dir := 0; dir < 4; dir++ {
