@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"embed"
 	"image"
-	"image/color"
 	_ "image/png"
 
 	ebiten "github.com/hajimehoshi/ebiten/v2"
@@ -55,9 +54,6 @@ func loadFromFS(fs embed.FS, path string) *ebiten.Image {
 }
 
 func init() {
-	GrassTile = ebiten.NewImage(32, 32)
-	GrassTile.Fill(color.RGBA{R: 0x7E, G: 0xC8, B: 0x50, A: 0xFF})
-
 	Dirt = loadFromFS(tilesFS, "sprites/lpc_base_assets/tiles/dirt.png")
 	House = loadFromFS(tilesFS, "sprites/lpc_base_assets/tiles/house.png")
 	Barrel = loadFromFS(tilesFS, "sprites/lpc_base_assets/tiles/barrel.png")
@@ -66,6 +62,9 @@ func init() {
 	Villager = loadFromFS(peopleFS, "sprites/lpc_base_assets/sprites/people/soldier_altcolor.png")
 	TreesGreen = loadFromFS(lpcTreesFS, "sprites/lpc-trees/trees-green.png")
 	TerrainSheet = loadFromFS(lpcTerrainsFS, "sprites/lpc-terrains/terrain-v7.png")
+
+	// Grassland tile: 32×32 sprite at (224, 384) in the terrain spritesheet.
+	GrassTile = ebiten.NewImageFromImage(TerrainSheet.SubImage(image.Rect(224, 384, 224+32, 384+32)))
 
 	img, _, err := image.Decode(bytes.NewReader(playerSheetData))
 	if err != nil {
