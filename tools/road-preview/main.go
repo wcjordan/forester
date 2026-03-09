@@ -81,27 +81,28 @@ func (g *Game) drawComposedSection(screen *ebiten.Image, tiles [16]*ebiten.Image
 
 		for cy := 0; cy < 3; cy++ {
 			for cx := 0; cx < 3; cx++ {
-				var img *ebiten.Image
+				var overlay *ebiten.Image
 				switch {
 				case cx == 1 && cy == 1:
-					img = center
+					overlay = center
 				case cx == 1 && cy == 0 && nBit:
-					img = nNeighbor
+					overlay = nNeighbor
 				case cx == 2 && cy == 1 && eBit:
-					img = eNeighbor
+					overlay = eNeighbor
 				case cx == 1 && cy == 2 && sBit:
-					img = sNeighbor
+					overlay = sNeighbor
 				case cx == 0 && cy == 1 && wBit:
-					img = wNeighbor
-				default:
-					img = g.grassImg
+					overlay = wNeighbor
 				}
 				opts.GeoM.Reset()
 				opts.GeoM.Translate(
 					float64(cellX+cellPad+cx*tileSize),
 					float64(cellY+cellPad+cy*tileSize),
 				)
-				screen.DrawImage(img, &opts)
+				screen.DrawImage(g.grassImg, &opts)
+				if overlay != nil {
+					screen.DrawImage(overlay, &opts)
+				}
 			}
 		}
 
@@ -140,8 +141,8 @@ func main() {
 	}
 	sheet := ebiten.NewImageFromImage(img)
 
-	grassImg := ebiten.NewImage(tileSize, tileSize)
-	grassImg.Fill(color.RGBA{R: 0x7E, G: 0xC8, B: 0x50, A: 0xFF})
+	// Grassland tile: 32×32 sprite at (224, 384) in the terrain spritesheet.
+	grassImg := ebiten.NewImageFromImage(sheet.SubImage(image.Rect(224, 384, 224+32, 384+32)))
 
 	// Pre-compose all tiles from the quadrant mappings.
 	var soilComposed [16]*ebiten.Image
