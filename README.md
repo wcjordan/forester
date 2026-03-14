@@ -22,17 +22,21 @@ All sprite packs live under `assets/sprites/` and are gitignored — download ea
 | LPC Trees | [OpenGameArt](https://opengameart.org/content/lpc-trees) | `assets/sprites/lpc-trees/` |
 | LPC Terrains | [OpenGameArt](https://opengameart.org/content/lpc-terrains) | `assets/sprites/lpc-terrains/` |
 | LPC Thatched Roof Cottage | [OpenGameArt](https://opengameart.org/content/lpc-thatched-roof-cottage) | `assets/sprites/lpc-thatched-roof-cottage/` |
-| LPC Adobe Building Set | [OpenGameArt](https://opengameart.org/content/lpc-adobe-building-set) | `assets/sprites/lpc-adobe-building-set/` |
-| LPC Containers | [OpenGameArt](https://opengameart.org/content/lpc-containers) | `assets/sprites/lpc-containers/` |
-| LPC Windows & Doors | [OpenGameArt](https://opengameart.org/content/lpc-windows-doors) | `assets/sprites/lpc-windows-doors/` |
+| LPC Adobe Building Set | [OpenGameArt](https://opengameart.org/content/lpc-adobe-building-set) | `assets/sprites/adobe building set/` |
+| LPC Containers | [OpenGameArt](https://opengameart.org/content/lpc-containers) | `assets/sprites/container-v4_2/` |
+| LPC Windows & Doors | [OpenGameArt](https://opengameart.org/content/lpc-windows-doors) | `assets/sprites/lpc-windows-doors-v2/` |
 
 For each pack: download the archive from the link above, extract it, and place the contents at the local path shown. Attribution files (`CREDITS-*.txt`) are included in each archive. All packs use CC-BY or CC0 licenses.
 
 Key files after extraction:
-- `lpc_base_assets/`: `tiles/` dir (grass.png, dirt.png, house.png, …) and `sprites/people/` dir (soldier.png, …)
-- `lpc-trees/`: `trees-green.png`
+- `lpc_base_assets/tiles/`: `grass.png`, `dirt.png`, `house.png`, `barrel.png`, `treetop.png`, `trunk.png`, …
+- `lpc_base_assets/sprites/people/`: `soldier.png`, `soldier_altcolor.png`
+- `lpc-trees/`: `trees-green.png` (also `trees-brown.png`, `trees-dead.png`, `trees-orange.png`, `trees-pale.png`)
 - `lpc-terrains/`: `terrain-v7.png`
-- `lpc-thatched-roof-cottage/`, `lpc-adobe-building-set/`, `lpc-containers/`: building and container tile PNGs
+- `lpc-thatched-roof-cottage/`: `cottage.png`, `thatched-roof.png`
+- `adobe building set/`: `adobe.png`, `adobe6.png`
+- `container-v4_2/`: `container.png`, `container-contents-1.png` … `container-contents-4.png`
+- `lpc-windows-doors-v2/`: `windows-doors.png`
 
 ### Player Spritesheet (required)
 
