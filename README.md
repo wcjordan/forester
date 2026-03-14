@@ -24,6 +24,7 @@ All sprite packs live under `assets/sprites/` and are gitignored — download ea
 | LPC Thatched Roof Cottage | [OpenGameArt](https://opengameart.org/content/lpc-thatched-roof-cottage) | `assets/sprites/lpc-thatched-roof-cottage/` |
 | LPC Adobe Building Set | [OpenGameArt](https://opengameart.org/content/lpc-adobe-building-set) | `assets/sprites/lpc-adobe-building-set/` |
 | LPC Containers | [OpenGameArt](https://opengameart.org/content/lpc-containers) | `assets/sprites/lpc-containers/` |
+| LPC Windows & Doors | [OpenGameArt](https://opengameart.org/content/lpc-windows-doors) | `assets/sprites/lpc-windows-doors/` |
 
 For each pack: download the archive from the link above, extract it, and place the contents at the local path shown. Attribution files (`CREDITS-*.txt`) are included in each archive. All packs use CC-BY or CC0 licenses.
 

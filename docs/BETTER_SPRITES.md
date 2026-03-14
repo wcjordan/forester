@@ -28,6 +28,7 @@ Download/generate these before implementing each stage:
 | Thatched cottage tiles | [lpc-thatched-roof-cottage](https://opengameart.org/content/lpc-thatched-roof-cottage) | S4 |
 | Adobe building tiles (fallback if cottage too small) | [lpc-adobe-building-set](https://opengameart.org/content/lpc-adobe-building-set) | S4 |
 | Exterior containers (barrels, crates) | [lpc-containers](https://opengameart.org/content/lpc-containers) | S4 |
+| Windows and doors overlay | [lpc-windows-doors](https://opengameart.org/content/lpc-windows-doors) | S4 |
 
 All sources are CC-BY or CC0 licensed. Sprite packs are local-only (gitignored), following the same pattern as `lpc_base_assets`. When adding each pack, document its download instructions and attribution in `README.md` under a new "Additional Sprite Packs" subsection alongside the existing LPC Base Assets setup steps.
 
