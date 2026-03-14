@@ -33,7 +33,7 @@ All sources are CC-BY or CC0 licensed. Sprite packs are local-only (gitignored),
 
 ---
 
-## Stage S1 — Walk Animation (Player & Villager)
+## Stage S1 — Walk Animation (Player & Villager) ✅ COMPLETE
 
 **Goal:** Player and villager animate while moving; idle pose when standing still.
 
@@ -96,7 +96,7 @@ This was descoped from S1 to keep the first animation pass focused on the player
 
 ---
 
-## Stage S2 — Tree Visual Cohesion
+## Stage S2 — Tree Visual Cohesion ✅ COMPLETE
 
 **Goal:** All forest tiles share a consistent grass base; tree canopy and trunk layer on top; density is legible from sapling to mature.
 
@@ -134,7 +134,7 @@ Multi-tile trees (mature): the trunk occupies the tile, the canopy overhangs int
 
 ---
 
-## Stage S3 — Road Autotiling
+## Stage S3 — Road Autotiling ✅ COMPLETE
 
 **Goal:** Road and trodden-path tiles connect visually to neighbors; tile drawn reflects which directions are connected.
 
@@ -169,7 +169,7 @@ For transitions between road levels (e.g., road entering a trodden stretch), tre
 
 ---
 
-## Stage S4 — Building Footprint Rendering
+## Stage S4 — Building Footprint Rendering ← NEXT
 
 **Goal:** House and log storage each render as a single coherent multi-tile image rather than a repeated per-tile sprite.
 
@@ -213,11 +213,11 @@ Foundation tiles (`?`) are multi-tile — they stamp the full structure footprin
 
 ## Implementation Order
 
-The stages are independent. Recommended order by player-facing impact:
-
-1. **S1** — animation (pure code + LPC generator, no new downloads)
-2. **S2** — trees (mostly code, lpc-trees download)
-3. **S3** — roads (lpc-terrains download + autotiling code)
-4. **S4** — buildings (multiple asset downloads + draw loop refactor)
+| Stage | Status | Notes |
+|---|---|---|
+| S1 — Walk Animation | ✅ Complete | (#70) Player walk/slash/thrust animations |
+| S2 — Tree Visual Cohesion | ✅ Complete | (#71) Layered sprites from lpc-trees |
+| S3 — Road Autotiling | ✅ Complete | (#72, #73) lpc-terrains corner blend autotiling |
+| S4 — Building Footprint Rendering | ⬜ Next | lpc-thatched-roof-cottage + lpc-containers |
 
 Each stage should be committed separately with `make check` passing before moving to the next.
