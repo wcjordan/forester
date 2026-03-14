@@ -4,13 +4,13 @@
 
 - [x] Stage 1 — Embed spritesheets & pre-slice frames
 - [x] Stage 2 — NW-anchor detection + roof overlay
-- [ ] Stage 3 — Tune sprite crop coordinates to match reference image
+- [x] Stage 3 — Tune sprite crop coordinates to match reference image
 
 ## Current state
 
-Stages 1 + 2 complete and combined into one commit. `make check` passes.
-Building renders at NW anchor with grass on other 3 tiles.
-Sprite crop coordinates are approximate placeholders — Stage 3 tunes them visually.
+All stages complete. `make check` passes.
+Awaiting visual review — run `make run` and build a house to inspect.
+Further coordinate tuning may be needed based on visual result.
 
 ## Key decisions
 

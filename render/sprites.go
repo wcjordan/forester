@@ -43,13 +43,16 @@ var (
 	lpcTreesTrunkImg   = assets.TreesGreen.SubImage(image.Rect(36, 655, 36+80, 655+50)).(*ebiten.Image)
 
 	// House building source crops (assembled into houseBuildingImg in init).
-	// thatched-roof.png (512×512): yellow/wheat roof variant, top-left region.
-	houseRoofSrc = assets.ThatchedRoofSheet.SubImage(image.Rect(0, 0, 160, 128)).(*ebiten.Image)
-	// cottage.png (512×512): front wall face with half-timber X-cross framing.
-	houseWallSrc = assets.CottageSheet.SubImage(image.Rect(0, 0, 128, 192)).(*ebiten.Image)
-	// windows-doors.png (1024×1024): small wooden door and flower-box window.
-	houseDoorSrc   = assets.WindowsDoorsSheet.SubImage(image.Rect(0, 480, 64, 608)).(*ebiten.Image)
-	houseWindowSrc = assets.WindowsDoorsSheet.SubImage(image.Rect(256, 0, 352, 128)).(*ebiten.Image)
+	// thatched-roof.png (512×512): yellow/wheat 3D cottage-top piece; x=32 skips the thin
+	// left edge strip so only the peaked-roof shape is included (160×128).
+	houseRoofSrc = assets.ThatchedRoofSheet.SubImage(image.Rect(32, 0, 192, 128)).(*ebiten.Image)
+	// cottage.png (512×512): mid-wall section of the first column (x=0–128, y=64–128).
+	// 128×64 source gives a 2:1 ratio that scales cleanly to the 64×32 screen wall face.
+	houseWallSrc = assets.CottageSheet.SubImage(image.Rect(0, 64, 128, 128)).(*ebiten.Image)
+	// windows-doors.png (1024×1024): brown-frame flower-box window (x=256–352, y=64–128)
+	// and small wooden door from the door section (x=0–64, y=512–608).
+	houseDoorSrc   = assets.WindowsDoorsSheet.SubImage(image.Rect(0, 512, 64, 608)).(*ebiten.Image)
+	houseWindowSrc = assets.WindowsDoorsSheet.SubImage(image.Rect(256, 64, 352, 128)).(*ebiten.Image)
 
 	// houseBuildingImg is the pre-composed 64×96 house sprite assembled in init.
 	// Layout: y=0..64 thatched roof (overflows one row above footprint), y=64..96 wall face.
