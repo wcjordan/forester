@@ -21,6 +21,12 @@ var lpcTreesFS embed.FS
 //go:embed sprites/lpc-terrains
 var lpcTerrainsFS embed.FS
 
+//go:embed sprites/lpc-thatched-roof-cottage
+var cottageFS embed.FS
+
+//go:embed sprites/lpc-windows-doors-v2
+var windowsDoorsFS embed.FS
+
 //go:embed sprites/player-spritesheet.png
 var playerSheetData []byte
 
@@ -39,6 +45,13 @@ var (
 	// PlayerSheet is the full Universal LPC character spritesheet for the player.
 	// Contains walk, slash, and thrust animation rows at 64×64 px per frame.
 	PlayerSheet *ebiten.Image
+
+	// ThatchedRoofSheet is the lpc-thatched-roof-cottage thatched-roof.png (512×512).
+	ThatchedRoofSheet *ebiten.Image
+	// CottageSheet is the lpc-thatched-roof-cottage cottage.png (512×512).
+	CottageSheet *ebiten.Image
+	// WindowsDoorsSheet is the lpc-windows-doors-v2 windows-doors.png (1024×1024).
+	WindowsDoorsSheet *ebiten.Image
 )
 
 func loadFromFS(fs embed.FS, path string) *ebiten.Image {
@@ -65,6 +78,10 @@ func init() {
 
 	// Grassland tile: 32×32 sprite at (224, 384) in the terrain spritesheet.
 	GrassTile = ebiten.NewImageFromImage(TerrainSheet.SubImage(image.Rect(224, 384, 224+32, 384+32)))
+
+	ThatchedRoofSheet = loadFromFS(cottageFS, "sprites/lpc-thatched-roof-cottage/thatched-roof.png")
+	CottageSheet = loadFromFS(cottageFS, "sprites/lpc-thatched-roof-cottage/cottage.png")
+	WindowsDoorsSheet = loadFromFS(windowsDoorsFS, "sprites/lpc-windows-doors-v2/windows-doors.png")
 
 	img, _, err := image.Decode(bytes.NewReader(playerSheetData))
 	if err != nil {

@@ -28,7 +28,6 @@ var (
 	// Structures / terrain
 	dirtFoundationImg   = assets.Dirt.SubImage(image.Rect(32, 64, 32+32, 64+32)).(*ebiten.Image)
 	barrelLogStorageImg = assets.Barrel.SubImage(image.Rect(0, 0, 0+64, 0+64)).(*ebiten.Image)
-	houseImg            = assets.House.SubImage(image.Rect(0, 0, 0+96, 0+96)).(*ebiten.Image)
 	grassTileImg        = assets.GrassTile.SubImage(image.Rect(0, 0, 0+32, 0+32)).(*ebiten.Image)
 
 	// Road autotile arrays indexed by 4-bit neighbor bitmask (bit0=N, bit1=E, bit2=S, bit3=W).
@@ -42,6 +41,19 @@ var (
 	lpcTreesYoungImg   = assets.TreesGreen.SubImage(image.Rect(256, 224, 256+128, 224+128)).(*ebiten.Image)
 	lpcTreesMatureImg  = assets.TreesGreen.SubImage(image.Rect(0, 512, 0+160, 512+192)).(*ebiten.Image)
 	lpcTreesTrunkImg   = assets.TreesGreen.SubImage(image.Rect(36, 655, 36+80, 655+50)).(*ebiten.Image)
+
+	// House building source crops (assembled into houseBuildingImg in init).
+	// thatched-roof.png (512×512): yellow/wheat roof variant, top-left region.
+	houseRoofSrc = assets.ThatchedRoofSheet.SubImage(image.Rect(0, 0, 160, 128)).(*ebiten.Image)
+	// cottage.png (512×512): front wall face with half-timber X-cross framing.
+	houseWallSrc = assets.CottageSheet.SubImage(image.Rect(0, 0, 128, 192)).(*ebiten.Image)
+	// windows-doors.png (1024×1024): small wooden door and flower-box window.
+	houseDoorSrc   = assets.WindowsDoorsSheet.SubImage(image.Rect(0, 480, 64, 608)).(*ebiten.Image)
+	houseWindowSrc = assets.WindowsDoorsSheet.SubImage(image.Rect(256, 0, 352, 128)).(*ebiten.Image)
+
+	// houseBuildingImg is the pre-composed 64×96 house sprite assembled in init.
+	// Layout: y=0..64 thatched roof (overflows one row above footprint), y=64..96 wall face.
+	houseBuildingImg *ebiten.Image
 
 	// Characters
 	villagerImg = assets.Villager.SubImage(image.Rect(0, 128, 0+64, 128+64)).(*ebiten.Image)
@@ -76,6 +88,49 @@ func init() {
 			playerSlash128Frames[dir][frame] = assets.PlayerSheet.SubImage(
 				image.Rect(x, dirY, x+lpcSlash128FrameW, dirY+lpcSlash128FrameH)).(*ebiten.Image)
 		}
+	}
+
+	initHouseBuilding()
+}
+
+// initHouseBuilding composes the 64×96 house building image from source crops.
+// Layout: y=0..64 = thatched roof; y=64..96 = half-timber wall with door and windows.
+// Drawn at the NW anchor with offsetY=-tileSize so the roof overflows one row above
+// the 2×2 footprint (same pattern as mature trees).
+func initHouseBuilding() {
+	const buildW, buildH = 64, 96
+	houseBuildingImg = ebiten.NewImage(buildW, buildH)
+	opts := &ebiten.DrawImageOptions{}
+
+	// Roof: scale to fill top 64×64px.
+	roofSrc := houseRoofSrc.Bounds()
+	opts.GeoM.Reset()
+	opts.GeoM.Scale(float64(buildW)/float64(roofSrc.Dx()), float64(64)/float64(roofSrc.Dy()))
+	houseBuildingImg.DrawImage(houseRoofSrc, opts)
+
+	// Wall: scale to fill 64×32px at y=64 (south row of footprint).
+	wallSrc := houseWallSrc.Bounds()
+	opts.GeoM.Reset()
+	opts.GeoM.Scale(float64(buildW)/float64(wallSrc.Dx()), float64(32)/float64(wallSrc.Dy()))
+	opts.GeoM.Translate(0, 64)
+	houseBuildingImg.DrawImage(houseWallSrc, opts)
+
+	// Door: 20×28px, centered horizontally at y=68.
+	doorSrc := houseDoorSrc.Bounds()
+	opts.GeoM.Reset()
+	opts.GeoM.Scale(float64(20)/float64(doorSrc.Dx()), float64(28)/float64(doorSrc.Dy()))
+	opts.GeoM.Translate(float64(buildW/2-10), 68)
+	houseBuildingImg.DrawImage(houseDoorSrc, opts)
+
+	// Windows: 18×18px, flanking the door.
+	winSrc := houseWindowSrc.Bounds()
+	winScaleX := float64(18) / float64(winSrc.Dx())
+	winScaleY := float64(18) / float64(winSrc.Dy())
+	for _, winX := range []float64{4, float64(buildW) - 22} {
+		opts.GeoM.Reset()
+		opts.GeoM.Scale(winScaleX, winScaleY)
+		opts.GeoM.Translate(winX, 66)
+		houseBuildingImg.DrawImage(houseWindowSrc, opts)
 	}
 }
 
@@ -115,6 +170,24 @@ func dirFrom(dx, dy int) int {
 	}
 }
 
+// isStructureNWAnchor reports whether (x, y) is the north-west corner of a
+// multi-tile structure footprint. A tile is the NW anchor when neither the tile
+// to its left nor the tile above it shares the same StructureType.
+func isStructureNWAnchor(world *game.World, x, y int, st game.StructureType) bool {
+	left := world.TileAt(x-1, y)
+	above := world.TileAt(x, y-1)
+	leftMatch := left != nil && left.Structure == st
+	aboveMatch := above != nil && above.Structure == st
+	return !leftMatch && !aboveMatch
+}
+
+// houseOverlays returns the overlay drawArgs for the NW-anchor house tile.
+// The 64×96 building sprite is drawn with offsetY=-tileSize so it overflows
+// one row above the 2×2 footprint.
+func houseOverlays() []drawArgs {
+	return []drawArgs{{img: houseBuildingImg, scale: 1.0, offsetY: -tileSize}}
+}
+
 // roadNeighborMask returns a 4-bit mask indicating which cardinal neighbors of
 // (x, y) have any road (any level) or a building. Bit 0=N, bit 1=E, bit 2=S, bit 3=W.
 // Roads of all levels are treated as connected to each other.
@@ -141,7 +214,10 @@ func spriteForTile(tile *game.Tile, world *game.World, x, y int) (base drawArgs,
 	case structures.LogStorage:
 		return drawArgs{img: barrelLogStorageImg, scale: 0.5}, nil
 	case structures.House:
-		return drawArgs{img: houseImg, scale: 1.0 / 3.0}, nil
+		if !isStructureNWAnchor(world, x, y, structures.House) {
+			return drawArgs{img: grassTileImg, scale: 1.0}, nil
+		}
+		return drawArgs{img: grassTileImg, scale: 1.0}, houseOverlays()
 	}
 
 	switch tile.Terrain {
