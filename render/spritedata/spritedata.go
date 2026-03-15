@@ -3,15 +3,16 @@
 //
 // Crop rectangles reference the following files (all gitignored; see README):
 //
-//	GrassRect   — assets/sprites/lpc-terrains/terrain-v7.png (1024×2048)
-//	TrunkRect   — assets/sprites/lpc-trees/trees-green.png (1024×1024)
-//	SaplingRect — assets/sprites/lpc-trees/trees-green.png
-//	YoungRect   — assets/sprites/lpc-trees/trees-green.png
-//	MatureRect  — assets/sprites/lpc-trees/trees-green.png
-//	RoofRect    — assets/sprites/lpc-thatched-roof-cottage/thatched-roof.png (512×512)
-//	WallRect    — assets/sprites/lpc-thatched-roof-cottage/cottage.png (512×512)
-//	DoorRect    — assets/sprites/lpc-windows-doors-v2/windows-doors.png (1024×1024)
-//	WindowRect  — assets/sprites/lpc-windows-doors-v2/windows-doors.png
+//	GrassRect        — assets/sprites/lpc-terrains/terrain-v7.png (1024×2048)
+//	TrunkRect        — assets/sprites/lpc-trees/trees-green.png (1024×1024)
+//	SaplingRect      — assets/sprites/lpc-trees/trees-green.png
+//	YoungRect        — assets/sprites/lpc-trees/trees-green.png
+//	MatureRect       — assets/sprites/lpc-trees/trees-green.png
+//	Roof*Rect        — assets/sprites/lpc-thatched-roof-cottage/thatched-roof.png (512×512)
+//	Wall*Rect        — assets/sprites/lpc-thatched-roof-cottage/cottage.png (512×512)
+//	DoorRect         — assets/sprites/lpc-windows-doors-v2/windows-doors.png (1024×1024)
+//	WindowRect       — assets/sprites/lpc-windows-doors-v2/windows-doors.png
+//	WindowTopRect    — assets/sprites/lpc-windows-doors-v2/windows-doors.png
 //
 // To tune crop coordinates, edit the vars here and rebuild. The sprite-preview
 // tool (make sprite_preview) gives fast visual feedback without building the
@@ -72,9 +73,9 @@ var (
 // pattern as mature trees).
 func BuildHouseImg(roofSheet, wallSheet, winDoorSheet *ebiten.Image) *ebiten.Image {
 	const bW, bH = 64, 96
-	const scaleW, scaleH = 0.5, 0.5
+	const scale = 0.5
 	const windowHOffset, wallHOffset = 55, 48
-	const roofSquareHeight = 32.0
+	const roofTopY = 16.0 // y where roof bottom-half pieces start (roofLeft/Right height * scale / 2)
 	img := ebiten.NewImage(bW, bH)
 	opts := &ebiten.DrawImageOptions{}
 
@@ -91,78 +92,78 @@ func BuildHouseImg(roofSheet, wallSheet, winDoorSheet *ebiten.Image) *ebiten.Ima
 	winSrc := winDoorSheet.SubImage(WindowRect).(*ebiten.Image)
 	winTopSrc := winDoorSheet.SubImage(WindowTopRect).(*ebiten.Image)
 
-	// Wall right: scale to fill 32×48 px at y=48 (south below roof).
+	// Wall left: 32×48 px at x=0, y=wallHOffset.
 	opts.GeoM.Reset()
-	opts.GeoM.Scale(scaleW, scaleH)
+	opts.GeoM.Scale(scale, scale)
 	opts.GeoM.Translate(0, wallHOffset)
 	img.DrawImage(wallLeftSrc, opts)
 
-	// Wall right: scale to fill 32×48 px at y=48 (south below roof).
+	// Wall right: 32×48 px at x=32, y=wallHOffset.
 	opts.GeoM.Reset()
-	opts.GeoM.Scale(scaleW, scaleH)
+	opts.GeoM.Scale(scale, scale)
 	opts.GeoM.Translate(32, wallHOffset)
 	img.DrawImage(wallRightSrc, opts)
 
 	// Roof top left
-	roofTopLeftOffsetX := float64(RoofLeftRect.Bounds().Dx()) * scaleW
+	roofTopLeftOffsetX := float64(RoofLeftRect.Dx()) * scale
 	opts.GeoM.Reset()
-	opts.GeoM.Scale(scaleW, scaleH)
+	opts.GeoM.Scale(scale, scale)
 	opts.GeoM.Translate(roofTopLeftOffsetX, 0)
 	img.DrawImage(roofTopLeftSrc, opts)
 
 	// Roof top right
-	roofTopRightOffsetX := roofTopLeftOffsetX + float64(RoofTopLeftRect.Bounds().Dx())*scaleW
+	roofTopRightOffsetX := roofTopLeftOffsetX + float64(RoofTopLeftRect.Dx())*scale
 	opts.GeoM.Reset()
-	opts.GeoM.Scale(scaleW, scaleH)
+	opts.GeoM.Scale(scale, scale)
 	opts.GeoM.Translate(roofTopRightOffsetX, 0)
 	img.DrawImage(roofTopRightSrc, opts)
 
 	// Roof bottom left
 	opts.GeoM.Reset()
-	opts.GeoM.Scale(scaleW, scaleH)
-	opts.GeoM.Translate(roofTopLeftOffsetX, roofSquareHeight*0.5)
+	opts.GeoM.Scale(scale, scale)
+	opts.GeoM.Translate(roofTopLeftOffsetX, roofTopY)
 	img.DrawImage(roofBottomLeftSrc, opts)
 
 	// Roof bottom right
 	opts.GeoM.Reset()
-	opts.GeoM.Scale(scaleW, scaleH)
-	opts.GeoM.Translate(roofTopRightOffsetX, roofSquareHeight*0.5)
+	opts.GeoM.Scale(scale, scale)
+	opts.GeoM.Translate(roofTopRightOffsetX, roofTopY)
 	img.DrawImage(roofBottomRightSrc, opts)
 
 	// Roof bottom
 	opts.GeoM.Reset()
-	opts.GeoM.Scale(scaleW, scaleH)
+	opts.GeoM.Scale(scale, scale)
 	opts.GeoM.Translate(roofTopLeftOffsetX, 32)
 	img.DrawImage(roofBottomSrc, opts)
 
 	// Roof left
 	opts.GeoM.Reset()
-	opts.GeoM.Scale(scaleW, scaleH)
+	opts.GeoM.Scale(scale, scale)
 	img.DrawImage(roofLeftSrc, opts)
 
 	// Roof right
-	roofRightOffsetX := roofTopRightOffsetX + float64(RoofTopRightRect.Bounds().Dx())*scaleW
+	roofRightOffsetX := roofTopRightOffsetX + float64(RoofTopRightRect.Dx())*scale
 	opts.GeoM.Reset()
-	opts.GeoM.Scale(scaleW, scaleH)
+	opts.GeoM.Scale(scale, scale)
 	opts.GeoM.Translate(roofRightOffsetX, 0)
 	img.DrawImage(roofRightSrc, opts)
 
-	// // Door: 16×27 px, centered horizontally at y=69.
+	// Door: 16×27 px at x=24, y=69.
 	opts.GeoM.Reset()
-	opts.GeoM.Scale(scaleW, scaleH)
+	opts.GeoM.Scale(scale, scale)
 	opts.GeoM.Translate(24, 69)
 	img.DrawImage(doorSrc, opts)
 
-	// Windows: 18×18 px, flanking the door.
-	windowTopH := float64(WindowTopRect.Bounds().Dy()) * scaleH
+	// Windows: flanking the door, each with a decorative top strip.
+	windowTopH := float64(WindowTopRect.Dy()) * scale
 	for _, wx := range []float64{6, float64(bW) - 22} {
 		opts.GeoM.Reset()
-		opts.GeoM.Scale(scaleW, scaleH)
+		opts.GeoM.Scale(scale, scale)
 		opts.GeoM.Translate(wx+1, windowHOffset)
 		img.DrawImage(winTopSrc, opts)
 
 		opts.GeoM.Reset()
-		opts.GeoM.Scale(scaleW, scaleH)
+		opts.GeoM.Scale(scale, scale)
 		opts.GeoM.Translate(wx, windowHOffset+windowTopH)
 		img.DrawImage(winSrc, opts)
 	}
