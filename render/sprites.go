@@ -87,12 +87,7 @@ func init() {
 
 // initHouseBuilding composes the 64×96 house building image via spritedata.BuildHouseImg.
 func initHouseBuilding() {
-	houseBuildingImg = spritedata.BuildHouseImg(
-		assets.ThatchedRoofSheet.SubImage(spritedata.RoofRect).(*ebiten.Image),
-		assets.CottageSheet.SubImage(spritedata.WallRect).(*ebiten.Image),
-		assets.WindowsDoorsSheet.SubImage(spritedata.DoorRect).(*ebiten.Image),
-		assets.WindowsDoorsSheet.SubImage(spritedata.WindowRect).(*ebiten.Image),
-	)
+	houseBuildingImg = spritedata.BuildHouseImg(assets.ThatchedRoofSheet, assets.CottageSheet, assets.WindowsDoorsSheet)
 }
 
 // Universal LPC spritesheet constants (64×64 px per frame).

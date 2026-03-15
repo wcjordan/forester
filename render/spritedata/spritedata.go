@@ -56,7 +56,7 @@ var (
 	WindowRect = image.Rect(256, 64, 352, 128)
 )
 
-// BuildHouseImg composes the 64×96 house building image from pre-cropped source images.
+// BuildHouseImg composes the 64×96 house building image from the three source sheets.
 //
 // Layout: y=0..64 = thatched roof; y=64..96 = half-timber wall face with a
 // centered door and flanking flower-box windows.
@@ -64,10 +64,15 @@ var (
 // The caller draws the result at the NW anchor tile of the 2×2 footprint with
 // offsetY = -tileSize so the roof overflows one row above the footprint (same
 // pattern as mature trees).
-func BuildHouseImg(roofSrc, wallSrc, doorSrc, winSrc *ebiten.Image) *ebiten.Image {
+func BuildHouseImg(roofSheet, wallSheet, winDoorSheet *ebiten.Image) *ebiten.Image {
 	const bW, bH = 64, 96
 	img := ebiten.NewImage(bW, bH)
 	opts := &ebiten.DrawImageOptions{}
+
+	roofSrc := roofSheet.SubImage(RoofRect).(*ebiten.Image)
+	wallSrc := wallSheet.SubImage(WallRect).(*ebiten.Image)
+	doorSrc := winDoorSheet.SubImage(DoorRect).(*ebiten.Image)
+	winSrc := winDoorSheet.SubImage(WindowRect).(*ebiten.Image)
 
 	// Roof: scale to fill top 64×64 px.
 	rb := roofSrc.Bounds()

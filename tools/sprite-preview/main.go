@@ -45,14 +45,6 @@ func loadSheet(path string) *ebiten.Image {
 	return ebiten.NewImageFromImage(img)
 }
 
-func cropImg(sheet *ebiten.Image, x, y, w, h int) *ebiten.Image {
-	return ebiten.NewImageFromImage(sheet.SubImage(image.Rect(x, y, x+w, y+h)))
-}
-
-func cropRect(sheet *ebiten.Image, r image.Rectangle) *ebiten.Image {
-	return ebiten.NewImageFromImage(sheet.SubImage(r))
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 
 const (
@@ -141,36 +133,30 @@ func main() {
 	cottageSheet := loadSheet("assets/sprites/lpc-thatched-roof-cottage/cottage.png")
 	winDoorSheet := loadSheet("assets/sprites/lpc-windows-doors-v2/windows-doors.png")
 
-	grass := cropImg(terrain, spritedata.GrassRect.Min.X, spritedata.GrassRect.Min.Y,
-		spritedata.GrassRect.Dx(), spritedata.GrassRect.Dy())
+	grass := terrain.SubImage(spritedata.GrassRect).(*ebiten.Image)
 
-	houseImg := spritedata.BuildHouseImg(
-		cropRect(roofSheet, spritedata.RoofRect),
-		cropRect(cottageSheet, spritedata.WallRect),
-		cropRect(winDoorSheet, spritedata.DoorRect),
-		cropRect(winDoorSheet, spritedata.WindowRect),
-	)
+	houseImg := spritedata.BuildHouseImg(roofSheet, cottageSheet, winDoorSheet)
 
 	// Forest sprites — offsets match render/sprites.go drawArgs exactly.
 	forest := []item{
 		{
 			label: "stump",
-			img:   cropRect(trees, spritedata.TrunkRect),
+			img:   trees.SubImage(spritedata.TrunkRect).(*ebiten.Image),
 			scale: 1.0 / 3.0,
 		},
 		{
 			label: "sapling",
-			img:   cropRect(trees, spritedata.SaplingRect),
+			img:   trees.SubImage(spritedata.SaplingRect).(*ebiten.Image),
 			scale: 0.25,
 		},
 		{
 			label: "young",
-			img:   cropRect(trees, spritedata.YoungRect),
+			img:   trees.SubImage(spritedata.YoungRect).(*ebiten.Image),
 			scale: 0.4,
 		},
 		{
 			label: "mature",
-			img:   cropRect(trees, spritedata.MatureRect),
+			img:   trees.SubImage(spritedata.MatureRect).(*ebiten.Image),
 			scale: 1.0 / 3.0,
 			offY:  -float64(tileSize),
 		},
