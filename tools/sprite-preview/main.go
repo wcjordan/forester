@@ -5,9 +5,8 @@
 //	go run ./tools/sprite-preview
 //
 // The tool renders each sprite on a 2×2 grass-tile background at the same
-// scale and offset used by the game. The house building section reflects the
-// crop coordinates defined in render/sprites.go — edit them here to tune, then
-// copy the final values back to sprites.go.
+// scale and offset used by the game. To tune crop coordinates, edit the vars
+// in render/spritedata/spritedata.go and rebuild.
 //
 // Q or Escape to quit.
 package main

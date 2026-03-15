@@ -52,7 +52,7 @@ var (
 	RoofBottomRightRect = image.Rect(262, 126+66, 262+26, 128+66+32)
 	RoofBottomRect      = image.Rect(120, 64, 120+50, 64+44)
 	RoofLeftRect        = image.Rect(88, 0, 88+40, 0+110)
-	RoofRightRect       = image.Rect(162, 0, 164+40, 0+110)
+	RoofRightRect       = image.Rect(162, 0, 162+42, 0+110)
 	// Wall*Rect crops the building front wall sections from cottage.png (64x96) each.
 	WallLeftRect  = image.Rect(0, 0, 0+64, 0+96)
 	WallRightRect = image.Rect(32, 0, 32+64, 0+96)
