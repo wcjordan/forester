@@ -10,6 +10,7 @@ import (
 	"forester/game"
 	"forester/game/structures"
 	"forester/render/roads"
+	"forester/render/spritedata"
 )
 
 // drawArgs bundles a pre-sliced sprite image, its display scale, and optional
@@ -37,22 +38,10 @@ var (
 	gravelAutotile [16]*ebiten.Image // road (level 2)
 
 	// lpc-trees: sapling (128×96), young (128×128), mature (160×192), trunk (80x50)
-	lpcTreesSaplingImg = assets.TreesGreen.SubImage(image.Rect(64, 226, 64+96, 226+128)).(*ebiten.Image)
-	lpcTreesYoungImg   = assets.TreesGreen.SubImage(image.Rect(256, 224, 256+128, 224+128)).(*ebiten.Image)
-	lpcTreesMatureImg  = assets.TreesGreen.SubImage(image.Rect(0, 512, 0+160, 512+192)).(*ebiten.Image)
-	lpcTreesTrunkImg   = assets.TreesGreen.SubImage(image.Rect(36, 655, 36+80, 655+50)).(*ebiten.Image)
-
-	// House building source crops (assembled into houseBuildingImg in init).
-	// thatched-roof.png (512×512): yellow/wheat 3D cottage-top piece; x=32 skips the thin
-	// left edge strip so only the peaked-roof shape is included (160×128).
-	houseRoofSrc = assets.ThatchedRoofSheet.SubImage(image.Rect(32, 0, 192, 128)).(*ebiten.Image)
-	// cottage.png (512×512): mid-wall section of the first column (x=0–128, y=64–128).
-	// 128×64 source gives a 2:1 ratio that scales cleanly to the 64×32 screen wall face.
-	houseWallSrc = assets.CottageSheet.SubImage(image.Rect(0, 64, 128, 128)).(*ebiten.Image)
-	// windows-doors.png (1024×1024): brown-frame flower-box window (x=256–352, y=64–128)
-	// and small wooden door from the door section (x=0–64, y=512–608).
-	houseDoorSrc   = assets.WindowsDoorsSheet.SubImage(image.Rect(0, 512, 64, 608)).(*ebiten.Image)
-	houseWindowSrc = assets.WindowsDoorsSheet.SubImage(image.Rect(256, 64, 352, 128)).(*ebiten.Image)
+	lpcTreesSaplingImg = assets.TreesGreen.SubImage(spritedata.SaplingRect).(*ebiten.Image)
+	lpcTreesYoungImg   = assets.TreesGreen.SubImage(spritedata.YoungRect).(*ebiten.Image)
+	lpcTreesMatureImg  = assets.TreesGreen.SubImage(spritedata.MatureRect).(*ebiten.Image)
+	lpcTreesTrunkImg   = assets.TreesGreen.SubImage(spritedata.TrunkRect).(*ebiten.Image)
 
 	// houseBuildingImg is the pre-composed 64×96 house sprite assembled in init.
 	// Layout: y=0..64 thatched roof (overflows one row above footprint), y=64..96 wall face.
@@ -96,45 +85,14 @@ func init() {
 	initHouseBuilding()
 }
 
-// initHouseBuilding composes the 64×96 house building image from source crops.
-// Layout: y=0..64 = thatched roof; y=64..96 = half-timber wall with door and windows.
-// Drawn at the NW anchor with offsetY=-tileSize so the roof overflows one row above
-// the 2×2 footprint (same pattern as mature trees).
+// initHouseBuilding composes the 64×96 house building image via spritedata.BuildHouseImg.
 func initHouseBuilding() {
-	const buildW, buildH = 64, 96
-	houseBuildingImg = ebiten.NewImage(buildW, buildH)
-	opts := &ebiten.DrawImageOptions{}
-
-	// Roof: scale to fill top 64×64px.
-	roofSrc := houseRoofSrc.Bounds()
-	opts.GeoM.Reset()
-	opts.GeoM.Scale(float64(buildW)/float64(roofSrc.Dx()), float64(64)/float64(roofSrc.Dy()))
-	houseBuildingImg.DrawImage(houseRoofSrc, opts)
-
-	// Wall: scale to fill 64×32px at y=64 (south row of footprint).
-	wallSrc := houseWallSrc.Bounds()
-	opts.GeoM.Reset()
-	opts.GeoM.Scale(float64(buildW)/float64(wallSrc.Dx()), float64(32)/float64(wallSrc.Dy()))
-	opts.GeoM.Translate(0, 64)
-	houseBuildingImg.DrawImage(houseWallSrc, opts)
-
-	// Door: 20×28px, centered horizontally at y=68.
-	doorSrc := houseDoorSrc.Bounds()
-	opts.GeoM.Reset()
-	opts.GeoM.Scale(float64(20)/float64(doorSrc.Dx()), float64(28)/float64(doorSrc.Dy()))
-	opts.GeoM.Translate(float64(buildW/2-10), 68)
-	houseBuildingImg.DrawImage(houseDoorSrc, opts)
-
-	// Windows: 18×18px, flanking the door.
-	winSrc := houseWindowSrc.Bounds()
-	winScaleX := float64(18) / float64(winSrc.Dx())
-	winScaleY := float64(18) / float64(winSrc.Dy())
-	for _, winX := range []float64{4, float64(buildW) - 22} {
-		opts.GeoM.Reset()
-		opts.GeoM.Scale(winScaleX, winScaleY)
-		opts.GeoM.Translate(winX, 66)
-		houseBuildingImg.DrawImage(houseWindowSrc, opts)
-	}
+	houseBuildingImg = spritedata.BuildHouseImg(
+		assets.ThatchedRoofSheet.SubImage(spritedata.RoofRect).(*ebiten.Image),
+		assets.CottageSheet.SubImage(spritedata.WallRect).(*ebiten.Image),
+		assets.WindowsDoorsSheet.SubImage(spritedata.DoorRect).(*ebiten.Image),
+		assets.WindowsDoorsSheet.SubImage(spritedata.WindowRect).(*ebiten.Image),
+	)
 }
 
 // Universal LPC spritesheet constants (64×64 px per frame).

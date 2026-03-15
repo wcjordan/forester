@@ -21,26 +21,13 @@ import (
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+
+	"forester/render/spritedata"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Sprite crop coordinates — keep in sync with render/sprites.go.
-// Tune here first (fast iteration), then copy final values back to sprites.go.
-
-const (
-	// thatched-roof.png (512×512): yellow/wheat 3D cottage-top piece.
-	roofSrcX, roofSrcY, roofSrcW, roofSrcH = 32, 0, 160, 128
-
-	// cottage.png (512×512): mid-wall section; 128×64 = 2:1 ratio for 64×32 wall face.
-	wallSrcX, wallSrcY, wallSrcW, wallSrcH = 0, 64, 128, 64
-
-	// windows-doors.png (1024×1024): flower-box window.
-	winSrcX, winSrcY, winSrcW, winSrcH = 256, 64, 96, 64
-
-	// windows-doors.png: wooden door.
-	doorSrcX, doorSrcY, doorSrcW, doorSrcH = 0, 512, 64, 96
-)
-
+// Sprite crop coordinates are defined in render/spritedata.
+// To tune crops, edit the vars in that package and rebuild.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const tileSize = 32
@@ -62,40 +49,8 @@ func cropImg(sheet *ebiten.Image, x, y, w, h int) *ebiten.Image {
 	return ebiten.NewImageFromImage(sheet.SubImage(image.Rect(x, y, x+w, y+h)))
 }
 
-// buildHouseImg composes the 64×96 house building image from source crops.
-// Keep in sync with render/sprites.go initHouseBuilding().
-func buildHouseImg(roofSrc, wallSrc, doorSrc, winSrc *ebiten.Image) *ebiten.Image {
-	const bW, bH = 64, 96
-	img := ebiten.NewImage(bW, bH)
-	opts := &ebiten.DrawImageOptions{}
-
-	rb := roofSrc.Bounds()
-	opts.GeoM.Reset()
-	opts.GeoM.Scale(float64(bW)/float64(rb.Dx()), float64(64)/float64(rb.Dy()))
-	img.DrawImage(roofSrc, opts)
-
-	wb := wallSrc.Bounds()
-	opts.GeoM.Reset()
-	opts.GeoM.Scale(float64(bW)/float64(wb.Dx()), float64(32)/float64(wb.Dy()))
-	opts.GeoM.Translate(0, 64)
-	img.DrawImage(wallSrc, opts)
-
-	db := doorSrc.Bounds()
-	opts.GeoM.Reset()
-	opts.GeoM.Scale(float64(20)/float64(db.Dx()), float64(28)/float64(db.Dy()))
-	opts.GeoM.Translate(float64(bW/2-10), 68)
-	img.DrawImage(doorSrc, opts)
-
-	winb := winSrc.Bounds()
-	wsX := float64(18) / float64(winb.Dx())
-	wsY := float64(18) / float64(winb.Dy())
-	for _, wx := range []float64{4, float64(bW) - 22} {
-		opts.GeoM.Reset()
-		opts.GeoM.Scale(wsX, wsY)
-		opts.GeoM.Translate(wx, 66)
-		img.DrawImage(winSrc, opts)
-	}
-	return img
+func cropRect(sheet *ebiten.Image, r image.Rectangle) *ebiten.Image {
+	return ebiten.NewImageFromImage(sheet.SubImage(r))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -186,35 +141,36 @@ func main() {
 	cottageSheet := loadSheet("assets/sprites/lpc-thatched-roof-cottage/cottage.png")
 	winDoorSheet := loadSheet("assets/sprites/lpc-windows-doors-v2/windows-doors.png")
 
-	grass := cropImg(terrain, 224, 384, 32, 32)
+	grass := cropImg(terrain, spritedata.GrassRect.Min.X, spritedata.GrassRect.Min.Y,
+		spritedata.GrassRect.Dx(), spritedata.GrassRect.Dy())
 
-	houseImg := buildHouseImg(
-		cropImg(roofSheet, roofSrcX, roofSrcY, roofSrcW, roofSrcH),
-		cropImg(cottageSheet, wallSrcX, wallSrcY, wallSrcW, wallSrcH),
-		cropImg(winDoorSheet, doorSrcX, doorSrcY, doorSrcW, doorSrcH),
-		cropImg(winDoorSheet, winSrcX, winSrcY, winSrcW, winSrcH),
+	houseImg := spritedata.BuildHouseImg(
+		cropRect(roofSheet, spritedata.RoofRect),
+		cropRect(cottageSheet, spritedata.WallRect),
+		cropRect(winDoorSheet, spritedata.DoorRect),
+		cropRect(winDoorSheet, spritedata.WindowRect),
 	)
 
 	// Forest sprites — offsets match render/sprites.go drawArgs exactly.
 	forest := []item{
 		{
 			label: "stump",
-			img:   cropImg(trees, 36, 655, 80, 50),
+			img:   cropRect(trees, spritedata.TrunkRect),
 			scale: 1.0 / 3.0,
 		},
 		{
 			label: "sapling",
-			img:   cropImg(trees, 64, 226, 96, 128),
+			img:   cropRect(trees, spritedata.SaplingRect),
 			scale: 0.25,
 		},
 		{
 			label: "young",
-			img:   cropImg(trees, 256, 224, 128, 128),
+			img:   cropRect(trees, spritedata.YoungRect),
 			scale: 0.4,
 		},
 		{
 			label: "mature",
-			img:   cropImg(trees, 0, 512, 160, 192),
+			img:   cropRect(trees, spritedata.MatureRect),
 			scale: 1.0 / 3.0,
 			offY:  -float64(tileSize),
 		},
