@@ -10,6 +10,7 @@ import (
 	"forester/game"
 	"forester/game/structures"
 	"forester/render/roads"
+	"forester/render/spritedata"
 )
 
 // drawArgs bundles a pre-sliced sprite image, its display scale, and optional
@@ -28,7 +29,6 @@ var (
 	// Structures / terrain
 	dirtFoundationImg   = assets.Dirt.SubImage(image.Rect(32, 64, 32+32, 64+32)).(*ebiten.Image)
 	barrelLogStorageImg = assets.Barrel.SubImage(image.Rect(0, 0, 0+64, 0+64)).(*ebiten.Image)
-	houseImg            = assets.House.SubImage(image.Rect(0, 0, 0+96, 0+96)).(*ebiten.Image)
 	grassTileImg        = assets.GrassTile.SubImage(image.Rect(0, 0, 0+32, 0+32)).(*ebiten.Image)
 
 	// Road autotile arrays indexed by 4-bit neighbor bitmask (bit0=N, bit1=E, bit2=S, bit3=W).
@@ -38,10 +38,14 @@ var (
 	gravelAutotile [16]*ebiten.Image // road (level 2)
 
 	// lpc-trees: sapling (128×96), young (128×128), mature (160×192), trunk (80x50)
-	lpcTreesSaplingImg = assets.TreesGreen.SubImage(image.Rect(64, 226, 64+96, 226+128)).(*ebiten.Image)
-	lpcTreesYoungImg   = assets.TreesGreen.SubImage(image.Rect(256, 224, 256+128, 224+128)).(*ebiten.Image)
-	lpcTreesMatureImg  = assets.TreesGreen.SubImage(image.Rect(0, 512, 0+160, 512+192)).(*ebiten.Image)
-	lpcTreesTrunkImg   = assets.TreesGreen.SubImage(image.Rect(36, 655, 36+80, 655+50)).(*ebiten.Image)
+	lpcTreesSaplingImg = assets.TreesGreen.SubImage(spritedata.SaplingRect).(*ebiten.Image)
+	lpcTreesYoungImg   = assets.TreesGreen.SubImage(spritedata.YoungRect).(*ebiten.Image)
+	lpcTreesMatureImg  = assets.TreesGreen.SubImage(spritedata.MatureRect).(*ebiten.Image)
+	lpcTreesTrunkImg   = assets.TreesGreen.SubImage(spritedata.TrunkRect).(*ebiten.Image)
+
+	// houseBuildingImg is the pre-composed 64×96 house sprite assembled in init.
+	// Layout: y=0..64 thatched roof (overflows one row above footprint), y=64..96 wall face.
+	houseBuildingImg *ebiten.Image
 
 	// Characters
 	villagerImg = assets.Villager.SubImage(image.Rect(0, 128, 0+64, 128+64)).(*ebiten.Image)
@@ -77,6 +81,13 @@ func init() {
 				image.Rect(x, dirY, x+lpcSlash128FrameW, dirY+lpcSlash128FrameH)).(*ebiten.Image)
 		}
 	}
+
+	initHouseBuilding()
+}
+
+// initHouseBuilding composes the 64×96 house building image via spritedata.BuildHouseImg.
+func initHouseBuilding() {
+	houseBuildingImg = spritedata.BuildHouseImg(assets.ThatchedRoofSheet, assets.CottageSheet, assets.WindowsDoorsSheet)
 }
 
 // Universal LPC spritesheet constants (64×64 px per frame).
@@ -115,6 +126,24 @@ func dirFrom(dx, dy int) int {
 	}
 }
 
+// isStructureNWAnchor reports whether (x, y) is the north-west corner of a
+// multi-tile structure footprint. A tile is the NW anchor when neither the tile
+// to its left nor the tile above it shares the same StructureType.
+func isStructureNWAnchor(world *game.World, x, y int, st game.StructureType) bool {
+	left := world.TileAt(x-1, y)
+	above := world.TileAt(x, y-1)
+	leftMatch := left != nil && left.Structure == st
+	aboveMatch := above != nil && above.Structure == st
+	return !leftMatch && !aboveMatch
+}
+
+// houseOverlays returns the overlay drawArgs for the NW-anchor house tile.
+// The 64×96 building sprite is drawn with offsetY=-tileSize so it overflows
+// one row above the 2×2 footprint.
+func houseOverlays() []drawArgs {
+	return []drawArgs{{img: houseBuildingImg, scale: 1.0, offsetY: -tileSize}}
+}
+
 // roadNeighborMask returns a 4-bit mask indicating which cardinal neighbors of
 // (x, y) have any road (any level) or a building. Bit 0=N, bit 1=E, bit 2=S, bit 3=W.
 // Roads of all levels are treated as connected to each other.
@@ -141,7 +170,10 @@ func spriteForTile(tile *game.Tile, world *game.World, x, y int) (base drawArgs,
 	case structures.LogStorage:
 		return drawArgs{img: barrelLogStorageImg, scale: 0.5}, nil
 	case structures.House:
-		return drawArgs{img: houseImg, scale: 1.0 / 3.0}, nil
+		if !isStructureNWAnchor(world, x, y, structures.House) {
+			return drawArgs{img: grassTileImg, scale: 1.0}, nil
+		}
+		return drawArgs{img: grassTileImg, scale: 1.0}, houseOverlays()
 	}
 
 	switch tile.Terrain {

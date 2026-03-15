@@ -1,4 +1,4 @@
-.PHONY: build test lint run dev clean check format e2e_viz wasm road_preview
+.PHONY: build test lint run dev clean check format e2e_viz wasm road_preview sprite_preview
 
 BINARY := forester
 
@@ -37,3 +37,6 @@ e2e_viz:
 
 road_preview:
 	go run ./tools/road-preview
+
+sprite_preview:
+	go run ./tools/sprite-preview

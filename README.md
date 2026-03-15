@@ -12,26 +12,31 @@ See [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) for the full design document.
 
 ## Setup
 
-### LPC Base Assets (required)
+### Sprite Packs (required)
 
-The Ebitengine renderer uses sprites from the [Liberated Pixel Cup base assets](https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles).
+All sprite packs live under `assets/sprites/` and are gitignored — download each one manually before building.
 
-1. Download the archive from the link above
-2. Extract it so that the `tiles/` and `sprites/` directories land at:
-   ```
-   assets/sprites/lpc_base_assets/
-   ```
-   Expected layout:
-   ```
-   assets/sprites/lpc_base_assets/
-     tiles/
-       treetop.png, trunk.png, grass.png, dirt.png, house.png, barrel.png, ...
-     sprites/
-       people/
-         soldier.png, soldier_altcolor.png, ...
-   ```
+| Pack | Source | Local path |
+|---|---|---|
+| LPC Base Assets | [OpenGameArt](https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles) | `assets/sprites/lpc_base_assets/` |
+| LPC Trees | [OpenGameArt](https://opengameart.org/content/lpc-trees) | `assets/sprites/lpc-trees/` |
+| LPC Terrains | [OpenGameArt](https://opengameart.org/content/lpc-terrains) | `assets/sprites/lpc-terrains/` |
+| LPC Thatched Roof Cottage | [OpenGameArt](https://opengameart.org/content/lpc-thatched-roof-cottage) | `assets/sprites/lpc-thatched-roof-cottage/` |
+| LPC Adobe Building Set | [OpenGameArt](https://opengameart.org/content/lpc-adobe-building-set) | `assets/sprites/adobe building set/` |
+| LPC Containers | [OpenGameArt](https://opengameart.org/content/lpc-containers) | `assets/sprites/container-v4_2/` |
+| LPC Windows & Doors | [OpenGameArt](https://opengameart.org/content/lpc-windows-doors) | `assets/sprites/lpc-windows-doors-v2/` |
 
-This directory is `.gitignore`d and must be populated manually before running.
+For each pack: download the archive from the link above, extract it, and place the contents at the local path shown. Attribution files (`CREDITS-*.txt`) are included in each archive. All packs use CC-BY or CC0 licenses.
+
+Key files after extraction:
+- `lpc_base_assets/tiles/`: `grass.png`, `dirt.png`, `house.png`, `barrel.png`, `treetop.png`, `trunk.png`, …
+- `lpc_base_assets/sprites/people/`: `soldier.png`, `soldier_altcolor.png`
+- `lpc-trees/`: `trees-green.png` (also `trees-brown.png`, `trees-dead.png`, `trees-orange.png`, `trees-pale.png`)
+- `lpc-terrains/`: `terrain-v7.png`
+- `lpc-thatched-roof-cottage/`: `cottage.png`, `thatched-roof.png`
+- `adobe building set/`: `adobe.png`, `adobe6.png`
+- `container-v4_2/`: `container.png`, `container-contents-1.png` … `container-contents-4.png`
+- `lpc-windows-doors-v2/`: `windows-doors.png`
 
 ### Player Spritesheet (required)
 
@@ -42,51 +47,11 @@ The player character uses a custom spritesheet generated from the [Universal LPC
    ```
    assets/sprites/player-spritesheet.png
    ```
-3. Save Credits & Attribution to `assets/sprites/player-spritesheet.credits.txt
+3. Save Credits & Attribution to `assets/sprites/player-spritesheet.credits.txt`
 
 This file is `.gitignore`d and must be present before `make build` / `make test` (it is embedded at compile time via `//go:embed`). The spritesheet uses the Universal LPC layout: rows 4–7 thrust (64×64), rows 8–11 walk (64×64), and the Slash128 section at y≈3488+ (128×128 frames, 6 per direction) for the axe-chop animation.
 
 Currently prefer: https://liberatedpixelcup.github.io/Universal-LPC-Spritesheet-Character-Generator/#sex=male&expression=Neutral_light&shoes=Basic_Boots_brown&legs=Fur_Pants_fur_tan&apron=Apron_green&overalls=Suspenders_brown&clothes=Longsleeve_brown&bauldron=Bauldron_tan&beard=Winter_Beard_dark%20brown&head=Rabbit_light&shadow=Shadow_shadow&gloves=Gloves_brass&weapon=Smash_axe
-
-### LPC Trees (required)
-
-Tree sprites use the [LPC Trees pack](https://opengameart.org/content/lpc-trees).
-
-1. Download the archive from the link above
-2. Extract it so the tree PNGs land at:
-   ```
-   assets/sprites/lpc-trees/
-   ```
-   Expected layout:
-   ```
-   assets/sprites/lpc-trees/
-     trees-green.png
-     CREDITS-trees.txt
-   ```
-
-This directory is `.gitignore`d and must be populated manually before running.
-
-**Attribution:** See `assets/sprites/lpc-trees/CREDITS-trees.txt` for full attribution.
-
-### LPC Terrains (required)
-
-Road and trodden-path tiles use the [LPC Terrains pack](https://opengameart.org/content/lpc-terrains).
-
-1. Download the archive from the link above
-2. Extract it so the terrain PNGs land at:
-   ```
-   assets/sprites/lpc-terrains/
-   ```
-   Expected layout:
-   ```
-   assets/sprites/lpc-terrains/
-     terrain-v7.png
-     CREDITS-terrain.txt
-   ```
-
-This directory is `.gitignore`d and must be populated manually before running.
-
-**Attribution:** See `assets/sprites/lpc-terrains/CREDITS-terrain.txt` for full attribution.
 
 ## Quick Start
 
