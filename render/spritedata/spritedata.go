@@ -44,21 +44,27 @@ var (
 
 // House building (thatched-roof-cottage + windows-doors).
 var (
-	// RoofRect crops the yellow/wheat 3D cottage-top piece from thatched-roof.png (160×128).
-	// x=32 skips the thin left edge strip so only the peaked roof shape is included.
-	RoofRect = image.Rect(32, 0, 192, 128)
-	// WallRect crops the mid-wall section from cottage.png (128×64).
-	// 2:1 aspect ratio scales cleanly to the 64×32 screen wall face.
-	WallRect = image.Rect(0, 64, 128, 128)
-	// DoorRect crops a wooden door from windows-doors.png (64×96).
-	DoorRect = image.Rect(0, 512, 64, 608)
-	// WindowRect crops a brown-frame flower-box window from windows-doors.png (96×64).
-	WindowRect = image.Rect(256, 64, 352, 128)
+	// Roof*Rect crops the yellow/wheat 3D cottage-top piece from thatched-roof.png.
+	RoofTopLeftRect     = image.Rect(192, 126, 192+24, 128+32)
+	RoofTopRightRect    = image.Rect(262, 126, 262+26, 128+32)
+	RoofBottomLeftRect  = image.Rect(192, 126+66, 192+24, 128+66+32)
+	RoofBottomRightRect = image.Rect(262, 126+66, 262+26, 128+66+32)
+	RoofBottomRect      = image.Rect(120, 64, 120+50, 64+44)
+	RoofLeftRect        = image.Rect(88, 0, 88+40, 0+110)
+	RoofRightRect       = image.Rect(162, 0, 164+40, 0+110)
+	// Wall*Rect crops the building front wall sections from cottage.png (64x96) each.
+	WallLeftRect  = image.Rect(0, 0, 0+64, 0+96)
+	WallRightRect = image.Rect(32, 0, 32+64, 0+96)
+	// DoorRect crops a wooden door from windows-doors.png (32x54).
+	DoorRect = image.Rect(16, 768, 16+32, 768+54)
+	// WindowRect crops a brown-frame flower-box window from windows-doors.png.
+	WindowRect    = image.Rect(480, 32, 480+32, 32+42)
+	WindowTopRect = image.Rect(354, 8, 354+28, 8+6)
 )
 
 // BuildHouseImg composes the 64×96 house building image from the three source sheets.
 //
-// Layout: y=0..64 = thatched roof; y=64..96 = half-timber wall face with a
+// Layout: y=0..48 = thatched roof; y=48..96 = half-timber wall face with a
 // centered door and flanking flower-box windows.
 //
 // The caller draws the result at the NW anchor tile of the 2×2 footprint with
@@ -66,42 +72,98 @@ var (
 // pattern as mature trees).
 func BuildHouseImg(roofSheet, wallSheet, winDoorSheet *ebiten.Image) *ebiten.Image {
 	const bW, bH = 64, 96
+	const scaleW, scaleH = 0.5, 0.5
+	const windowHOffset, wallHOffset = 55, 48
+	const roofSquareHeight = 32.0
 	img := ebiten.NewImage(bW, bH)
 	opts := &ebiten.DrawImageOptions{}
 
-	roofSrc := roofSheet.SubImage(RoofRect).(*ebiten.Image)
-	wallSrc := wallSheet.SubImage(WallRect).(*ebiten.Image)
+	wallLeftSrc := wallSheet.SubImage(WallLeftRect).(*ebiten.Image)
+	wallRightSrc := wallSheet.SubImage(WallRightRect).(*ebiten.Image)
+	roofTopLeftSrc := roofSheet.SubImage(RoofTopLeftRect).(*ebiten.Image)
+	roofTopRightSrc := roofSheet.SubImage(RoofTopRightRect).(*ebiten.Image)
+	roofBottomLeftSrc := roofSheet.SubImage(RoofBottomLeftRect).(*ebiten.Image)
+	roofBottomRightSrc := roofSheet.SubImage(RoofBottomRightRect).(*ebiten.Image)
+	roofBottomSrc := roofSheet.SubImage(RoofBottomRect).(*ebiten.Image)
+	roofLeftSrc := roofSheet.SubImage(RoofLeftRect).(*ebiten.Image)
+	roofRightSrc := roofSheet.SubImage(RoofRightRect).(*ebiten.Image)
 	doorSrc := winDoorSheet.SubImage(DoorRect).(*ebiten.Image)
 	winSrc := winDoorSheet.SubImage(WindowRect).(*ebiten.Image)
+	winTopSrc := winDoorSheet.SubImage(WindowTopRect).(*ebiten.Image)
 
-	// Roof: scale to fill top 64×64 px.
-	rb := roofSrc.Bounds()
+	// Wall right: scale to fill 32×48 px at y=48 (south below roof).
 	opts.GeoM.Reset()
-	opts.GeoM.Scale(float64(bW)/float64(rb.Dx()), float64(64)/float64(rb.Dy()))
-	img.DrawImage(roofSrc, opts)
+	opts.GeoM.Scale(scaleW, scaleH)
+	opts.GeoM.Translate(0, wallHOffset)
+	img.DrawImage(wallLeftSrc, opts)
 
-	// Wall: scale to fill 64×32 px at y=64 (south row of footprint).
-	wb := wallSrc.Bounds()
+	// Wall right: scale to fill 32×48 px at y=48 (south below roof).
 	opts.GeoM.Reset()
-	opts.GeoM.Scale(float64(bW)/float64(wb.Dx()), float64(32)/float64(wb.Dy()))
-	opts.GeoM.Translate(0, 64)
-	img.DrawImage(wallSrc, opts)
+	opts.GeoM.Scale(scaleW, scaleH)
+	opts.GeoM.Translate(32, wallHOffset)
+	img.DrawImage(wallRightSrc, opts)
 
-	// Door: 20×28 px, centered horizontally at y=68.
-	db := doorSrc.Bounds()
+	// Roof top left
+	roofTopLeftOffsetX := float64(RoofLeftRect.Bounds().Dx()) * scaleW
 	opts.GeoM.Reset()
-	opts.GeoM.Scale(float64(20)/float64(db.Dx()), float64(28)/float64(db.Dy()))
-	opts.GeoM.Translate(float64(bW/2-10), 68)
+	opts.GeoM.Scale(scaleW, scaleH)
+	opts.GeoM.Translate(roofTopLeftOffsetX, 0)
+	img.DrawImage(roofTopLeftSrc, opts)
+
+	// Roof top right
+	roofTopRightOffsetX := roofTopLeftOffsetX + float64(RoofTopLeftRect.Bounds().Dx())*scaleW
+	opts.GeoM.Reset()
+	opts.GeoM.Scale(scaleW, scaleH)
+	opts.GeoM.Translate(roofTopRightOffsetX, 0)
+	img.DrawImage(roofTopRightSrc, opts)
+
+	// Roof bottom left
+	opts.GeoM.Reset()
+	opts.GeoM.Scale(scaleW, scaleH)
+	opts.GeoM.Translate(roofTopLeftOffsetX, roofSquareHeight*0.5)
+	img.DrawImage(roofBottomLeftSrc, opts)
+
+	// Roof bottom right
+	opts.GeoM.Reset()
+	opts.GeoM.Scale(scaleW, scaleH)
+	opts.GeoM.Translate(roofTopRightOffsetX, roofSquareHeight*0.5)
+	img.DrawImage(roofBottomRightSrc, opts)
+
+	// Roof bottom
+	opts.GeoM.Reset()
+	opts.GeoM.Scale(scaleW, scaleH)
+	opts.GeoM.Translate(roofTopLeftOffsetX, 32)
+	img.DrawImage(roofBottomSrc, opts)
+
+	// Roof left
+	opts.GeoM.Reset()
+	opts.GeoM.Scale(scaleW, scaleH)
+	img.DrawImage(roofLeftSrc, opts)
+
+	// Roof right
+	roofRightOffsetX := roofTopRightOffsetX + float64(RoofTopRightRect.Bounds().Dx())*scaleW
+	opts.GeoM.Reset()
+	opts.GeoM.Scale(scaleW, scaleH)
+	opts.GeoM.Translate(roofRightOffsetX, 0)
+	img.DrawImage(roofRightSrc, opts)
+
+	// // Door: 16×27 px, centered horizontally at y=69.
+	opts.GeoM.Reset()
+	opts.GeoM.Scale(scaleW, scaleH)
+	opts.GeoM.Translate(24, 69)
 	img.DrawImage(doorSrc, opts)
 
 	// Windows: 18×18 px, flanking the door.
-	winb := winSrc.Bounds()
-	wsX := float64(18) / float64(winb.Dx())
-	wsY := float64(18) / float64(winb.Dy())
-	for _, wx := range []float64{4, float64(bW) - 22} {
+	windowTopH := float64(WindowTopRect.Bounds().Dy()) * scaleH
+	for _, wx := range []float64{6, float64(bW) - 22} {
 		opts.GeoM.Reset()
-		opts.GeoM.Scale(wsX, wsY)
-		opts.GeoM.Translate(wx, 66)
+		opts.GeoM.Scale(scaleW, scaleH)
+		opts.GeoM.Translate(wx+1, windowHOffset)
+		img.DrawImage(winTopSrc, opts)
+
+		opts.GeoM.Reset()
+		opts.GeoM.Scale(scaleW, scaleH)
+		opts.GeoM.Translate(wx, windowHOffset+windowTopH)
 		img.DrawImage(winSrc, opts)
 	}
 	return img
