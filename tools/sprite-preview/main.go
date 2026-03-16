@@ -59,12 +59,14 @@ const (
 // item describes one sprite to display.
 // offX / offY are pixel offsets from the cell's grass-top-left corner, matching
 // the drawArgs.offsetX / offsetY semantics used in the game renderer.
+// bgTiles sets the grass background side length in tiles (0 defaults to 2).
 type item struct {
-	label string
-	img   *ebiten.Image
-	scale float64
-	offX  float64
-	offY  float64 // negative = overflow above grass background
+	label   string
+	img     *ebiten.Image
+	scale   float64
+	offX    float64
+	offY    float64 // negative = overflow above grass background
+	bgTiles int     // grass background size in tiles; 0 → 2
 }
 
 // Game implements ebiten.Game.
@@ -90,9 +92,15 @@ func (g *Game) drawSection(screen *ebiten.Image, title string, items []item, ox,
 	x := ox
 
 	for _, it := range items {
-		// 2×2 grass background
-		for ty := 0; ty < bgTiles; ty++ {
-			for tx := 0; tx < bgTiles; tx++ {
+		tiles := it.bgTiles
+		if tiles == 0 {
+			tiles = bgTiles
+		}
+		bgSz := tiles * tileSize
+
+		// N×N grass background
+		for ty := 0; ty < tiles; ty++ {
+			for tx := 0; tx < tiles; tx++ {
 				opts.GeoM.Reset()
 				opts.GeoM.Translate(float64(x+tx*tileSize), float64(grassTop+ty*tileSize))
 				screen.DrawImage(g.grass, &opts)
@@ -108,9 +116,9 @@ func (g *Game) drawSection(screen *ebiten.Image, title string, items []item, ox,
 		}
 
 		// Label below the grass background
-		ebitenutil.DebugPrintAt(screen, it.label, x, grassTop+bgPx+2)
+		ebitenutil.DebugPrintAt(screen, it.label, x, grassTop+bgSz+2)
 
-		x += bgPx + cellPad*2
+		x += bgSz + cellPad*2
 	}
 }
 
@@ -131,10 +139,12 @@ func main() {
 	roofSheet := loadSheet("assets/sprites/lpc-thatched-roof-cottage/thatched-roof.png")
 	cottageSheet := loadSheet("assets/sprites/lpc-thatched-roof-cottage/cottage.png")
 	winDoorSheet := loadSheet("assets/sprites/lpc-windows-doors-v2/windows-doors.png")
+	containerSheet := loadSheet("assets/sprites/container-v4_2/container.png")
 
 	grass := terrain.SubImage(spritedata.GrassRect).(*ebiten.Image)
 
 	houseImg := spritedata.BuildHouseImg(roofSheet, cottageSheet, winDoorSheet)
+	logStorageImg := spritedata.BuildLogStorageImg(containerSheet)
 
 	// Forest sprites — offsets match render/sprites.go drawArgs exactly.
 	forest := []item{
@@ -161,7 +171,7 @@ func main() {
 		},
 	}
 
-	// Building sprites — offsets match render/sprites.go houseOverlays() exactly.
+	// Building sprites — offsets match render/sprites.go overlays exactly.
 	builds := []item{
 		{
 			label: "house (2×2)",
@@ -169,12 +179,30 @@ func main() {
 			scale: 1.0,
 			offY:  -float64(tileSize),
 		},
+		{
+			label:   "log storage (4×4)",
+			img:     logStorageImg,
+			scale:   1.0,
+			bgTiles: 4,
+		},
 	}
 
-	forestW := len(forest) * (bgPx + cellPad*2)
-	buildsW := len(builds) * (bgPx + cellPad*2)
+	// Compute section widths accounting for variable bgTiles per item.
+	sectionW := func(items []item) int {
+		w := 0
+		for _, it := range items {
+			tiles := it.bgTiles
+			if tiles == 0 {
+				tiles = bgTiles
+			}
+			w += tiles*tileSize + cellPad*2
+		}
+		return w
+	}
+	forestW := sectionW(forest)
+	buildsW := sectionW(builds)
 	logW := cellPad + forestW + sectionGap + buildsW + cellPad
-	logH := cellPad + headerH + overflowTop + bgPx + labelH + cellPad
+	logH := cellPad + headerH + overflowTop + 4*tileSize + labelH + cellPad
 
 	ebiten.SetWindowSize(logW*2, logH*2)
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)

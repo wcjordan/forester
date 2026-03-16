@@ -22,7 +22,6 @@ All sprite packs live under `assets/sprites/` and are gitignored — download ea
 | LPC Trees | [OpenGameArt](https://opengameart.org/content/lpc-trees) | `assets/sprites/lpc-trees/` |
 | LPC Terrains | [OpenGameArt](https://opengameart.org/content/lpc-terrains) | `assets/sprites/lpc-terrains/` |
 | LPC Thatched Roof Cottage | [OpenGameArt](https://opengameart.org/content/lpc-thatched-roof-cottage) | `assets/sprites/lpc-thatched-roof-cottage/` |
-| LPC Adobe Building Set | [OpenGameArt](https://opengameart.org/content/lpc-adobe-building-set) | `assets/sprites/adobe building set/` |
 | LPC Containers | [OpenGameArt](https://opengameart.org/content/lpc-containers) | `assets/sprites/container-v4_2/` |
 | LPC Windows & Doors | [OpenGameArt](https://opengameart.org/content/lpc-windows-doors) | `assets/sprites/lpc-windows-doors-v2/` |
 
@@ -34,7 +33,6 @@ Key files after extraction:
 - `lpc-trees/`: `trees-green.png` (also `trees-brown.png`, `trees-dead.png`, `trees-orange.png`, `trees-pale.png`)
 - `lpc-terrains/`: `terrain-v7.png`
 - `lpc-thatched-roof-cottage/`: `cottage.png`, `thatched-roof.png`
-- `adobe building set/`: `adobe.png`, `adobe6.png`
 - `container-v4_2/`: `container.png`, `container-contents-1.png` … `container-contents-4.png`
 - `lpc-windows-doors-v2/`: `windows-doors.png`
 

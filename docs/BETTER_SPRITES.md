@@ -170,7 +170,7 @@ For transitions between road levels (e.g., road entering a trodden stretch), tre
 
 ---
 
-## Stage S4 — Building Footprint Rendering ← NEXT
+## Stage S4 — Building Footprint Rendering ✅ COMPLETE
 
 **Goal:** House and log storage each render as a single coherent multi-tile image rather than a repeated per-tile sprite.
 
@@ -219,6 +219,29 @@ Foundation tiles (`?`) are multi-tile — they stamp the full structure footprin
 | S1 — Walk Animation | ✅ Complete | (#70) Player walk/slash/thrust animations |
 | S2 — Tree Visual Cohesion | ✅ Complete | (#71) Layered sprites from lpc-trees |
 | S3 — Road Autotiling | ✅ Complete | (#72, #73) lpc-terrains corner blend autotiling |
-| S4 — Building Footprint Rendering | ⬜ Next | lpc-thatched-roof-cottage + lpc-containers |
+| S4 — Building Footprint Rendering | ✅ Complete | lpc-thatched-roof-cottage + lpc-containers |
+| S5 — Villager Animation | ⬜ Next | See below |
 
 Each stage should be committed separately with `make check` passing before moving to the next.
+
+---
+
+## Stage S5 — Villager Animation ⬜ Next
+
+**Goal:** Villagers animate while moving (walk cycle, facing direction) and optionally play task-specific animations while chopping or delivering.
+
+See "Future: Villager Animation" above for the full design. Summary of work:
+
+- Generate a villager spritesheet from the [Universal LPC Character Generator](https://liberatedpixelcup.github.io/Universal-LPC-Spritesheet-Character-Generator/) with a different outfit/color than the player. Place at `assets/sprites/villager-spritesheet.png`.
+- Embed and load it in `assets/assets.go` (same pattern as `PlayerSheet`).
+- Add `VillagerDir [maxVillagers]int` and `VillagerPrevPos [maxVillagers]game.Point` to `EbitenGame`; derive direction from position delta each tick.
+- Pre-slice villager walk frames in `render/sprites.go` (same `[4][8]` layout as `playerWalkFrames`).
+- Add `spriteForVillager(dir, frame int)` using the same `dirFrom` + walk-row lookup as the player.
+- Optionally: drive slash (chopping) and thrust (delivering) animations from `VillagerTask` state, reusing `playerSlash128Frames` / `playerThrustFrames` helpers.
+
+### Exit criteria
+
+- Villagers animate through walk frames in the correct facing direction while moving.
+- Villagers show idle (frame 0, last facing direction) when stationary.
+- Player sprite and all other rendering unchanged.
+- `make check` passes.
