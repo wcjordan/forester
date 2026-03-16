@@ -3,16 +3,17 @@
 //
 // Crop rectangles reference the following files (all gitignored; see README):
 //
-//	GrassRect        — assets/sprites/lpc-terrains/terrain-v7.png (1024×2048)
-//	TrunkRect        — assets/sprites/lpc-trees/trees-green.png (1024×1024)
-//	SaplingRect      — assets/sprites/lpc-trees/trees-green.png
-//	YoungRect        — assets/sprites/lpc-trees/trees-green.png
-//	MatureRect       — assets/sprites/lpc-trees/trees-green.png
-//	Roof*Rect        — assets/sprites/lpc-thatched-roof-cottage/thatched-roof.png (512×512)
-//	Wall*Rect        — assets/sprites/lpc-thatched-roof-cottage/cottage.png (512×512)
-//	DoorRect         — assets/sprites/lpc-windows-doors-v2/windows-doors.png (1024×1024)
-//	WindowRect       — assets/sprites/lpc-windows-doors-v2/windows-doors.png
-//	WindowTopRect    — assets/sprites/lpc-windows-doors-v2/windows-doors.png
+//	GrassRect              — assets/sprites/lpc-terrains/terrain-v7.png (1024×2048)
+//	TrunkRect              — assets/sprites/lpc-trees/trees-green.png (1024×1024)
+//	SaplingRect            — assets/sprites/lpc-trees/trees-green.png
+//	YoungRect              — assets/sprites/lpc-trees/trees-green.png
+//	MatureRect             — assets/sprites/lpc-trees/trees-green.png
+//	Roof*Rect              — assets/sprites/lpc-thatched-roof-cottage/thatched-roof.png (512×512)
+//	Wall*Rect              — assets/sprites/lpc-thatched-roof-cottage/cottage.png (512×512)
+//	DoorRect               — assets/sprites/lpc-windows-doors-v2/windows-doors.png (1024×1024)
+//	WindowRect             — assets/sprites/lpc-windows-doors-v2/windows-doors.png
+//	WindowTopRect          — assets/sprites/lpc-windows-doors-v2/windows-doors.png
+//	Container*Rect         — assets/sprites/container-v4_2/container.png (512×2048)
 //
 // To tune crop coordinates, edit the vars here and rebuild. The sprite-preview
 // tool (make sprite_preview) gives fast visual feedback without building the
@@ -62,6 +63,70 @@ var (
 	WindowRect    = image.Rect(480, 32, 480+32, 32+42)
 	WindowTopRect = image.Rect(354, 8, 354+28, 8+6)
 )
+
+// Container yard (container-v4_2/container.png, 512×2048).
+var (
+	// ContainerBarrelStackRect crops a 3-barrel pyramid (59×54).
+	ContainerBarrelStackRect = image.Rect(195, 3, 254, 57)
+	// ContainerBarrelLargeRect crops 2 large barrels side by side (63×61).
+	ContainerBarrelLargeRect = image.Rect(193, 67, 256, 128)
+	// ContainerBarrelMedRect crops 3 medium barrels grouped (56×64).
+	ContainerBarrelMedRect = image.Rect(68, 62, 124, 126)
+	// ContainerBarrelClusterRect crops 2 barrels side by side (64×58).
+	ContainerBarrelClusterRect = image.Rect(1, 5, 65, 63)
+	// ContainerChestRect crops a single wooden chest (64×49).
+	ContainerChestRect = image.Rect(0, 256, 64, 305)
+)
+
+// BuildLogStorageImg composes the 128×128 log-storage yard image from the
+// container sheet. Five container groups are scattered across the 4×4 tile
+// footprint with visible ground between them.
+//
+// The caller draws the result at the NW anchor tile of the 4×4 footprint at
+// scale 1.0 with no offset (the image fits exactly within the footprint).
+func BuildLogStorageImg(containerSheet *ebiten.Image) *ebiten.Image {
+	const w, h = 128, 128
+	img := ebiten.NewImage(w, h)
+	opts := &ebiten.DrawImageOptions{}
+
+	barrelStack := containerSheet.SubImage(ContainerBarrelStackRect).(*ebiten.Image)
+	barrelLarge := containerSheet.SubImage(ContainerBarrelLargeRect).(*ebiten.Image)
+	barrelMed := containerSheet.SubImage(ContainerBarrelMedRect).(*ebiten.Image)
+	barrelCluster := containerSheet.SubImage(ContainerBarrelClusterRect).(*ebiten.Image)
+	chest := containerSheet.SubImage(ContainerChestRect).(*ebiten.Image)
+
+	// NW: 3-barrel pyramid
+	opts.GeoM.Reset()
+	opts.GeoM.Scale(0.45, 0.45)
+	opts.GeoM.Translate(4, 4)
+	img.DrawImage(barrelStack, opts)
+
+	// NE: 2-barrel cluster
+	opts.GeoM.Reset()
+	opts.GeoM.Scale(0.45, 0.45)
+	opts.GeoM.Translate(95, 4)
+	img.DrawImage(barrelCluster, opts)
+
+	// W-mid: 2 large barrels
+	opts.GeoM.Reset()
+	opts.GeoM.Scale(0.40, 0.40)
+	opts.GeoM.Translate(6, 68)
+	img.DrawImage(barrelLarge, opts)
+
+	// E-mid: wooden chest
+	opts.GeoM.Reset()
+	opts.GeoM.Scale(0.45, 0.45)
+	opts.GeoM.Translate(90, 70)
+	img.DrawImage(chest, opts)
+
+	// S-center: 3 medium barrels
+	opts.GeoM.Reset()
+	opts.GeoM.Scale(0.38, 0.38)
+	opts.GeoM.Translate(54, 90)
+	img.DrawImage(barrelMed, opts)
+
+	return img
+}
 
 // BuildHouseImg composes the 64×96 house building image from the three source sheets.
 //

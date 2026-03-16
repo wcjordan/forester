@@ -27,6 +27,9 @@ var cottageFS embed.FS
 //go:embed sprites/lpc-windows-doors-v2
 var windowsDoorsFS embed.FS
 
+//go:embed sprites/container-v4_2
+var containerFS embed.FS
+
 //go:embed sprites/player-spritesheet.png
 var playerSheetData []byte
 
@@ -52,6 +55,8 @@ var (
 	CottageSheet *ebiten.Image
 	// WindowsDoorsSheet is the lpc-windows-doors-v2 windows-doors.png (1024×1024).
 	WindowsDoorsSheet *ebiten.Image
+	// ContainerSheet is the container-v4_2 container.png (512×2048).
+	ContainerSheet *ebiten.Image
 )
 
 func loadFromFS(fs embed.FS, path string) *ebiten.Image {
@@ -82,6 +87,7 @@ func init() {
 	ThatchedRoofSheet = loadFromFS(cottageFS, "sprites/lpc-thatched-roof-cottage/thatched-roof.png")
 	CottageSheet = loadFromFS(cottageFS, "sprites/lpc-thatched-roof-cottage/cottage.png")
 	WindowsDoorsSheet = loadFromFS(windowsDoorsFS, "sprites/lpc-windows-doors-v2/windows-doors.png")
+	ContainerSheet = loadFromFS(containerFS, "sprites/container-v4_2/container.png")
 
 	img, _, err := image.Decode(bytes.NewReader(playerSheetData))
 	if err != nil {
