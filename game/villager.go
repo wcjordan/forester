@@ -212,6 +212,13 @@ func (v *Villager) Tick(env *Env, rng *rand.Rand, now time.Time) {
 						v.Task = VillagerIdle
 					}
 					return
+				} else if v.Wood > 0 {
+					// Couldn't fetch more but already carrying wood; deliver it.
+					if !v.headToHouse(env) {
+						v.Wood -= env.Stores.DepositAt(origin, v.Wood)
+						v.Task = VillagerIdle
+					}
+					return
 				}
 			}
 			v.Task = VillagerIdle
@@ -250,6 +257,15 @@ func (v *Villager) Tick(env *Env, rng *rand.Rand, now time.Time) {
 // P(chop wood → storage) = 1 - fillRatio; P(fetch storage → house) = fillRatio.
 // Falls back to the other task when the preferred one has no valid target.
 func (v *Villager) pickTask(env *Env, rng *rand.Rand) {
+	// Already carrying wood: deliver to a house or deposit before doing anything else.
+	if v.Wood > 0 {
+		if v.headToHouse(env) {
+			return
+		}
+		v.headToStorage(env)
+		return
+	}
+
 	// Set this higher to encourage building earlier.  2.0 encourages building when > 25% full
 	const fillFactor = 2.0
 
@@ -291,6 +307,9 @@ func (v *Villager) tryAssignChopTask(env *Env) bool {
 }
 
 func (v *Villager) tryAssignDeliverTask(env *Env) bool {
+	if v.Wood >= VillagerMaxCarry {
+		return false
+	}
 	if env.Stores.Total(Wood) == 0 {
 		return false
 	}
