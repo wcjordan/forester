@@ -95,35 +95,36 @@ func BuildLogStorageImg(containerSheet *ebiten.Image) *ebiten.Image {
 	barrelCluster := containerSheet.SubImage(ContainerBarrelClusterRect).(*ebiten.Image)
 	chest := containerSheet.SubImage(ContainerChestRect).(*ebiten.Image)
 
-	// NW: 3-barrel pyramid
-	opts.GeoM.Reset()
-	opts.GeoM.Scale(0.45, 0.45)
-	opts.GeoM.Translate(4, 4)
-	img.DrawImage(barrelStack, opts)
+	// Staggered 4-column layout across 4 rows, cycling through the 5 sprite types.
+	// Columns at x≈3,35,68,98; rows at y≈3,33,63,96.
 
-	// NE: 2-barrel cluster
-	opts.GeoM.Reset()
-	opts.GeoM.Scale(0.45, 0.45)
-	opts.GeoM.Translate(95, 4)
-	img.DrawImage(barrelCluster, opts)
+	// Row 0
+	draw := func(spr *ebiten.Image, sc, tx, ty float64) {
+		opts.GeoM.Reset()
+		opts.GeoM.Scale(sc, sc)
+		opts.GeoM.Translate(tx, ty)
+		img.DrawImage(spr, opts)
+	}
+	draw(barrelStack, 0.45, 3, 3)
+	draw(barrelCluster, 0.42, 35, 2)
+	draw(barrelLarge, 0.40, 68, 3)
+	draw(chest, 0.42, 98, 3)
 
-	// W-mid: 2 large barrels
-	opts.GeoM.Reset()
-	opts.GeoM.Scale(0.40, 0.40)
-	opts.GeoM.Translate(6, 68)
-	img.DrawImage(barrelLarge, opts)
+	// Row 1
+	draw(barrelMed, 0.38, 4, 33)
+	draw(barrelStack, 0.44, 36, 32)
+	draw(chest, 0.42, 68, 32)
+	draw(barrelCluster, 0.42, 98, 33)
 
-	// E-mid: wooden chest
-	opts.GeoM.Reset()
-	opts.GeoM.Scale(0.45, 0.45)
-	opts.GeoM.Translate(90, 70)
-	img.DrawImage(chest, opts)
+	// Row 2
+	draw(barrelCluster, 0.43, 3, 63)
+	draw(barrelLarge, 0.40, 36, 62)
+	draw(barrelMed, 0.38, 70, 63)
+	draw(barrelStack, 0.44, 99, 62)
 
-	// S-center: 3 medium barrels
-	opts.GeoM.Reset()
-	opts.GeoM.Scale(0.38, 0.38)
-	opts.GeoM.Translate(54, 90)
-	img.DrawImage(barrelMed, opts)
+	// Row 3 (two sprites, offset for asymmetry)
+	draw(barrelLarge, 0.40, 18, 96)
+	draw(chest, 0.42, 82, 95)
 
 	return img
 }

@@ -170,7 +170,7 @@ For transitions between road levels (e.g., road entering a trodden stretch), tre
 
 ---
 
-## Stage S4 — Building Footprint Rendering ← NEXT
+## Stage S4 — Building Footprint Rendering ✅ COMPLETE
 
 **Goal:** House and log storage each render as a single coherent multi-tile image rather than a repeated per-tile sprite.
 
@@ -219,6 +219,6 @@ Foundation tiles (`?`) are multi-tile — they stamp the full structure footprin
 | S1 — Walk Animation | ✅ Complete | (#70) Player walk/slash/thrust animations |
 | S2 — Tree Visual Cohesion | ✅ Complete | (#71) Layered sprites from lpc-trees |
 | S3 — Road Autotiling | ✅ Complete | (#72, #73) lpc-terrains corner blend autotiling |
-| S4 — Building Footprint Rendering | ⬜ Next | lpc-thatched-roof-cottage + lpc-containers |
+| S4 — Building Footprint Rendering | ✅ Complete | lpc-thatched-roof-cottage + lpc-containers |
 
 Each stage should be committed separately with `make check` passing before moving to the next.

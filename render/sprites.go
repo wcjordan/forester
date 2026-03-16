@@ -27,9 +27,11 @@ type drawArgs struct {
 // in the per-tile draw loop.
 var (
 	// Structures / terrain
-	dirtFoundationImg   = assets.Dirt.SubImage(image.Rect(32, 64, 32+32, 64+32)).(*ebiten.Image)
-	barrelLogStorageImg = assets.Barrel.SubImage(image.Rect(0, 0, 0+64, 0+64)).(*ebiten.Image)
-	grassTileImg        = assets.GrassTile.SubImage(image.Rect(0, 0, 0+32, 0+32)).(*ebiten.Image)
+	dirtFoundationImg = assets.Dirt.SubImage(image.Rect(32, 64, 32+32, 64+32)).(*ebiten.Image)
+	grassTileImg      = assets.GrassTile.SubImage(image.Rect(0, 0, 0+32, 0+32)).(*ebiten.Image)
+
+	// logStorageBuildingImg is the pre-composed 128×128 log-storage yard image assembled in init.
+	logStorageBuildingImg *ebiten.Image
 
 	// Road autotile arrays indexed by 4-bit neighbor bitmask (bit0=N, bit1=E, bit2=S, bit3=W).
 	// Tiles are composed from four 16×16 quadrants; mappings are in roads.SoilComposed /
@@ -83,6 +85,12 @@ func init() {
 	}
 
 	initHouseBuilding()
+	initLogStorageBuilding()
+}
+
+// initLogStorageBuilding composes the 128×128 log-storage yard image via spritedata.BuildLogStorageImg.
+func initLogStorageBuilding() {
+	logStorageBuildingImg = spritedata.BuildLogStorageImg(assets.ContainerSheet)
 }
 
 // initHouseBuilding composes the 64×96 house building image via spritedata.BuildHouseImg.
@@ -137,6 +145,12 @@ func isStructureNWAnchor(world *game.World, x, y int, st game.StructureType) boo
 	return !leftMatch && !aboveMatch
 }
 
+// logStorageOverlays returns the overlay drawArgs for the NW-anchor log-storage tile.
+// The 128×128 yard image fits exactly within the 4×4 footprint — no offset needed.
+func logStorageOverlays() []drawArgs {
+	return []drawArgs{{img: logStorageBuildingImg, scale: 1.0}}
+}
+
 // houseOverlays returns the overlay drawArgs for the NW-anchor house tile.
 // The 64×96 building sprite is drawn with offsetY=-tileSize so it overflows
 // one row above the 2×2 footprint.
@@ -168,7 +182,10 @@ func spriteForTile(tile *game.Tile, world *game.World, x, y int) (base drawArgs,
 	case structures.FoundationLogStorage, structures.FoundationHouse:
 		return drawArgs{img: dirtFoundationImg, scale: 1.0}, nil
 	case structures.LogStorage:
-		return drawArgs{img: barrelLogStorageImg, scale: 0.5}, nil
+		if !isStructureNWAnchor(world, x, y, structures.LogStorage) {
+			return drawArgs{img: grassTileImg, scale: 1.0}, nil
+		}
+		return drawArgs{img: grassTileImg, scale: 1.0}, logStorageOverlays()
 	case structures.House:
 		if !isStructureNWAnchor(world, x, y, structures.House) {
 			return drawArgs{img: grassTileImg, scale: 1.0}, nil
