@@ -122,6 +122,13 @@ func (w *World) TileAt(x, y int) *Tile {
 	return &w.Tiles[y][x]
 }
 
+// IsStructureOrigin reports whether (x, y) is the origin (top-left corner) of
+// a structure footprint. Returns false for tiles with no structure.
+func (w *World) IsStructureOrigin(x, y int) bool {
+	entry, ok := w.structureIndex[point{X: x, Y: y}]
+	return ok && entry.Origin == (point{X: x, Y: y})
+}
+
 // PlaceFoundation places def as a foundation at (x, y), deriving the tile
 // type from def.FoundationType() and the footprint from def.Footprint().
 func (w *World) PlaceFoundation(x, y int, def StructureDef) {
