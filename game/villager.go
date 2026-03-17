@@ -307,9 +307,6 @@ func (v *Villager) tryAssignChopTask(env *Env) bool {
 }
 
 func (v *Villager) tryAssignDeliverTask(env *Env) bool {
-	if v.Wood >= VillagerMaxCarry {
-		return false
-	}
 	if env.Stores.Total(Wood) == 0 {
 		return false
 	}
