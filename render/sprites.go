@@ -134,17 +134,6 @@ func dirFrom(dx, dy int) int {
 	}
 }
 
-// isStructureNWAnchor reports whether (x, y) is the north-west corner of a
-// multi-tile structure footprint. A tile is the NW anchor when neither the tile
-// to its left nor the tile above it shares the same StructureType.
-func isStructureNWAnchor(world *game.World, x, y int, st game.StructureType) bool {
-	left := world.TileAt(x-1, y)
-	above := world.TileAt(x, y-1)
-	leftMatch := left != nil && left.Structure == st
-	aboveMatch := above != nil && above.Structure == st
-	return !leftMatch && !aboveMatch
-}
-
 // logStorageOverlays returns the overlay drawArgs for the NW-anchor log-storage tile.
 // The 128×128 yard image fits exactly within the 4×4 footprint — no offset needed.
 func logStorageOverlays() []drawArgs {
@@ -182,12 +171,14 @@ func spriteForTile(tile *game.Tile, world *game.World, x, y int) (base drawArgs,
 	case structures.FoundationLogStorage, structures.FoundationHouse:
 		return drawArgs{img: dirtFoundationImg, scale: 1.0}, nil
 	case structures.LogStorage:
-		if !isStructureNWAnchor(world, x, y, structures.LogStorage) {
+		// Only draw the logStorage sprite from the origin tile
+		if !world.IsStructureOrigin(x, y) {
 			return drawArgs{img: grassTileImg, scale: 1.0}, nil
 		}
 		return drawArgs{img: grassTileImg, scale: 1.0}, logStorageOverlays()
 	case structures.House:
-		if !isStructureNWAnchor(world, x, y, structures.House) {
+		// Only draw the house sprite from the origin tile
+		if !world.IsStructureOrigin(x, y) {
 			return drawArgs{img: grassTileImg, scale: 1.0}, nil
 		}
 		return drawArgs{img: grassTileImg, scale: 1.0}, houseOverlays()

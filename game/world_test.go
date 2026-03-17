@@ -201,6 +201,40 @@ func TestAddStructure(t *testing.T) {
 	})
 }
 
+func TestIsStructureOrigin(t *testing.T) {
+	def := gametest.LogStorageDef{} // 4×4 footprint
+
+	t.Run("returns false when no structure", func(t *testing.T) {
+		w := NewWorld(10, 10)
+		if w.IsStructureOrigin(3, 4) {
+			t.Error("IsStructureOrigin(3,4) = true, want false (no structure placed)")
+		}
+	})
+
+	t.Run("returns true for origin tile", func(t *testing.T) {
+		w := NewWorld(10, 10)
+		w.PlaceBuilt(3, 4, def)
+		if !w.IsStructureOrigin(3, 4) {
+			t.Error("IsStructureOrigin(3,4) = false, want true (origin tile)")
+		}
+	})
+
+	t.Run("returns false for non-origin footprint tiles", func(t *testing.T) {
+		w := NewWorld(10, 10)
+		w.PlaceBuilt(3, 4, def)
+		for dy := 0; dy < 4; dy++ {
+			for dx := 0; dx < 4; dx++ {
+				if dx == 0 && dy == 0 {
+					continue
+				}
+				if w.IsStructureOrigin(3+dx, 4+dy) {
+					t.Errorf("IsStructureOrigin(%d,%d) = true, want false (non-origin tile)", 3+dx, 4+dy)
+				}
+			}
+		}
+	})
+}
+
 func TestHasStructureOfType(t *testing.T) {
 	w := NewWorld(10, 10)
 
