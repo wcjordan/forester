@@ -171,11 +171,13 @@ func spriteForTile(tile *game.Tile, world *game.World, x, y int) (base drawArgs,
 	case structures.FoundationLogStorage, structures.FoundationHouse:
 		return drawArgs{img: dirtFoundationImg, scale: 1.0}, nil
 	case structures.LogStorage:
+		// Only draw the logStorage sprite from the origin tile
 		if !world.IsStructureOrigin(x, y) {
 			return drawArgs{img: grassTileImg, scale: 1.0}, nil
 		}
 		return drawArgs{img: grassTileImg, scale: 1.0}, logStorageOverlays()
 	case structures.House:
+		// Only draw the house sprite from the origin tile
 		if !world.IsStructureOrigin(x, y) {
 			return drawArgs{img: grassTileImg, scale: 1.0}, nil
 		}
