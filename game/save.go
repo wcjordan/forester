@@ -1,10 +1,90 @@
 package game
 
 import (
+	"fmt"
 	"time"
 
 	"forester/game/geom"
 )
+
+// LoadSaveData restores the game from a SaveGameData snapshot.
+// All derived runtime structures (storage instances, structure indexes,
+// villager paths) are rebuilt from the saved data.
+func (g *Game) LoadSaveData(data SaveGameData) error {
+	// Restore player.
+	pd := data.Player
+	player := &Player{
+		X:                   pd.X,
+		Y:                   pd.Y,
+		FacingDX:            pd.FacingDX,
+		FacingDY:            pd.FacingDY,
+		Inventory:           copyIntMap(pd.Inventory),
+		MaxCarry:            pd.MaxCarry,
+		BuildInterval:       pd.BuildInterval,
+		DepositInterval:     pd.DepositInterval,
+		HarvestInterval:     pd.HarvestInterval,
+		MoveSpeedMultiplier: pd.MoveSpeedMultiplier,
+		Cooldowns:           make(map[CooldownType]time.Time),
+		pendingCooldowns:    make(map[CooldownType]time.Time),
+	}
+
+	// Rebuild world: terrain first, then replay structure placements.
+	wd := data.World
+	world := NewWorld(wd.Width, wd.Height)
+	for y := 0; y < wd.Height; y++ {
+		for x := 0; x < wd.Width; x++ {
+			td := wd.Tiles[y][x]
+			world.Tiles[y][x].Terrain = td.Terrain
+			world.Tiles[y][x].TreeSize = td.TreeSize
+			world.Tiles[y][x].WalkCount = td.WalkCount
+		}
+	}
+	for _, sd := range wd.Structures {
+		def, ok := lookupStructureDef(sd.Type)
+		if !ok {
+			return fmt.Errorf("unknown structure type %q in save data", sd.Type)
+		}
+		if sd.Type == def.FoundationType() {
+			world.PlaceFoundation(sd.Origin.X, sd.Origin.Y, def)
+		} else {
+			world.PlaceBuilt(sd.Origin.X, sd.Origin.Y, def)
+		}
+	}
+
+	// Restore storage using existing LoadFrom pattern.
+	stores := NewStorageManager()
+	stores.LoadFrom(data.Storage, world)
+
+	// Restore villagers (paths reset to nil; recomputed on next Tick).
+	vm := NewVillagerManager()
+	for _, vd := range data.Villagers {
+		vm.Villagers = append(vm.Villagers, &Villager{
+			X:       vd.X,
+			Y:       vd.Y,
+			TargetX: vd.TargetX,
+			TargetY: vd.TargetY,
+			Wood:    vd.Wood,
+			Task:    vd.Task,
+		})
+	}
+
+	// Restore state.
+	state := &State{
+		Player:              player,
+		World:               world,
+		FoundationDeposited: copyIntMap(data.FoundationDeposited),
+		HouseOccupancy:      copyBoolMap(data.HouseOccupancy),
+		XP:                  data.XP,
+		XPMilestoneIdx:      data.XPMilestoneIdx,
+		pendingOfferIDs:     copyStringSliceSlice(data.PendingOfferIDs),
+		completedBeats:      copyBoolMap(data.CompletedBeats),
+	}
+
+	g.State = state
+	g.Stores = stores
+	g.Villagers = vm
+	return nil
+}
 
 // SaveData collects a full snapshot of the game state for persistence.
 func (g *Game) SaveData() SaveGameData {

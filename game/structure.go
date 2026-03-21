@@ -92,6 +92,15 @@ func IterateStructures(fn func(StructureDef, StructureCallbacks)) {
 	}
 }
 
+// lookupStructureDef returns the StructureDef for the given StructureType.
+// Returns false if the type is not registered.
+func lookupStructureDef(stype StructureType) (StructureDef, bool) {
+	if reg, ok := structures[stype]; ok {
+		return reg.Def, true
+	}
+	return nil, false
+}
+
 // lookupCallbacks returns the StructureCallbacks for the given StructureType.
 // Returns a zero-value StructureCallbacks (all nil fields) if not found.
 func lookupCallbacks(st StructureType) StructureCallbacks {

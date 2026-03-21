@@ -140,3 +140,114 @@ func TestSaveDataCompletedBeats(t *testing.T) {
 		t.Error("CompletedBeats[\"intro\"] = false, want true")
 	}
 }
+
+// registerTestSaveDef registers testSaveDef for the duration of the test.
+func registerTestSaveDef(t *testing.T) {
+	t.Helper()
+	RegisterStructure(testSaveDef{}, StructureCallbacks{})
+	t.Cleanup(func() {
+		delete(structures, testSaveDef{}.FoundationType())
+		delete(structures, testSaveDef{}.BuiltType())
+	})
+}
+
+func TestLoadSaveDataRoundTrip(t *testing.T) {
+	registerTestSaveDef(t)
+
+	// Set up initial state.
+	g := testGame(t)
+	g.State.Player.X = 13
+	g.State.Player.Y = 17
+	g.State.Player.Inventory[Wood] = 5
+	g.State.Player.MaxCarry = 30
+	g.State.World.Tiles[2][3] = Tile{Terrain: Forest, TreeSize: 8, WalkCount: 2}
+	origin := geom.Point{X: 6, Y: 6}
+	g.State.World.PlaceBuilt(origin.X, origin.Y, testSaveDef{})
+	g.State.XP = 200
+	g.State.XPMilestoneIdx = 3
+	g.State.completedBeats["beat1"] = true
+	g.State.pendingOfferIDs = [][]string{{"x", "y"}}
+	g.State.HouseOccupancy[geom.Point{X: 1, Y: 1}] = true
+	g.State.FoundationDeposited[geom.Point{X: 2, Y: 2}] = 4
+	g.Villagers.Spawn(8, 9)
+	g.Villagers.Villagers[0].Wood = 2
+	g.Villagers.Villagers[0].Task = VillagerWalkingToTree
+
+	// Save then load into a fresh game.
+	saved := g.SaveData()
+	g2 := testGame(t)
+	if err := g2.LoadSaveData(saved); err != nil {
+		t.Fatalf("LoadSaveData error: %v", err)
+	}
+
+	// Player.
+	p2 := g2.State.Player
+	if p2.X != 13 || p2.Y != 17 {
+		t.Errorf("Player pos = (%d,%d), want (13,17)", p2.X, p2.Y)
+	}
+	if p2.Inventory[Wood] != 5 {
+		t.Errorf("Inventory[Wood] = %d, want 5", p2.Inventory[Wood])
+	}
+	if p2.MaxCarry != 30 {
+		t.Errorf("MaxCarry = %d, want 30", p2.MaxCarry)
+	}
+
+	// World tile.
+	tile := g2.State.World.TileAt(3, 2)
+	if tile.Terrain != Forest {
+		t.Errorf("Terrain = %v, want Forest", tile.Terrain)
+	}
+	if tile.TreeSize != 8 {
+		t.Errorf("TreeSize = %d, want 8", tile.TreeSize)
+	}
+	if tile.WalkCount != 2 {
+		t.Errorf("WalkCount = %d, want 2", tile.WalkCount)
+	}
+
+	// Structure placement.
+	if !g2.State.World.IsStructureOrigin(origin.X, origin.Y) {
+		t.Errorf("structure not found at origin %v after load", origin)
+	}
+	wantStructType := testSaveDef{}.BuiltType()
+	gotStructType := g2.State.World.TileAt(origin.X, origin.Y).Structure
+	if gotStructType != wantStructType {
+		t.Errorf("tile structure type = %q, want %q", gotStructType, wantStructType)
+	}
+
+	// XP.
+	if g2.State.XP != 200 {
+		t.Errorf("XP = %d, want 200", g2.State.XP)
+	}
+	if g2.State.XPMilestoneIdx != 3 {
+		t.Errorf("XPMilestoneIdx = %d, want 3", g2.State.XPMilestoneIdx)
+	}
+
+	// Private state fields.
+	if !g2.State.completedBeats["beat1"] {
+		t.Error("completedBeats[\"beat1\"] = false, want true")
+	}
+	if len(g2.State.pendingOfferIDs) != 1 || g2.State.pendingOfferIDs[0][0] != "x" {
+		t.Errorf("pendingOfferIDs = %v, want [[x y]]", g2.State.pendingOfferIDs)
+	}
+	if !g2.State.HouseOccupancy[geom.Point{X: 1, Y: 1}] {
+		t.Error("HouseOccupancy[(1,1)] = false, want true")
+	}
+	if g2.State.FoundationDeposited[geom.Point{X: 2, Y: 2}] != 4 {
+		t.Errorf("FoundationDeposited[(2,2)] = %d, want 4", g2.State.FoundationDeposited[geom.Point{X: 2, Y: 2}])
+	}
+
+	// Villager.
+	if len(g2.Villagers.Villagers) != 1 {
+		t.Fatalf("villager count = %d, want 1", len(g2.Villagers.Villagers))
+	}
+	v2 := g2.Villagers.Villagers[0]
+	if v2.X != 8 || v2.Y != 9 {
+		t.Errorf("Villager pos = (%d,%d), want (8,9)", v2.X, v2.Y)
+	}
+	if v2.Wood != 2 {
+		t.Errorf("Villager Wood = %d, want 2", v2.Wood)
+	}
+	if v2.Task != VillagerWalkingToTree {
+		t.Errorf("Villager Task = %v, want WalkingToTree", v2.Task)
+	}
+}
