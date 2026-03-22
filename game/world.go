@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"time"
 
 	"forester/game/geom"
@@ -239,4 +240,96 @@ func (w *World) CountStructureInstances(stype StructureType) int {
 func (w *World) isHarvestable(x, y int) bool {
 	t := w.TileAt(x, y)
 	return t != nil && t.Terrain == Forest && t.TreeSize > 0
+}
+
+// WorldSaveData holds the persistent world state.
+// The Structure field of each tile is excluded — it is rebuilt on load by
+// replaying Structures via PlaceFoundation / PlaceBuilt.
+type WorldSaveData struct {
+	Width, Height int
+	Tiles         [][]TileSaveData     // terrain data only
+	Structures    []StructureSaveDatum // one entry per structure instance
+}
+
+// TileSaveData holds the persistent fields of a Tile.
+// Structure is excluded (derived from WorldSaveData.Structures on load).
+type TileSaveData struct {
+	Terrain   TerrainType
+	TreeSize  int
+	WalkCount int
+}
+
+// StructureSaveDatum records the origin and exact StructureType of one structure instance.
+// Type may be a foundation type or a built type.
+type StructureSaveDatum struct {
+	Origin geom.Point
+	Type   StructureType
+}
+
+// SaveData returns a snapshot of the world's persistent state.
+func (w *World) SaveData() WorldSaveData {
+	tiles := make([][]TileSaveData, w.Height)
+	for y := 0; y < w.Height; y++ {
+		tiles[y] = make([]TileSaveData, w.Width)
+		for x := 0; x < w.Width; x++ {
+			t := w.Tiles[y][x]
+			tiles[y][x] = TileSaveData{
+				Terrain:   t.Terrain,
+				TreeSize:  t.TreeSize,
+				WalkCount: t.WalkCount,
+			}
+		}
+	}
+	var structs []StructureSaveDatum
+	for stype, origins := range w.structureInstanceIndex {
+		for origin := range origins {
+			structs = append(structs, StructureSaveDatum{Origin: origin, Type: stype})
+		}
+	}
+	return WorldSaveData{
+		Width:      w.Width,
+		Height:     w.Height,
+		Tiles:      tiles,
+		Structures: structs,
+	}
+}
+
+// LoadFrom rebuilds the world from a WorldSaveData snapshot.
+// All indexes and NoGrowTiles are reconstructed; the world is fully re-initialized.
+func (w *World) LoadFrom(data WorldSaveData) error {
+	w.Width = data.Width
+	w.Height = data.Height
+	w.Tiles = make([][]Tile, w.Height)
+	for y := range w.Tiles {
+		w.Tiles[y] = make([]Tile, w.Width)
+	}
+	w.structureIndex = make(map[point]structureEntry)
+	w.StructureTypeIndex = make(map[StructureType]map[point]struct{})
+	w.structureInstanceIndex = make(map[StructureType]map[point]struct{})
+	w.NoGrowTiles = make(map[point]struct{})
+	w.regrowCooldown = time.Time{}
+
+	// Mark spawn-zone no-grow tiles (mirrors NewWorld).
+	w.markNoGrowZoneRect(w.Width/2, w.Height/2, 1, 1)
+
+	// Copy terrain data.
+	for y, row := range data.Tiles {
+		for x, td := range row {
+			w.Tiles[y][x] = Tile{Terrain: td.Terrain, TreeSize: td.TreeSize, WalkCount: td.WalkCount}
+		}
+	}
+
+	// Replay structure placements to rebuild all indexes.
+	for _, sd := range data.Structures {
+		def, ok := lookupStructureDef(sd.Type)
+		if !ok {
+			return fmt.Errorf("unknown structure type %q in save data", sd.Type)
+		}
+		if sd.Type == def.FoundationType() {
+			w.PlaceFoundation(sd.Origin.X, sd.Origin.Y, def)
+		} else {
+			w.PlaceBuilt(sd.Origin.X, sd.Origin.Y, def)
+		}
+	}
+	return nil
 }

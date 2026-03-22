@@ -167,3 +167,49 @@ const GameTickInterval = 100 * time.Millisecond
 
 // harvestTickInterval is how often the player auto-harvests adjacent trees.
 const harvestTickInterval = 100 * time.Millisecond
+
+// PlayerSaveData holds the persistent fields of Player.
+// Runtime-only fields (Cooldowns, pendingCooldowns, LastHarvestAt, LastThrustAt) are excluded.
+type PlayerSaveData struct {
+	X, Y                int
+	FacingDX, FacingDY  int
+	Inventory           map[ResourceType]int
+	MaxCarry            int
+	BuildInterval       time.Duration
+	DepositInterval     time.Duration
+	HarvestInterval     time.Duration
+	MoveSpeedMultiplier float64
+}
+
+// SaveData returns a snapshot of the player's persistent state.
+func (p *Player) SaveData() PlayerSaveData {
+	return PlayerSaveData{
+		X:                   p.X,
+		Y:                   p.Y,
+		FacingDX:            p.FacingDX,
+		FacingDY:            p.FacingDY,
+		Inventory:           copyMap(p.Inventory),
+		MaxCarry:            p.MaxCarry,
+		BuildInterval:       p.BuildInterval,
+		DepositInterval:     p.DepositInterval,
+		HarvestInterval:     p.HarvestInterval,
+		MoveSpeedMultiplier: p.MoveSpeedMultiplier,
+	}
+}
+
+// LoadFrom restores the player's persistent state from data.
+// Runtime-only fields (Cooldowns, pendingCooldowns) are reset to empty maps.
+func (p *Player) LoadFrom(data PlayerSaveData) {
+	p.X = data.X
+	p.Y = data.Y
+	p.FacingDX = data.FacingDX
+	p.FacingDY = data.FacingDY
+	p.Inventory = copyMap(data.Inventory)
+	p.MaxCarry = data.MaxCarry
+	p.BuildInterval = data.BuildInterval
+	p.DepositInterval = data.DepositInterval
+	p.HarvestInterval = data.HarvestInterval
+	p.MoveSpeedMultiplier = data.MoveSpeedMultiplier
+	p.Cooldowns = make(map[CooldownType]time.Time)
+	p.pendingCooldowns = make(map[CooldownType]time.Time)
+}
