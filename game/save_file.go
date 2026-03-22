@@ -14,9 +14,9 @@ import (
 // that does not support file I/O (e.g. WASM/browser).
 var errSaveNotSupported = errors.New("save/load not supported on this platform")
 
-// SavePath returns the path to the single save file.
-// On desktop: <os.UserConfigDir>/forester/save.json
-func SavePath() (string, error) {
+// savePath returns the path to the single save file.
+// On desktop: <os.UserConfigDir>/forester/save.json.
+func savePath() (string, error) {
 	if runtime.GOOS == "js" {
 		return "", errSaveNotSupported
 	}
@@ -29,7 +29,7 @@ func SavePath() (string, error) {
 
 // SaveFileExists reports whether a save file is present on disk.
 func SaveFileExists() bool {
-	p, err := SavePath()
+	p, err := savePath()
 	if err != nil {
 		return false
 	}
@@ -39,7 +39,7 @@ func SaveFileExists() bool {
 
 // SaveToFile serializes the game state to JSON and writes it to the save file.
 func (g *Game) SaveToFile() error {
-	path, err := SavePath()
+	path, err := savePath()
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func (g *Game) SaveToFile() error {
 // LoadFromFile reads the save file and returns a restored Game.
 // Returns an error if the file does not exist or cannot be parsed.
 func LoadFromFile() (*Game, error) {
-	path, err := SavePath()
+	path, err := savePath()
 	if err != nil {
 		return nil, err
 	}
