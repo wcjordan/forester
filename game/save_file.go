@@ -51,8 +51,8 @@ func savePath() (string, error) {
 	return filepath.Join(dir, "forester", "save.json"), nil
 }
 
-// SaveToFile serializes the game state to JSON and writes it to the save file.
-func (g *Game) SaveToFile() error {
+// saveToFile serializes the game state to JSON and writes it to the save file.
+func (g *Game) saveToFile() error {
 	path, err := savePath()
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func (g *Game) SaveToFile() error {
 
 // Save writes the game state to disk and updates g.Status.
 func (g *Game) Save() {
-	if err := g.SaveToFile(); err != nil {
+	if err := g.saveToFile(); err != nil {
 		g.Status = SaveStatus{Code: SaveStatusSaveFailed, Err: err, SetAt: g.clock.Now()}
 		return
 	}
