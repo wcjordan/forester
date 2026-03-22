@@ -46,8 +46,6 @@ type Model struct {
 	clock            game.Clock
 	debugVillager    bool // whether the debug bar is visible
 	debugVillagerIdx int  // currently selected villager index
-	statusMsg        string
-	statusExpiry     time.Time
 }
 
 // NewModel creates a Model wrapping the given game using the system clock.
@@ -82,26 +80,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q", "ctrl+c":
 			return m, tea.Quit
 		case "ctrl+s":
-			if err := m.game.SaveToFile(); err != nil {
-				m.statusMsg = "Save failed: " + err.Error()
-			} else {
-				m.statusMsg = "Game saved"
-			}
-			m.statusExpiry = m.clock.Now().Add(2 * time.Second)
+			m.game.Save()
 			return m, nil
 		case "ctrl+l":
-			if g, err := game.LoadFromFile(); err != nil {
-				m.statusMsg = "Load failed: " + err.Error()
-			} else {
-				m.game = g
-				m.statusMsg = "Game loaded"
-			}
-			m.statusExpiry = m.clock.Now().Add(2 * time.Second)
+			m.game.Load()
 			return m, nil
 		case "ctrl+n":
-			m.game = game.New()
-			m.statusMsg = "New game started"
-			m.statusExpiry = m.clock.Now().Add(2 * time.Second)
+			m.game.Reset()
 			return m, nil
 		}
 
@@ -154,7 +139,8 @@ func (m Model) View() string {
 
 	// Status bar occupies the last line; map gets the rest.
 	// Debug bar (when visible) and save/load status each take one additional line.
-	statusActive := m.clock.Now().Before(m.statusExpiry)
+	statusMsg := saveStatusText(m.game.Status.Code)
+	statusActive := statusMsg != "" && m.clock.Now().Before(m.game.Status.SetAt.Add(statusDuration))
 	mapHeight := m.termHeight - 1
 	if m.debugVillager {
 		mapHeight--
@@ -268,7 +254,7 @@ func (m Model) View() string {
 
 	if statusActive {
 		sb.WriteByte('\n')
-		sb.WriteString(" " + m.statusMsg)
+		sb.WriteString(" " + statusMsg)
 	}
 	if m.debugVillager {
 		sb.WriteByte('\n')

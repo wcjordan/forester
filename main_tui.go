@@ -24,10 +24,8 @@ func shouldRunTUI() bool {
 
 // runTUI starts the bubbletea terminal UI.
 func runTUI() {
-	g, err := game.LoadFromFile()
-	if err != nil {
-		g = game.New()
-	}
+	g := game.New()
+	g.Load()
 	p := tea.NewProgram(render.NewModel(g), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)

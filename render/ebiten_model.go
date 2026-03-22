@@ -16,9 +16,6 @@ const tileSize = 32
 
 var colorBackground = color.RGBA{R: 0x1A, G: 0x1A, B: 0x1A, A: 0xFF}
 
-// statusDuration is how long a save/load status message is shown.
-const statusDuration = 2 * time.Second
-
 // EbitenGame implements ebiten.Game and renders the world using LPC sprites.
 type EbitenGame struct {
 	game             *game.Game
@@ -35,14 +32,6 @@ type EbitenGame struct {
 	animTick         int       // increments each Update while playerMoving; resets to 0 when idle
 	slashCycleStart  time.Time // wall-clock start of the current slash cycle; zero = inactive
 	thrustCycleStart time.Time // wall-clock start of the current thrust cycle; zero = inactive
-	statusMsg        string
-	statusExpiry     time.Time
-}
-
-// showStatus displays msg in the status bar for statusDuration.
-func (e *EbitenGame) showStatus(msg string) {
-	e.statusMsg = msg
-	e.statusExpiry = e.clock.Now().Add(statusDuration)
 }
 
 // NewEbitenGame creates an EbitenGame wrapping the given game using the system clock.
@@ -82,21 +71,11 @@ func (e *EbitenGame) Update() error {
 	if ebiten.IsKeyPressed(ebiten.KeyControl) {
 		switch {
 		case inpututil.IsKeyJustPressed(ebiten.KeyS):
-			if err := e.game.SaveToFile(); err != nil {
-				e.showStatus("Save failed: " + err.Error())
-			} else {
-				e.showStatus("Game saved")
-			}
+			e.game.Save()
 		case inpututil.IsKeyJustPressed(ebiten.KeyL):
-			if g, err := game.LoadFromFile(); err != nil {
-				e.showStatus("Load failed: " + err.Error())
-			} else {
-				e.game = g
-				e.showStatus("Game loaded")
-			}
+			e.game.Load()
 		case inpututil.IsKeyJustPressed(ebiten.KeyN):
-			e.game = game.New()
-			e.showStatus("New game started")
+			e.game.Reset()
 		}
 		return nil
 	}
@@ -263,8 +242,8 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 	if e.debugVillager {
 		drawVillagerDebugBar(screen, e.game, e.hudFace, e.screenW, e.screenH, e.debugVillagerIdx)
 	}
-	if now.Before(e.statusExpiry) {
-		drawStatusBar(screen, e.statusMsg, e.hudFace, e.screenW, e.screenH)
+	if msg := saveStatusText(e.game.Status.Code); msg != "" && now.Before(e.game.Status.SetAt.Add(statusDuration)) {
+		drawStatusBar(screen, msg, e.hudFace, e.screenW, e.screenH)
 	}
 }
 

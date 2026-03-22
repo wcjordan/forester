@@ -19,10 +19,8 @@ func main() {
 		return
 	}
 
-	g, err := game.LoadFromFile()
-	if err != nil {
-		g = game.New()
-	}
+	g := game.New()
+	g.Load()
 	ebiten.SetWindowSize(1280, 720)
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetWindowTitle("Forester")
