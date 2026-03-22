@@ -176,8 +176,8 @@ func TestLoadSaveDataRoundTrip(t *testing.T) {
 	// Save then load into a fresh game.
 	saved := g.SaveData()
 	g2 := testGame(t)
-	if err := g2.LoadSaveData(saved); err != nil {
-		t.Fatalf("LoadSaveData error: %v", err)
+	if err := g2.loadSaveData(saved); err != nil {
+		t.Fatalf("loadSaveData error: %v", err)
 	}
 
 	// Player.

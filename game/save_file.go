@@ -98,7 +98,7 @@ func (g *Game) Load() {
 		g.Status = SaveStatus{Code: SaveStatusLoadFailed, Err: err, SetAt: g.clock.Now()}
 		return
 	}
-	if err := g.LoadSaveData(data); err != nil {
+	if err := g.loadSaveData(data); err != nil {
 		g.Status = SaveStatus{Code: SaveStatusLoadFailed, Err: err, SetAt: g.clock.Now()}
 		return
 	}

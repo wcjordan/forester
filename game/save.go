@@ -33,8 +33,8 @@ func (g *Game) SaveData() SaveGameData {
 	}
 }
 
-// LoadSaveData restores the game from a SaveGameData snapshot.
-func (g *Game) LoadSaveData(data SaveGameData) error {
+// loadSaveData restores the game from a SaveGameData snapshot.
+func (g *Game) loadSaveData(data SaveGameData) error {
 	player := &Player{}
 	player.LoadFrom(data.Player)
 
