@@ -10,15 +10,15 @@ import (
 	"time"
 )
 
-// ErrSaveNotSupported is returned when save/load is attempted on a platform
+// errSaveNotSupported is returned when save/load is attempted on a platform
 // that does not support file I/O (e.g. WASM/browser).
-var ErrSaveNotSupported = errors.New("save/load not supported on this platform")
+var errSaveNotSupported = errors.New("save/load not supported on this platform")
 
 // SavePath returns the path to the single save file.
 // On desktop: <os.UserConfigDir>/forester/save.json
 func SavePath() (string, error) {
 	if runtime.GOOS == "js" {
-		return "", ErrSaveNotSupported
+		return "", errSaveNotSupported
 	}
 	dir, err := os.UserConfigDir()
 	if err != nil {
