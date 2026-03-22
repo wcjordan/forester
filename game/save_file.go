@@ -27,16 +27,6 @@ func savePath() (string, error) {
 	return filepath.Join(dir, "forester", "save.json"), nil
 }
 
-// SaveFileExists reports whether a save file is present on disk.
-func SaveFileExists() bool {
-	p, err := savePath()
-	if err != nil {
-		return false
-	}
-	_, err = os.Stat(p)
-	return err == nil
-}
-
 // SaveToFile serializes the game state to JSON and writes it to the save file.
 func (g *Game) SaveToFile() error {
 	path, err := savePath()
