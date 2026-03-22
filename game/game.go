@@ -10,6 +10,7 @@ type Game struct {
 	State     *State
 	Stores    *StorageManager
 	Villagers *VillagerManager
+	Status    SaveStatus
 	rng       *rand.Rand
 	clock     Clock
 }

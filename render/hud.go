@@ -72,6 +72,19 @@ func drawHUD(screen *ebiten.Image, g *game.Game, face *textv2.GoXFace, screenW, 
 	textv2.Draw(screen, status, face, op)
 }
 
+// drawStatusBar renders a brief save/load status message above the main HUD.
+func drawStatusBar(screen *ebiten.Image, msg string, face *textv2.GoXFace, screenW, screenH int) {
+	barY := screenH - hudHeight*2
+	vector.FillRect(screen,
+		0, float32(barY),
+		float32(screenW), float32(hudHeight),
+		colorHUDBG, false)
+	op := &textv2.DrawOptions{}
+	op.GeoM.Translate(8, float64(barY)+4)
+	op.ColorScale.ScaleWithColor(colorHUDText)
+	textv2.Draw(screen, " "+msg, face, op)
+}
+
 // drawVillagerDebugBar renders a second HUD row above the main status bar showing
 // debug info for the selected villager.
 func drawVillagerDebugBar(screen *ebiten.Image, g *game.Game, face *textv2.GoXFace, screenW, screenH, idx int) {

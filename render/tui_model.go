@@ -79,6 +79,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
+		case "ctrl+s":
+			m.game.Save()
+			return m, nil
+		case "ctrl+l":
+			m.game.Load()
+			return m, nil
+		case "ctrl+n":
+			m.game.Reset()
+			return m, nil
 		}
 
 		if m.game.HasPendingOffer() {
@@ -129,9 +138,14 @@ func (m Model) View() string {
 	}
 
 	// Status bar occupies the last line; map gets the rest.
-	// Debug bar (when visible) takes one additional line.
+	// Debug bar (when visible) and save/load status each take one additional line.
+	statusMsg := saveStatusText(m.game.Status.Code)
+	statusActive := statusMsg != "" && m.clock.Now().Before(m.game.Status.SetAt.Add(statusDuration))
 	mapHeight := m.termHeight - 1
 	if m.debugVillager {
+		mapHeight--
+	}
+	if statusActive {
 		mapHeight--
 	}
 	mapWidth := m.termWidth
@@ -238,6 +252,10 @@ func (m Model) View() string {
 	sb.WriteByte('\n')
 	sb.WriteString(status)
 
+	if statusActive {
+		sb.WriteByte('\n')
+		sb.WriteString(" " + statusMsg)
+	}
 	if m.debugVillager {
 		sb.WriteByte('\n')
 		sb.WriteString(m.villagerDebugBar())

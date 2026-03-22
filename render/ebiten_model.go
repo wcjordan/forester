@@ -67,6 +67,19 @@ func (e *EbitenGame) Update() error {
 		return nil
 	}
 
+	// Ctrl shortcuts: save, load, new game. Return early to skip movement.
+	if ebiten.IsKeyPressed(ebiten.KeyControl) {
+		switch {
+		case inpututil.IsKeyJustPressed(ebiten.KeyS):
+			e.game.Save()
+		case inpututil.IsKeyJustPressed(ebiten.KeyL):
+			e.game.Load()
+		case inpututil.IsKeyJustPressed(ebiten.KeyN):
+			e.game.Reset()
+		}
+		return nil
+	}
+
 	// Movement: hold-to-move; player's 150ms cooldown throttles actual movement.
 	// Also tracks whether any movement key is held for walk animation.
 	player := e.game.State.Player
@@ -228,6 +241,9 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 	drawHUD(screen, e.game, e.hudFace, e.screenW, e.screenH)
 	if e.debugVillager {
 		drawVillagerDebugBar(screen, e.game, e.hudFace, e.screenW, e.screenH, e.debugVillagerIdx)
+	}
+	if msg := saveStatusText(e.game.Status.Code); msg != "" && now.Before(e.game.Status.SetAt.Add(statusDuration)) {
+		drawStatusBar(screen, msg, e.hudFace, e.screenW, e.screenH)
 	}
 }
 

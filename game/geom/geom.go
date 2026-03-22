@@ -1,7 +1,20 @@
 package geom
 
+import "fmt"
+
 // Point is a 2D coordinate used as a map key for spatial indexes.
 type Point struct{ X, Y int }
+
+// MarshalText encodes Point as "X,Y" so it can be used as a JSON map key.
+func (p Point) MarshalText() ([]byte, error) {
+	return []byte(fmt.Sprintf("%d,%d", p.X, p.Y)), nil
+}
+
+// UnmarshalText decodes a "X,Y" string back into a Point.
+func (p *Point) UnmarshalText(b []byte) error {
+	_, err := fmt.Sscanf(string(b), "%d,%d", &p.X, &p.Y)
+	return err
+}
 
 // chebyshevRingDo calls f(x, y) for every tile on the Chebyshev ring at
 // distance r from (cx, cy). Ring 0 is just the center point.

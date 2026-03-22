@@ -89,6 +89,16 @@ type Villager struct {
 	pathFailures int     // consecutive FindPath misses for current target
 }
 
+// VillagerSaveDatum holds the persistent fields of a Villager.
+// Runtime-only fields (moveCooldown, path, pathFailures) are excluded.
+type VillagerSaveDatum struct {
+	X, Y    int
+	TargetX int
+	TargetY int
+	Wood    int
+	Task    VillagerTask
+}
+
 // VillagerManager manages the set of autonomous villagers at runtime.
 type VillagerManager struct {
 	Villagers []*Villager
@@ -97,6 +107,34 @@ type VillagerManager struct {
 // NewVillagerManager creates an empty VillagerManager.
 func NewVillagerManager() *VillagerManager {
 	return &VillagerManager{}
+}
+
+// SaveData returns a snapshot of all villagers' persistent state.
+func (vm *VillagerManager) SaveData() []VillagerSaveDatum {
+	data := make([]VillagerSaveDatum, len(vm.Villagers))
+	for i, v := range vm.Villagers {
+		data[i] = VillagerSaveDatum{
+			X: v.X, Y: v.Y,
+			TargetX: v.TargetX, TargetY: v.TargetY,
+			Wood: v.Wood,
+			Task: v.Task,
+		}
+	}
+	return data
+}
+
+// LoadFrom restores villagers from a snapshot.
+// Runtime-only fields (moveCooldown, path, pathFailures) are reset to zero values.
+func (vm *VillagerManager) LoadFrom(data []VillagerSaveDatum) {
+	vm.Villagers = make([]*Villager, len(data))
+	for i, vd := range data {
+		vm.Villagers[i] = &Villager{
+			X: vd.X, Y: vd.Y,
+			TargetX: vd.TargetX, TargetY: vd.TargetY,
+			Wood: vd.Wood,
+			Task: vd.Task,
+		}
+	}
 }
 
 // Spawn appends a new idle villager at (x, y).
