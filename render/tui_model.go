@@ -26,15 +26,16 @@ func doTick() tea.Cmd {
 }
 
 var (
-	playerStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))           // blue
-	forestStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))            // green
-	stumpStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))            // dark gray
-	foundationStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))            // yellow (dim)
-	logStorageStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Bold(true) // bold yellow
-	houseStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true) // bold magenta
-	villagerStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("14"))           // cyan
-	troddenStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("130"))          // brown/amber
-	roadStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))            // dark gray
+	playerStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))            // blue
+	forestStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))             // green
+	stumpStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))             // dark gray
+	foundationStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))             // yellow (dim)
+	logStorageStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Bold(true)  // bold yellow
+	houseStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true)  // bold magenta
+	resourceDepotStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("14")).Bold(true) // bold cyan
+	villagerStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("14"))            // cyan
+	troddenStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("130"))           // brown/amber
+	roadStyle          = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))             // dark gray
 )
 
 // Model is the bubbletea model for the game. It owns viewport dimensions
@@ -188,7 +189,7 @@ func (m Model) View() string {
 
 			// Structure overlays take priority over terrain.
 			switch tile.Structure {
-			case structures.FoundationLogStorage, structures.FoundationHouse:
+			case structures.FoundationLogStorage, structures.FoundationHouse, structures.FoundationResourceDepot:
 				sb.WriteString(foundationStyle.Render("?"))
 				continue
 			case structures.LogStorage:
@@ -196,6 +197,9 @@ func (m Model) View() string {
 				continue
 			case structures.House:
 				sb.WriteString(houseStyle.Render("H"))
+				continue
+			case structures.ResourceDepot:
+				sb.WriteString(resourceDepotStyle.Render("D"))
 				continue
 			}
 
