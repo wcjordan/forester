@@ -2,7 +2,7 @@
 
 ## Project
 
-See `docs/PROJECT_PLAN.md` for an idea of the project.
+See `docs/GAME_DESIGN.md` for core mechanics and `README.md` for project overview.
 
 ## Repo Map (entrypoints)
 
@@ -56,6 +56,18 @@ make clean   # remove build artifacts
 make format  # format code w/ gofmt
 make wasm    # compile WASM binary (forester.wasm)
 ```
+
+---
+
+## Git Worktrees
+
+Sprite assets are gitignored and not present in fresh worktrees. The `render` and `e2e_tests` packages embed sprites at compile time via `go:embed`, and **`go:embed` does not follow directory symlinks**. When starting work in a new worktree, copy the sprites directory:
+
+```bash
+cp -r assets/sprites/ <worktree-path>/assets/sprites/
+```
+
+Without this, any package that imports `forester/assets` (including `e2e_tests`) will fail to compile.
 
 ---
 
@@ -199,6 +211,7 @@ If issues are found:
 - **Composable architecture** - Create composable components with minimal responsibilities
 - **Explicit over implicit** - Clear data flow and dependencies
 - **Test-driven when possible** - Never disable tests, fix them
+- **Optional interface duck-typing for StructureDef extensions** — new placement or behavior variants are wired as optional interfaces checked via type assertion (e.g. `spawnAnchoredPlacer`, `spawnAnchorOverrider`), not by widening the `StructureDef` base interface. Keep the core interface minimal.
 
 ### Code Quality
 
@@ -206,6 +219,8 @@ If issues are found:
   - Tests should be passing and code should be linted (`make check` should pass)
   - Self-review changes
   - Ensure commit message explains "why"
+- **Name all multi-value return types** — `golangci-lint` (gocritic `unnamedResult`) rejects unnamed returns on exported methods and interface signatures. Always write `(x, y int)` not `(int, int)`.
+- **Avoid shadowing built-ins** — `golangci-lint` rejects variable names like `cap`, `len`, `new`, `make`.
 
 ### Error Handling
 
@@ -230,3 +245,10 @@ When multiple valid approaches exist, choose based on:
 - Prefer snapshot testing to complex assertions
 - Use existing test utilities/helpers
 - Tests should be deterministic
+
+#### E2E test gotchas (`e2e_tests/`)
+
+- **`tick` vs `tickDraining`**: Use plain `tick` when you need to inspect a pending upgrade offer. `tickDraining` calls `drainOffers()` which immediately accepts and clears any pending offer — you won't see it.
+- **Player position affects near-player spawn**: `findValidLocationNearPlayer` walks from the player toward world center. If the player is already at world center, the walk has zero steps and only considers the player's own tile (which is blocked). Move the player off center before triggering any beat that uses near-player foundation placement.
+- **Cooldown stacking near multiple structures**: A player adjacent to both a foundation and a storage structure will fire both build and deposit cooldowns each tick, burning through inventory twice as fast. When testing focused building, lock the other cooldown: `g.State.Player.SetCooldown(game.Deposit, clock.Now().Add(time.Hour))`.
+- **Story beats are sequential and unexported**: `completedBeats` is unexported; you cannot skip beats. E2E tests must advance through all preceding beats naturally — factor this into test design time estimates.

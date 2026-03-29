@@ -1,8 +1,22 @@
 # Forester
 
-A terminal-based city builder where you play as a character who develops a village through organic, emergent gameplay. Roads form where you walk, structures appear where you work, and villagers learn by following your example.
+A city builder / simulation game where you develop a village through organic, emergent gameplay — no explicit building menus or villager assignments. Structures appear where you work, roads form where you travel, and villagers learn by following your example.
 
-See [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) for the full design document.
+- **Top-down character movement** — Factorio-style player traversing the map
+- **Organic growth** — Roads form where you travel, structures appear where you work
+- **Auto-interaction** — Minimal button presses; trees auto-cut when near (like Vampire Survivors)
+- **Lead by example** — Cannot directly assign villagers; they follow and learn from you
+- **Card upgrades** — Progression through XP and milestone-based rare cards
+
+## Docs
+
+| Document | Purpose |
+|---|---|
+| [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md) | Core mechanics reference (current state) |
+| [`docs/FOLLOW_THROUGH.md`](docs/FOLLOW_THROUGH.md) | Near-term task backlog and open questions |
+| [`docs/GETTING_AROUND.md`](docs/GETTING_AROUND.md) | Codebase navigation guide |
+| [`docs/future_ideas/VILLAGE_PROGRESSION.md`](docs/future_ideas/VILLAGE_PROGRESSION.md) | Village tier design (Tiers 1–4) and long-term ideas |
+| [`docs/completed/`](docs/completed/) | Implementation records for completed work |
 
 ## Prerequisites
 
@@ -104,8 +118,11 @@ render/
   util.go            # Shared render utilities
 e2e_tests/           # End-to-end tests with injected clock + RNG
 docs/
-  PROJECT_PLAN.md    # Game design document
+  GAME_DESIGN.md     # Core mechanics reference
+  FOLLOW_THROUGH.md  # Task backlog and open questions
   GETTING_AROUND.md  # Codebase navigation guide
+  future_ideas/      # Long-term design exploration
+  completed/         # Implementation records
 ```
 
 ## Tech Stack

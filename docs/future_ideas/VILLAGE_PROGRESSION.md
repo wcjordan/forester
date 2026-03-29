@@ -169,7 +169,7 @@ Non-production buildings that provide happiness, research, population tier eligi
 
 ## Building / Village Tiers
 
-Tier progression governs *which buildings can be constructed*, not just which resources exist. A Town Hall, for instance, cannot be built until Tier 3 prerequisites are met. This prevents players from skipping directly to advanced buildings without building a supporting base.
+Tier progression governs *which buildings can be constructed*, not just which resources exist.
 
 ### Tier 0 — Survival (current state)
 
@@ -206,7 +206,7 @@ New buildings: Windmill, Bakery, Animal Farm, Carpenter's Workshop, Brickyard, W
 New resources: Flour, Bread, Bricks, Furniture, Livestock products
 Population tier eligible: Craftsmen
 
-Craftsmen-tier villagers are more productive in specialized roles but require sustained access to Bread and a Bathhouse — and must maintain happiness — to reach and hold their tier. This is the first point where population quality, not just quantity, matters.
+Craftsmen-tier villagers are more productive in specialized roles but require sustained access to Bread and a Bathhouse — and must maintain happiness — to reach and hold their tier.
 
 ---
 
@@ -221,8 +221,6 @@ Population tier eligible: Burghers
 
 Iron Tools are the single most impactful unlock in this tier. All harvesting, farming, mining, and construction speeds increase. The cost is the entire metal chain, which demands coal or large charcoal reserves.
 
-Burghers require Ale, Clothing, and Market access in addition to sustained happiness to reach their tier.
-
 ---
 
 ### Tier 4 — Proto-City
@@ -234,15 +232,11 @@ New buildings: Blast Furnace, Armorer, Weaponsmith, Academy, Cathedral, Grand Ba
 New resources: Steel, Armor, Weapons, Advanced research output
 Population tier eligible: Scholars, Nobles
 
-Scholars require Paper, Library access, and sustained happiness and comfort. Nobles require luxury goods (fine cloth, wine, art) and Cathedral access. Both provide powerful labor multipliers once their tier is reached.
-
 ---
 
 ## Population Types and Dynamics
 
-Population progression is consumption-driven and card-gated. Villagers physically walk to buildings to consume goods — a villager must travel to a Bakery to eat bread, not just have it exist in storage. Each villager independently tracks their own consumption history and happiness level. When a villager has sustained sufficient consumption of tier-appropriate goods and maintained happiness long enough, a **Promote Villager** card becomes available in the XP offer pool (similar to Spawn Villager). The player selects it to promote that specific villager.
-
-The cost of promotion is the infrastructure challenge of sustaining the villager's ongoing needs at the new tier — not a one-time resource payment. Higher-tier citizens bring commensurately higher productivity in their specialized roles, but their maintenance requirements are steep and ongoing.
+Population progression is consumption-driven and card-gated. Villagers physically walk to buildings to consume goods. Each villager independently tracks their own consumption history and happiness level. When a villager has sustained sufficient consumption of tier-appropriate goods and maintained happiness long enough, a **Promote Villager** card becomes available in the XP offer pool (similar to Spawn Villager).
 
 | Tier | Name | Eligibility Criteria | Labor Provided | Ongoing Needs |
 |---|---|---|---|---|
@@ -255,9 +249,9 @@ The cost of promotion is the infrastructure challenge of sustaining the villager
 ### Tier Mechanics
 
 - Tier promotion is permanent — once a villager reaches a tier, they do not regress
-- **Unmet needs cause a graduated productivity penalty** — a Craftsman without Bread does not revert to Settler, but their productivity drops significantly (floor around 50% or lower) until needs are restored
-- Happiness is a small but real productivity modifier at all tiers, and a requirement for tier eligibility. It is provided by civic buildings (Shrine, Tavern, Temple) and goods (Ale)
-- Higher-tier citizens are more productive in their specialized role but do not contribute to tasks outside it — this creates a meaningful tradeoff between breadth (many generalist Settlers) and depth (fewer, more capable specialists)
+- **Unmet needs cause a graduated productivity penalty** — a Craftsman without Bread does not revert to Settler, but their productivity drops significantly (floor around 50%) until needs are restored
+- Happiness is a small but real productivity modifier at all tiers, and a requirement for tier eligibility
+- Higher-tier citizens are more productive in their specialized role but do not contribute to tasks outside it — breadth (many generalist Settlers) vs. depth (fewer, more capable specialists)
 
 ### Player Following and Task Weighting
 
@@ -265,80 +259,18 @@ Villagers in the player's vicinity naturally weight their tasks toward the playe
 
 ### Foreman System
 
-The Foreman is a permanent promotion for a villager who has demonstrated sustained work in an area. When a villager qualifies (sufficient time on task, village prerequisites met), a **Promote Foreman** card appears in the XP offer pool with high priority.
+The Foreman is a permanent promotion for a villager who has demonstrated sustained work in an area. When a villager qualifies, a **Promote Foreman** card appears in the XP offer pool with high priority.
 
 Once promoted, the Foreman:
 - Anchors to the industry's primary building (e.g., Log Storage for wood, Granary for food, Forge for metal)
 - Sustains that industry autonomously within a radius of that building, even without the player present
 - Enables villagers working within the radius to maintain their task weighting without player proximity
 
-This is the mechanism that allows the player to "hand off" a mature industry and focus on developing the next one. A common rhythm: player establishes a new resource area, works it until it is running, a Foreman emerges and takes over, player moves to the next challenge.
-
-The Foreman's radius of influence scales with specific upgrades targeted at that industry or building type.
-
----
-
-## Scaling Challenges and Design Tensions
-
-The game is designed around a series of inflection points where the current system becomes the bottleneck for the next.
-
-### Challenge 1 — The Wood Squeeze
-
-*When it hits:* Tier 1, as Charcoal Kiln comes online; deepens into Tier 2 as Brickyard and Paper Mill add further demand.
-
-Wood goes from one use (building) to three or four competing uses (building, charcoal, paper, furniture). The squeeze is gradual — charcoal arrives first, then bricks, then paper — giving the player time to respond, but only if they notice the trend early. Players who did not invest in a Forester's Lodge eventually face a hard shortage. The resolution is sustainable forestry: managing harvest rotation so cleared areas regrow before the frontier moves too far.
-
-### Challenge 2 — Food Does Not Scale
-
-*When it hits:* Mid Tier 1, as population grows past 4–5 villagers.
-
-Forest foraging sustains a tiny settlement but cannot scale. Each new villager draws from a forest food pool that regenerates slowly and depletes faster as the village grows. The pressure to build a real food chain (farmstead → granary → bakery) mounts naturally and unavoidably. This challenge does not require a hard gate — the world enforces it.
-
-Once the food chain is running, the challenge shifts to volume: 20 Craftsmen need dramatically more bread than 5 Settlers. The grain → windmill → bakery chain must scale to match population, creating recurring investment pressure on the food chain throughout the game.
-
-### Challenge 3 — The Fuel Bottleneck
-
-*When it hits:* Tier 2 → 3, as Bakery, Brickyard, and Smelter all go online.
-
-Charcoal from wood is the early universal fuel. When Smelting begins, charcoal demand spikes sharply. Coal mines are the long-term solution but require iron picks (which require smelting). The bootstrapping tension is real and intentional: start smelting on charcoal, use first tools to open a coal mine, transition smelting to coal, free up charcoal for other uses.
-
-### Challenge 4 — Tool Investment Moment
-
-*When it hits:* First time a Forge comes online.
-
-Iron tools provide a significant speed boost to all production. But building the full metal chain (mine + smelter + forge + smithy) requires diverting wood, stone, charcoal, and labor from current production. Everything slows down during construction. The payoff is large but delayed — it's the most significant "spend now to earn later" bet in the game.
-
-### Challenge 5 — Population Quality Pressure
-
-*When it hits:* First Craftsmen promotions.
-
-Promoting a villager to Craftsmen requires sustained Bread consumption and Bathhouse access — neither of which runs automatically. The player must build and staff the supply chain, then maintain it at scale. As more villagers reach Craftsmen tier, the ongoing demand for Bread, Clothing, and Ale grows proportionally. Letting those chains fall behind causes widespread productivity penalties rather than tier regression, but 50% productivity across a large workforce is a serious setback.
-
-### Challenge 6 — Transport Bottleneck
-
-*When it hits:* Late Tier 2 / early Tier 3, as production sites and consumption sites diverge geographically.
-
-Mines are where ore is, not where the Smithy is. Farmsteads are on open land, not adjacent to the Bakery. Road quality directly affects hauling speed — villagers move faster on roads, so the quality of the road network between production and consumption sites becomes a real constraint. This is already partly addressed by the road formation system; the challenge deepens as the map scales.
-
-### Key Design Tensions
-
-| Tension | Option A | Option B |
-|---|---|---|
-| Wood vs. Stone buildings | Cheap, fast wood | Expensive, durable stone |
-| Charcoal vs. Coal fuel | Renewable, immediate | Efficient, needs mine first |
-| Grain allocation | Bread (food) | Ale (happiness / Burgher need) |
-| Population breadth vs. depth | Many generalist Settlers | Fewer, more capable specialists |
-| Forester's Lodge vs. frontier expansion | Sustainable yield | Short-term gain, long-term shortage |
-| Promote now vs. sustain later | Tier benefits sooner | Ongoing needs may outpace supply |
-| Build food chain now vs. defer | Steady state earlier | More wood for construction short-term |
-
-None of these have a universally correct answer — the right choice depends on map layout, current resources, and which crisis is most imminent.
+This is the mechanism that allows the player to "hand off" a mature industry and focus on developing the next one. The Foreman's radius of influence scales with specific upgrades.
 
 ---
 
 ## Upgrade Card Dynamics
-
-The XP / card system extends through all tiers. Cards are the primary lever for player agency that operates outside of direct player actions — travel, resource collection, and working alongside villagers. They answer "how does the player shape their village's specialization?" without placing buildings or assigning tasks directly.
 
 ### Card Categories by Tier
 
@@ -367,12 +299,12 @@ The XP / card system extends through all tiers. Cards are the primary lever for 
 **Tier 3 — Town**
 - Iron tools: all production speeds +40% (one-time; major milestone unlock)
 - Guild organization: villagers in the same profession share a productivity bonus
-- Trade routes: market exchange rates improve; less loss on surplus sales
+- Trade routes: market exchange rates improve
 - Promote Foreman (offered with high priority when a villager qualifies)
 - Coal mastery: Coal Mine output +25%; fuel substitution easier
 
 **Tier 4 — Proto-City**
-- Steel tools: all production speeds +60% (replaces iron tools effect)
+- Steel tools: all production speeds +60%
 - Engineering: construction costs reduced 15%
 - Grand Library: research rate doubled
 - Naval access: Harbor trade volume +50%
@@ -387,13 +319,21 @@ Cards are filtered by what is currently relevant:
 - "Promote Villager" only appears when a specific villager meets their tier's eligibility criteria
 - "Promote Foreman" only appears when a villager qualifies, and is weighted to appear with high probability
 
-This prevents the card pool from being polluted with irrelevant offers and ensures each card feels timely.
+---
 
-### Stacking and Specialization
+## Scaling Challenges
 
-Most production cards are stackable (current behavior). A player who takes Harvest Speed three times is committing to a wood-focused playstyle. This creates soft "builds" — a player running 3× Harvest + 2× Charcoal yield is playing a very different game than one running 2× Pack Animal + 2× Trade routes. The roguelike element is that the card pool is random within the filtered set, so players must adapt their strategy to what they are offered.
+- **Wood Squeeze** — Hits at Tier 1 as the Charcoal Kiln, Brickyard, and Paper Mill all compete for raw logs. Without a Forester's Lodge, the local forest exhausts and the shortage cascades across every other chain.
 
-Production-specific cards (e.g., Coal mastery, Bread surplus) are intentionally narrow — they reward deep investment in a single chain rather than broad generalism.
+- **Food Doesn't Scale** — Past 4–5 villagers, foraging and hunting can no longer keep pace with consumption. The entire grain → windmill → bakery chain must be built and staffed before population growth can safely continue.
+
+- **Fuel Bottleneck** — At the Tier 2→3 boundary, the Bakery, Brickyard, and Smelter all come online simultaneously and compete for charcoal. Players must transition to coal mining before the entire production complex stalls.
+
+- **Tool Investment Moment** — The first Forge creates a bootstrap dilemma: you need tools to mine efficiently, but you can't forge tools without ore and fuel. Accepting a temporary production slowdown to build out the full metal chain pays off with the iron tools efficiency bonus.
+
+- **Population Quality Pressure** — Promoting the first Craftsmen triggers sustained demand for Bread, Clothing, and Bathhouse access. Neglecting these causes a productivity penalty that compounds across a growing specialist workforce.
+
+- **Transport Bottleneck** — Late Tier 2 / early Tier 3, the distance between production sites and storage becomes the binding constraint as villager carry time dominates throughput. Road quality between the mine, smelter, forge, and storage is the primary lever.
 
 ---
 
@@ -401,5 +341,18 @@ Production-specific cards (e.g., Coal mastery, Bread surplus) are intentionally 
 
 - What triggers the Tier 3 → 4 transition? Town Hall construction and/or trade milestones are strong candidates; defer to playtesting.
 - Foreman eligibility criteria: how many ticks on-task, and what village prerequisites?
-- Precise happiness values: what productivity bonus does happiness provide, and what is the exact penalty floor for unmet needs?
-- Road quality tiers: should hauling speed scale continuously with WalkCount, or at fixed thresholds (trodden / road / paved)?
+- Precise happiness values: productivity bonus and penalty floor for unmet needs?
+- Road quality tiers: continuous scaling or fixed thresholds (trodden / road / paved)?
+
+---
+
+## Beyond Tier 4 — Long-term Ideas
+
+Brainstorming bucket for post-Tier-4 expansion. No implementation priority assigned.
+
+- **Crafting system** — combine resources into new tools, furniture, or equipment outside of the existing building chains (e.g. player crafts directly from inventory)
+- **Map scale-up** — expand from 100×100 to 1000×1000 tiles with chunk-based loading
+- **Multiple biomes** — tundra, desert, wetlands; each with unique resources and constraints
+- **Weather / seasons / day-night cycle** — temperature affects crop yield; winter increases fuel demand
+- **Combat system** — hostile creatures or raiders; defensive structures; auto-attack player mechanic
+- **Trade with other settlements** — NPC settlements appear on the map; trade routes with caravans
