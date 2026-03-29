@@ -2,7 +2,7 @@
 
 ## Project
 
-See `docs/PROJECT_PLAN.md` for an idea of the project.
+See `docs/GAME_DESIGN.md` for core mechanics and `README.md` for project overview.
 
 ## Repo Map (entrypoints)
 

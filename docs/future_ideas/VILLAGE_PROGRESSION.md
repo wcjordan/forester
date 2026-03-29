@@ -340,3 +340,16 @@ Cards are filtered by what is currently relevant:
 - Foreman eligibility criteria: how many ticks on-task, and what village prerequisites?
 - Precise happiness values: productivity bonus and penalty floor for unmet needs?
 - Road quality tiers: continuous scaling or fixed thresholds (trodden / road / paved)?
+
+---
+
+## Beyond Tier 4 — Long-term Ideas
+
+Brainstorming bucket for post-Tier-4 expansion. No implementation priority assigned.
+
+- **Crafting system** — combine resources into new tools, furniture, or equipment outside of the existing building chains (e.g. player crafts directly from inventory)
+- **Map scale-up** — expand from 100×100 to 1000×1000 tiles with chunk-based loading
+- **Multiple biomes** — tundra, desert, wetlands; each with unique resources and constraints
+- **Weather / seasons / day-night cycle** — temperature affects crop yield; winter increases fuel demand
+- **Combat system** — hostile creatures or raiders; defensive structures; auto-attack player mechanic
+- **Trade with other settlements** — NPC settlements appear on the map; trade routes with caravans

@@ -107,3 +107,12 @@ Stone, berries, fish, etc. earn XP when gathered — keeps XP flow natural as ga
 - Common vs. rare card rarity — how to signal rarity in the UI?
 - Milestone card interaction: if XP milestone and village milestone fire simultaneously, queue both or merge into one offer?
 - Upgrade stacking caps — should any upgrade have a maximum stack count?
+- Number of cards per offer — currently 3; should this change as the card pool grows?
+
+---
+
+## Open Questions
+
+- XP curve and level-up frequency as game expands beyond wood?
+- Villager population cap / housing ratio?
+- Foreman eligibility criteria — how many ticks on-task before eligible?
