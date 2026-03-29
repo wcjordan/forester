@@ -323,14 +323,17 @@ Cards are filtered by what is currently relevant:
 
 ## Scaling Challenges
 
-| Challenge | When It Hits | Resolution |
-|---|---|---|
-| **Wood Squeeze** | Tier 1, as Charcoal Kiln + Brickyard + Paper Mill add competing demand | Forester's Lodge; harvest rotation |
-| **Food Doesn't Scale** | Mid Tier 1, past 4–5 villagers | Farmstead → Granary → Bakery chain |
-| **Fuel Bottleneck** | Tier 2→3, as Bakery + Brickyard + Smelter all come online | Charcoal-first → coal mine → transition |
-| **Tool Investment Moment** | First Forge comes online | Build full metal chain; accept temporary slowdown |
-| **Population Quality Pressure** | First Craftsmen promotions | Scale Bread + Clothing + Bathhouse supply |
-| **Transport Bottleneck** | Late Tier 2 / early Tier 3 | Road quality between production and consumption sites |
+- **Wood Squeeze** — Hits at Tier 1 as the Charcoal Kiln, Brickyard, and Paper Mill all compete for raw logs. Without a Forester's Lodge, the local forest exhausts and the shortage cascades across every other chain.
+
+- **Food Doesn't Scale** — Past 4–5 villagers, foraging and hunting can no longer keep pace with consumption. The entire grain → windmill → bakery chain must be built and staffed before population growth can safely continue.
+
+- **Fuel Bottleneck** — At the Tier 2→3 boundary, the Bakery, Brickyard, and Smelter all come online simultaneously and compete for charcoal. Players must transition to coal mining before the entire production complex stalls.
+
+- **Tool Investment Moment** — The first Forge creates a bootstrap dilemma: you need tools to mine efficiently, but you can't forge tools without ore and fuel. Accepting a temporary production slowdown to build out the full metal chain pays off with the iron tools efficiency bonus.
+
+- **Population Quality Pressure** — Promoting the first Craftsmen triggers sustained demand for Bread, Clothing, and Bathhouse access. Neglecting these causes a productivity penalty that compounds across a growing specialist workforce.
+
+- **Transport Bottleneck** — Late Tier 2 / early Tier 3, the distance between production sites and storage becomes the binding constraint as villager carry time dominates throughput. Road quality between the mine, smelter, forge, and storage is the primary lever.
 
 ---
 
