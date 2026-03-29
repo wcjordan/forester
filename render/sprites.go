@@ -2,6 +2,7 @@ package render
 
 import (
 	"image"
+	"image/color"
 	"time"
 
 	ebiten "github.com/hajimehoshi/ebiten/v2"
@@ -49,6 +50,9 @@ var (
 	// Layout: y=0..64 thatched roof (overflows one row above footprint), y=64..96 wall face.
 	houseBuildingImg *ebiten.Image
 
+	// resourceDepotPlaceholderImg is a solid amber rectangle spanning the 5×4 footprint (160×128).
+	resourceDepotPlaceholderImg *ebiten.Image
+
 	// Characters
 	villagerImg = assets.Villager.SubImage(image.Rect(0, 128, 0+64, 128+64)).(*ebiten.Image)
 
@@ -86,6 +90,7 @@ func init() {
 
 	initHouseBuilding()
 	initLogStorageBuilding()
+	initResourceDepotPlaceholder()
 }
 
 // initLogStorageBuilding composes the 128×128 log-storage yard image via spritedata.BuildLogStorageImg.
@@ -96,6 +101,14 @@ func initLogStorageBuilding() {
 // initHouseBuilding composes the 64×96 house building image via spritedata.BuildHouseImg.
 func initHouseBuilding() {
 	houseBuildingImg = spritedata.BuildHouseImg(assets.ThatchedRoofSheet, assets.CottageSheet, assets.WindowsDoorsSheet)
+}
+
+// initResourceDepotPlaceholder creates a solid amber 160×128 rectangle (5×4 tiles at 32px each).
+func initResourceDepotPlaceholder() {
+	w, h := 5*tileSize, 4*tileSize
+	img := ebiten.NewImage(w, h)
+	img.Fill(color.RGBA{R: 0xD4, G: 0x7F, B: 0x00, A: 0xFF}) // amber/gold
+	resourceDepotPlaceholderImg = img
 }
 
 // Universal LPC spritesheet constants (64×64 px per frame).
@@ -168,7 +181,7 @@ func roadNeighborMask(world *game.World, x, y int) int {
 // neighbouring tile's ground layer.
 func spriteForTile(tile *game.Tile, world *game.World, x, y int) (base drawArgs, overlays []drawArgs) {
 	switch tile.Structure {
-	case structures.FoundationLogStorage, structures.FoundationHouse:
+	case structures.FoundationLogStorage, structures.FoundationHouse, structures.FoundationResourceDepot:
 		return drawArgs{img: dirtFoundationImg, scale: 1.0}, nil
 	case structures.LogStorage:
 		// Only draw the logStorage sprite from the origin tile
@@ -182,6 +195,12 @@ func spriteForTile(tile *game.Tile, world *game.World, x, y int) (base drawArgs,
 			return drawArgs{img: grassTileImg, scale: 1.0}, nil
 		}
 		return drawArgs{img: grassTileImg, scale: 1.0}, houseOverlays()
+	case structures.ResourceDepot:
+		// Only draw the depot placeholder from the origin tile
+		if !world.IsStructureOrigin(x, y) {
+			return drawArgs{img: grassTileImg, scale: 1.0}, nil
+		}
+		return drawArgs{img: grassTileImg, scale: 1.0}, []drawArgs{{img: resourceDepotPlaceholderImg, scale: 1.0}}
 	}
 
 	switch tile.Terrain {
