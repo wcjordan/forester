@@ -139,34 +139,6 @@ func TestSpawnVillagerAtHouse(t *testing.T) {
 	}
 }
 
-// TestHouseSpawnAnchorFallsBackToWorldCenter verifies that SpawnAnchor returns the
-// world center when no ResourceDepot exists.
-func TestHouseSpawnAnchorFallsBackToWorldCenter(t *testing.T) {
-	g := makeHouseGame()
-	env := &game.Env{State: g.State, Stores: g.Stores, Villagers: g.Villagers, RNG: rand.New(rand.NewSource(0))}
-
-	x, y := houseDef{}.SpawnAnchor(env)
-	wantX := g.State.World.Width / 2
-	wantY := g.State.World.Height / 2
-	if x != wantX || y != wantY {
-		t.Errorf("SpawnAnchor (no depot) = (%d,%d), want (%d,%d)", x, y, wantX, wantY)
-	}
-}
-
-// TestHouseSpawnAnchorUsesDepotOrigin verifies that SpawnAnchor returns the depot's
-// NW origin when a ResourceDepot is present.
-func TestHouseSpawnAnchorUsesDepotOrigin(t *testing.T) {
-	g := makeHouseGame()
-	depotOrigin := geom.Point{X: 10, Y: 10}
-	buildDepotAt(g, depotOrigin.X, depotOrigin.Y, 9, 10)
-
-	env := &game.Env{State: g.State, Stores: g.Stores, Villagers: g.Villagers, RNG: rand.New(rand.NewSource(0))}
-	x, y := houseDef{}.SpawnAnchor(env)
-	if x != depotOrigin.X || y != depotOrigin.Y {
-		t.Errorf("SpawnAnchor (with depot) = (%d,%d), want depot origin (%d,%d)", x, y, depotOrigin.X, depotOrigin.Y)
-	}
-}
-
 // TestEachHouseTrackedInOccupancy verifies that multiple built houses are each
 // independently tracked as unoccupied until a villager is explicitly spawned.
 func TestEachHouseTrackedInOccupancy(t *testing.T) {

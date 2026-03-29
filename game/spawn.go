@@ -9,14 +9,6 @@ type spawnAnchoredPlacer interface {
 	UseSpawnAnchoredPlacement() bool
 }
 
-// spawnAnchorOverrider is an optional interface for StructureDef implementations
-// that want to override the anchor point used by spawn-anchored placement.
-// When implemented, SpawnAnchor returns the (x, y) world coordinate to use as the
-// center anchor instead of the default world-center spawn point.
-type spawnAnchorOverrider interface {
-	SpawnAnchor(env *Env) (x, y int)
-}
-
 // findStructureDefByFoundationType returns the StructureDef registered for the
 // given FoundationType, or nil if none is found.
 // The explicit FoundationType check guards against accidentally passing a BuiltType,
@@ -42,21 +34,16 @@ func SpawnFoundationByType(env *Env, ft StructureType) bool {
 }
 
 // spawnFoundationAt finds a valid location for def and places its foundation tile.
-// Placement is near the world spawn point if def implements spawnAnchoredPlacer,
-// otherwise near the player. A spawnAnchorOverrider can further override the anchor
-// point (e.g. to place near an existing depot). Returns true if a foundation was
-// placed, false if no valid location was found (caller may retry on the next tick).
+// Placement is near the village center if def implements spawnAnchoredPlacer,
+// otherwise near the player. Returns true if a foundation was placed, false if no
+// valid location was found (caller may retry on the next tick).
 func spawnFoundationAt(env *Env, def StructureDef) bool {
 	world := env.State.World
 	playerX, playerY := env.State.Player.X, env.State.Player.Y
 	fw, fh := def.Footprint()
 	var cx, cy int
 	if sa, ok := def.(spawnAnchoredPlacer); ok && sa.UseSpawnAnchoredPlacement() {
-		anchorX := world.Width / 2
-		anchorY := world.Height / 2
-		if ao, ok := def.(spawnAnchorOverrider); ok {
-			anchorX, anchorY = ao.SpawnAnchor(env)
-		}
+		anchorX, anchorY := world.VillageCenter()
 		cx, cy = findValidLocationNearSpawn(world, playerX, playerY, fw, fh, anchorX, anchorY)
 	} else {
 		cx, cy = findValidLocationNearPlayer(world, playerX, playerY, fw, fh)

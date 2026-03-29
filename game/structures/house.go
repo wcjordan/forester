@@ -75,18 +75,6 @@ func (houseDef) BuildCost() int { return houseBuildCost }
 // as close as possible to the world spawn point rather than near the player.
 func (houseDef) UseSpawnAnchoredPlacement() bool { return true }
 
-// SpawnAnchor returns the anchor point for house foundation placement.
-// When a ResourceDepot exists, anchors near its NW origin so houses cluster
-// around the depot. Falls back to world center when no depot is present.
-func (houseDef) SpawnAnchor(env *game.Env) (x, y int) {
-	for pt := range env.State.World.StructureTypeIndex[ResourceDepot] {
-		if env.State.World.IsStructureOrigin(pt.X, pt.Y) {
-			return pt.X, pt.Y
-		}
-	}
-	return env.State.World.Width / 2, env.State.World.Height / 2
-}
-
 // houseOnPlayerInteraction handles adjacent-player interaction.
 // When adjacent to a foundation, deposits one wood toward the build cost each cooldown tick.
 // When adjacent to a built house, nothing happens (no storage).
