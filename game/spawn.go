@@ -9,6 +9,14 @@ type spawnAnchoredPlacer interface {
 	UseSpawnAnchoredPlacement() bool
 }
 
+// spawnAnchorOverrider is an optional interface for StructureDef implementations
+// that want to override the anchor point used by spawn-anchored placement.
+// When implemented, SpawnAnchor returns the (x, y) world coordinate to use as the
+// center anchor instead of the default world-center spawn point.
+type spawnAnchorOverrider interface {
+	SpawnAnchor(env *Env) (x, y int)
+}
+
 // findStructureDefByFoundationType returns the StructureDef registered for the
 // given FoundationType, or nil if none is found.
 // The explicit FoundationType check guards against accidentally passing a BuiltType,
@@ -30,18 +38,26 @@ func SpawnFoundationByType(env *Env, ft StructureType) bool {
 	if def == nil {
 		return false
 	}
-	return spawnFoundationAt(env.State.World, env.State.Player.X, env.State.Player.Y, def)
+	return spawnFoundationAt(env, def)
 }
 
 // spawnFoundationAt finds a valid location for def and places its foundation tile.
 // Placement is near the world spawn point if def implements spawnAnchoredPlacer,
-// otherwise near the player. Returns true if a foundation was placed, false if no
-// valid location was found (caller may retry on the next tick).
-func spawnFoundationAt(world *World, playerX, playerY int, def StructureDef) bool {
+// otherwise near the player. A spawnAnchorOverrider can further override the anchor
+// point (e.g. to place near an existing depot). Returns true if a foundation was
+// placed, false if no valid location was found (caller may retry on the next tick).
+func spawnFoundationAt(env *Env, def StructureDef) bool {
+	world := env.State.World
+	playerX, playerY := env.State.Player.X, env.State.Player.Y
 	fw, fh := def.Footprint()
 	var cx, cy int
 	if sa, ok := def.(spawnAnchoredPlacer); ok && sa.UseSpawnAnchoredPlacement() {
-		cx, cy = findValidLocationNearSpawn(world, playerX, playerY, fw, fh)
+		anchorX := world.Width / 2
+		anchorY := world.Height / 2
+		if ao, ok := def.(spawnAnchorOverrider); ok {
+			anchorX, anchorY = ao.SpawnAnchor(env)
+		}
+		cx, cy = findValidLocationNearSpawn(world, playerX, playerY, fw, fh, anchorX, anchorY)
 	} else {
 		cx, cy = findValidLocationNearPlayer(world, playerX, playerY, fw, fh)
 	}
@@ -58,7 +74,7 @@ func spawnFoundationAt(world *World, playerX, playerY int, def StructureDef) boo
 func maybeSpawnFoundation(env *Env) {
 	IterateStructures(func(def StructureDef, cb StructureCallbacks) {
 		if cb.ShouldSpawn != nil && cb.ShouldSpawn(env) {
-			spawnFoundationAt(env.State.World, env.State.Player.X, env.State.Player.Y, def)
+			spawnFoundationAt(env, def)
 		}
 	})
 }
@@ -98,18 +114,17 @@ func findValidLocationNearPlayer(world *World, playerX, playerY, footW, footH in
 	return -1, -1
 }
 
-// findValidLocationNearSpawn searches outward from the world spawn point in
-// expanding Chebyshev rings, returning the top-left corner of the first valid
-// footW×footH area found. Returns (-1, -1) if none found.
-func findValidLocationNearSpawn(world *World, playerX, playerY, footW, footH int) (x, y int) {
-	spawnX := world.Width / 2
-	spawnY := world.Height / 2
-	// anchorX/anchorY is the top-left that would center the footprint on spawn.
-	anchorX := spawnX - footW/2
-	anchorY := spawnY - footH/2
+// findValidLocationNearSpawn searches outward from anchorX/anchorY in expanding
+// Chebyshev rings, returning the top-left corner of the first valid footW×footH
+// area found. The anchor is the center point to place the footprint around.
+// Returns (-1, -1) if none found.
+func findValidLocationNearSpawn(world *World, playerX, playerY, footW, footH, anchorX, anchorY int) (x, y int) {
+	// startX/startY is the top-left that would center the footprint on the anchor.
+	startX := anchorX - footW/2
+	startY := anchorY - footH/2
 	maxR := world.Width + world.Height
 
-	x, y, found := geom.SpiralSearchDo(anchorX, anchorY, maxR, func(px, py int) bool {
+	x, y, found := geom.SpiralSearchDo(startX, startY, maxR, func(px, py int) bool {
 		return isValidArea(world, playerX, playerY, px, py, footW, footH)
 	})
 	if found {
