@@ -28,6 +28,29 @@ type World struct {
 	regrowCooldown time.Time
 }
 
+// villageCenterType is the StructureType whose first instance is used as the
+// village center anchor for spawn-anchored placement. Registered by external
+// packages via RegisterVillageCenterType.
+var villageCenterType StructureType
+
+// RegisterVillageCenterType sets the structure type used as the village center
+// anchor for spawn-anchored foundation placement. Should be called from init()
+// in the defining package.
+func RegisterVillageCenterType(stype StructureType) {
+	villageCenterType = stype
+}
+
+// VillageCenter returns the origin (x, y) of the registered village center
+// structure if one exists in the world, otherwise returns the world center.
+func (w *World) VillageCenter() (x, y int) {
+	if villageCenterType != "" {
+		for pt := range w.structureInstanceIndex[villageCenterType] {
+			return pt.X, pt.Y
+		}
+	}
+	return w.Width / 2, w.Height / 2
+}
+
 // HasStructureOfType returns true if any tile in the world has the given structure type.
 func (w *World) HasStructureOfType(stype StructureType) bool {
 	return len(w.StructureTypeIndex[stype]) > 0

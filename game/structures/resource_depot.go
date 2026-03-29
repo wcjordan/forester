@@ -28,6 +28,7 @@ func init() {
 	})
 	game.RegisterVillagerDepositType(ResourceDepot)
 	game.RegisterVillagerDeliveryType(FoundationResourceDepot)
+	game.RegisterVillageCenterType(ResourceDepot)
 
 	// Order 500: spawn the depot foundation once 4 houses are built and no depot exists.
 	game.RegisterStoryBeat(500, "initial_resource_depot",

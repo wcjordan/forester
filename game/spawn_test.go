@@ -18,7 +18,9 @@ func (testHouseDef) BuildCost() int                { return 50 }
 func TestFoundationLocationIsAllGrassland(t *testing.T) {
 	w := NewWorld(30, 30)
 	p := NewPlayer(5, 15)
-	spawnFoundationAt(w, p.X, p.Y, gametest.LogStorageDef{})
+	s := &State{Player: p, World: w, FoundationDeposited: make(map[point]int)}
+	env := &Env{State: s, Stores: NewStorageManager()}
+	spawnFoundationAt(env, gametest.LogStorageDef{})
 
 	// Find the foundation and verify all 16 tiles are on grassland terrain (underlying).
 	for y := range w.Tiles {
@@ -36,7 +38,9 @@ func TestFoundationLocationBetweenPlayerAndSpawn(t *testing.T) {
 	w := NewWorld(30, 30)
 	// Player at (2, 15); spawn at (15, 15).
 	p := NewPlayer(2, 15)
-	spawnFoundationAt(w, p.X, p.Y, gametest.LogStorageDef{})
+	s := &State{Player: p, World: w, FoundationDeposited: make(map[point]int)}
+	env := &Env{State: s, Stores: NewStorageManager()}
+	spawnFoundationAt(env, gametest.LogStorageDef{})
 
 	spawnX := w.Width / 2
 	// Find foundation top-left.

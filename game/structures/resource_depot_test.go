@@ -110,6 +110,31 @@ func TestResourceDepotBeat500Condition(t *testing.T) {
 	}
 }
 
+// TestVillageCenterDefaultsToWorldCenter verifies that VillageCenter returns the world
+// center when no ResourceDepot exists.
+func TestVillageCenterDefaultsToWorldCenter(t *testing.T) {
+	g := makeDepotGame()
+	x, y := g.State.World.VillageCenter()
+	wantX := g.State.World.Width / 2
+	wantY := g.State.World.Height / 2
+	if x != wantX || y != wantY {
+		t.Errorf("VillageCenter (no depot) = (%d,%d), want (%d,%d)", x, y, wantX, wantY)
+	}
+}
+
+// TestVillageCenterUsesDepotOrigin verifies that VillageCenter returns the depot's
+// NW origin when a ResourceDepot is present.
+func TestVillageCenterUsesDepotOrigin(t *testing.T) {
+	g := makeDepotGame()
+	depotOrigin := geom.Point{X: 10, Y: 10}
+	buildDepotAt(g, depotOrigin.X, depotOrigin.Y, 9, 10)
+
+	x, y := g.State.World.VillageCenter()
+	if x != depotOrigin.X || y != depotOrigin.Y {
+		t.Errorf("VillageCenter (with depot) = (%d,%d), want depot origin (%d,%d)", x, y, depotOrigin.X, depotOrigin.Y)
+	}
+}
+
 // TestResourceDepotStoryBeat600 verifies that building a depot queues the upgrade offer.
 func TestResourceDepotStoryBeat600(t *testing.T) {
 	g := makeDepotGame()
