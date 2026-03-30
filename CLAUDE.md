@@ -109,7 +109,7 @@ Delete these files when all work is complete.
 
 ## Planning
 
-For any non-trivial changes, use `EnterPlanMode` to break down the problem into stages and track progress. The plan should be concise and actionable (5 stages max). Each stage should have testable outcomes and an instruction to commit after completion.
+For any non-trivial changes, use `EnterPlanMode` to break down the problem into stages and track progress. The plan should be concise and actionable (5 stages max). Each stage should have explicit testable outcomes and specific test cases that prove correctness, plus an instruction to commit after completion.
 
 Plans are working documents. Revise as new information is discovered. Remove transient files (`STATUS.md`, `NEED_HELP.md`) when all work is done.
 
