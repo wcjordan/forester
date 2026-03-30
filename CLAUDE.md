@@ -61,13 +61,11 @@ make wasm    # compile WASM binary (forester.wasm)
 
 ## Git Worktrees
 
-Sprite assets are gitignored and not present in fresh worktrees. The `render` and `e2e_tests` packages embed sprites at compile time via `go:embed`, and **`go:embed` does not follow directory symlinks**. When starting work in a new worktree, copy the sprites directory:
+**Use the `EnterWorktree` tool for all non-trivial work.** Each task should run in an isolated git worktree to keep changes contained and reviewable. Worktrees are created at `.claude/worktrees/<name>`.
 
-```bash
-cp -r assets/sprites/ <worktree-path>/assets/sprites/
-```
+When spawning subagents via the Agent tool, pass `isolation: "worktree"` to give each subagent its own isolated repo copy. The worktree is automatically cleaned up if the subagent makes no changes.
 
-Without this, any package that imports `forester/assets` (including `e2e_tests`) will fail to compile.
+A `WorktreeCreate` hook automatically copies `assets/sprites/` into each new worktree. This is required because sprites are gitignored but embedded at compile time via `go:embed`, which does not follow symlinks — without the copy, any package importing `forester/assets` (including `e2e_tests`) will fail to compile.
 
 ---
 
@@ -83,6 +81,7 @@ Favor small testable steps, externalized state, and explicit verification.
 - Don’t expand scope silently.
 - Be pragmatic to keep changes small.  Adapt to the project's current state.
 - Externalize state (plans, decisions, work in progress) into transient files (see below).
+- Use `TaskCreate` / `TaskUpdate` to track in-conversation steps for multi-part work.
 - Long chat context can degrade quality. Reset context when appropriate (see below).
 
 ### Simplicity Means
@@ -93,43 +92,30 @@ Favor small testable steps, externalized state, and explicit verification.
 - No clever tricks - choose the boring solution
 - If you need to explain it, it's too complex
 
-### Transient working files (authoritative)
-Store these in: `<PROJECT_ROOT>/docs/in_progress/`
+### Transient working files
 
-1) `PLAN.md` — required for non-trivial work
-- For each stage: goal, constraints/non-goals, steps, exit criteria
+Use native **plan mode** (`EnterPlanMode`) for planning and tracking non-trivial work. Two transient files in `<PROJECT_ROOT>/docs/in_progress/` supplement the plan:
 
-2) `VERIFY.md` — how to prove correctness
-- Exact commands (tests/lint/build)
-- Env assumptions
-- What success/failure looks like
-
-3) `STATUS.md` — current state (≤10 bullets)
+1) `STATUS.md` — current state (≤10 bullets)
 - What’s done / next
 - Current failures/blockers
 - Key decisions
 
-4) `NEED_HELP.md` — only when stuck (see rule below)
+2) `NEED_HELP.md` — only when stuck (see rule below)
 
-Commit changes to `docs/in_progress` after planning is complete.
-Delete these files when all the work is complete.
+Delete these files when all work is complete.
 
 ---
 
 ## Planning
 
-For any non-trivial changes, break down the problem to subtasks and create a plan in `PLAN.md`.
-The plan should be concise and actionable (5 stages max).
-Add testable outcomes and specific test cases in `VERIFY.md` and status of subtasks to `STATUS.md`
-Each stage in `PLAN.md` should include an instruction to commit the work after that stage is complete.
+For any non-trivial changes, use `EnterPlanMode` to break down the problem into stages and track progress. The plan should be concise and actionable (5 stages max). Each stage should have testable outcomes and an instruction to commit after completion.
 
-Plans are working documents. Revise as new information is discovered.
-Update the status of each stage as you progress and commit progress.
-Remove transient files when all stages are done.
+Plans are working documents. Revise as new information is discovered. Remove transient files (`STATUS.md`, `NEED_HELP.md`) when all work is done.
 
 When finalizing planning, ask me clarifying questions about anything ambiguous.
-Ask me questions one at a time.  Questions should clarify the plan and build on my previous answers.
-Revise the plan based on my answers.  Clarify all ambiguity before starting on the implementation steps.
+Ask me questions one at a time. Questions should clarify the plan and build on my previous answers.
+Revise the plan based on my answers. Clarify all ambiguity before starting on implementation.
 
 ---
 
@@ -138,8 +124,8 @@ Revise the plan based on my answers.  Clarify all ambiguity before starting on t
 1. Follow existing patterns (find 2–3 similar examples).
 2. Add new tests first when feasible; otherwise add coverage before finishing.
 3. Implement minimal change.
-4. Verify using `VERIFY.md` 
-5. Update `STATUS.md` with command + result.
+4. Run `make check` to verify.
+5. Update plan status and `STATUS.md` with command + result.
 6. Cleanup once tests are passing.
 7. Commit with clear message describing the change.
 
@@ -159,14 +145,14 @@ Maximum **3 attempts** per issue. If still blocked:
 ## Context resets
 
 Reset / restart from files at boundaries:
-- After creating or materially revising `PLAN.md`
-- After a vertical slice / stage completion
+- After completing or materially revising a plan stage
 - After thrash (repeated failures)
 - Before final review/polish
 
 After reset, treat only these as authoritative:
 - Repo contents
-- `PLAN.md`, `VERIFY.md`, `STATUS.md`, `NEED_HELP.md`
+- Current plan (plan mode)
+- `STATUS.md`, `NEED_HELP.md`
 - Current diffs + latest verification output
 
 ---
@@ -174,8 +160,8 @@ After reset, treat only these as authoritative:
 ## Quality gates
 
 Definition of Done:
-- Tests + lint pass (per `VERIFY.md`)
-- Implementation matches `PLAN.md` exit criteria
+- Tests + lint pass (`make check`)
+- Implementation matches plan exit criteria
 - No new TODOs without adding a plan stage to address them
 
 NEVER:
@@ -185,7 +171,7 @@ NEVER:
 
 ALWAYS:
 - Commit incrementally
-- Update `PLAN.md` / `STATUS.md` as you go
+- Update plan / `STATUS.md` as you go
 - Prefer boring, readable code
 
 If verification fails:
@@ -203,7 +189,7 @@ If issues are found:
 
 - Do not silently change behavior without updating the plan.
 - Do not expand scope without noting it explicitly.
-- Avoid speculative refactors unless justified in `PLAN.md`.
+- Avoid speculative refactors unless justified in the plan.
 - Prefer evidence (tests, code, output) over narrative explanation.
 
 ### Architecture Principles
