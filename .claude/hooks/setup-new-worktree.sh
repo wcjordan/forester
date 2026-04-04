@@ -8,12 +8,21 @@ INPUT=$(cat)
 # The WorktreeCreate payload has no path field; derive the path from the worktree name.
 # Worktrees are always created at $CLAUDE_PROJECT_DIR/.claude/worktrees/<name>.
 NAME=$(echo "$INPUT" | python3 -c "import json,sys; print(json.load(sys.stdin)['name'])")
-WORKTREE="${CLAUDE_PROJECT_DIR}/.claude/worktrees/${NAME}"
 
 if [ -z "$NAME" ]; then
   echo "setup-new-worktree: could not read name from hook input" >&2
   exit 1
 fi
+
+WORKTREE="${CLAUDE_PROJECT_DIR}/.claude/worktrees/${NAME}"
+
+if [ -d "$WORKTREE" ]; then
+  echo "setup-new-worktree: worktree already exists at $WORKTREE" >&2
+  exit 1
+fi
+
+# Remove the worktree dir on failure so we don't leave partial state.
+trap 'rm -rf "$WORKTREE"' ERR
 
 # Create the git worktree on a new branch.
 mkdir -p "${CLAUDE_PROJECT_DIR}/.claude/worktrees"
