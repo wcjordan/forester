@@ -46,6 +46,55 @@ func (s *State) FoundationProgress() (float64, bool) {
 	return 0, false
 }
 
+// FoundationInfo holds rendering data for one active foundation.
+type FoundationInfo struct {
+	Origin   geom.Point
+	Width    int
+	Height   int
+	Progress float64 // 0.0–1.0
+}
+
+// AllFoundationsProgress returns FoundationInfo for every active foundation.
+func (s *State) AllFoundationsProgress() []FoundationInfo {
+	var result []FoundationInfo
+	for origin, deposited := range s.FoundationDeposited {
+		entry, ok := s.World.structureIndex[origin]
+		if !ok {
+			continue
+		}
+		cost := entry.Def.BuildCost()
+		if cost == 0 {
+			continue
+		}
+		w, h := entry.Def.Footprint()
+		result = append(result, FoundationInfo{
+			Origin:   origin,
+			Width:    w,
+			Height:   h,
+			Progress: float64(deposited) / float64(cost),
+		})
+	}
+	return result
+}
+
+// FoundationProgressAt returns the build progress (0.0–1.0) for the foundation
+// that owns tile pt, or (0, false) if pt is not part of an active foundation.
+func (s *State) FoundationProgressAt(pt geom.Point) (progress float64, ok bool) {
+	entry, exists := s.World.structureIndex[pt]
+	if !exists {
+		return 0, false
+	}
+	deposited, active := s.FoundationDeposited[entry.Origin]
+	if !active {
+		return 0, false
+	}
+	cost := entry.Def.BuildCost()
+	if cost == 0 {
+		return 0, false
+	}
+	return float64(deposited) / float64(cost), true
+}
+
 // newState creates an initial game state with defaults.
 func newState() *State {
 	world := GenerateWorld(100, 100, defaultSeed)
