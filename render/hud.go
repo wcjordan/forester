@@ -16,6 +16,44 @@ import (
 
 const hudHeight = 20
 
+const (
+	foundationBarHeight  = 4
+	foundationBarPadding = 2 // pixels above the top edge of the tile
+	foundationBarInset   = 2 // pixels inset from left and right edges
+)
+
+var (
+	colorFoundationBarBG = color.RGBA{0, 0, 0, 160}
+)
+
+// drawFoundationOverlays draws a colored progress bar above each active
+// foundation that is visible in the current viewport. The bar floats
+// foundationBarPadding pixels above the top edge of the foundation footprint
+// and spans the full footprint width (minus foundationBarInset on each side).
+// Color transitions from dark amber (0%) to bright gold (100%) using the same
+// progression as the TUI shading.
+func drawFoundationOverlays(screen *ebiten.Image, g *game.Game, vpX, vpY int) {
+	for _, fi := range g.State.AllFoundationsProgress() {
+		sx := float32((fi.Origin.X-vpX)*tileSize + foundationBarInset)
+		sy := float32((fi.Origin.Y-vpY)*tileSize - foundationBarHeight - foundationBarPadding)
+		if sy < 0 {
+			continue // bar would be above the viewport
+		}
+		barW := float32(fi.Width*tileSize - 2*foundationBarInset)
+		fillW := barW * float32(fi.Progress)
+
+		// Background.
+		vector.FillRect(screen, sx, sy, barW, foundationBarHeight, colorFoundationBarBG, false)
+
+		// Fill using shared amber→gold progression.
+		r, g2, b := foundationProgressRGB(fi.Progress)
+		fillColor := color.RGBA{R: r, G: g2, B: b, A: 220}
+		if fillW > 0 {
+			vector.FillRect(screen, sx, sy, fillW, foundationBarHeight, fillColor, false)
+		}
+	}
+}
+
 var (
 	colorHUDBG      = color.RGBA{0, 0, 0, 200}
 	colorHUDText    = color.RGBA{255, 255, 255, 255}
