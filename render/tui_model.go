@@ -16,6 +16,14 @@ import (
 	"forester/game/structures"
 )
 
+// foundationProgressStyle returns a lipgloss style whose foreground is the
+// same amber→gold color used by the Ebiten progress bar overlay.
+func foundationProgressStyle(progress float64) lipgloss.Style {
+	r, g, b := foundationProgressRGB(progress)
+	hex := fmt.Sprintf("#%02X%02X%02X", r, g, b)
+	return lipgloss.NewStyle().Foreground(lipgloss.Color(hex))
+}
+
 // TickMsg is sent each tick interval to drive the game loop.
 type TickMsg time.Time
 
@@ -29,7 +37,6 @@ var (
 	playerStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))            // blue
 	forestStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))             // green
 	stumpStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))             // dark gray
-	foundationStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))             // yellow (dim)
 	logStorageStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Bold(true)  // bold yellow
 	houseStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true)  // bold magenta
 	resourceDepotStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("14")).Bold(true) // bold cyan
@@ -190,7 +197,8 @@ func (m Model) View() string {
 			// Structure overlays take priority over terrain.
 			switch tile.Structure {
 			case structures.FoundationLogStorage, structures.FoundationHouse, structures.FoundationResourceDepot:
-				sb.WriteString(foundationStyle.Render("?"))
+				progress, _ := m.game.State.FoundationProgressAt(geom.Point{X: worldX, Y: worldY})
+				sb.WriteString(foundationProgressStyle(progress).Render("?"))
 				continue
 			case structures.LogStorage:
 				sb.WriteString(logStorageStyle.Render("L"))

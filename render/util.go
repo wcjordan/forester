@@ -49,6 +49,20 @@ func clampF(v, lo, hi float64) float64 {
 	return v
 }
 
+// foundationProgressRGB returns a linearly interpolated amber→gold RGB color
+// for the given build progress (0.0–1.0). Used by both the TUI and Ebiten
+// renderers so both use the same color progression.
+//
+// 0%  → dark amber  (80,  60,  0)
+// 100% → bright gold (255, 215, 0)
+func foundationProgressRGB(progress float64) (r, g, b uint8) {
+	p := clampF(progress, 0, 1)
+	r = uint8(80 + p*175)
+	g = uint8(60 + p*155)
+	b = 0
+	return
+}
+
 // buildProgressBar renders a text progress bar, e.g. "Building: ████░░░░ 75%".
 func buildProgressBar(progress float64) string {
 	const width = 8
