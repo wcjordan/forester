@@ -16,6 +16,33 @@ import (
 	"forester/game/structures"
 )
 
+// foundationStyleCache memoizes lipgloss styles keyed by progress value.
+// It is cleared every foundationStyleCacheTTL to bound its lifetime.
+var (
+	foundationStyleCache       = make(map[float64]lipgloss.Style)
+	foundationStyleCacheExpiry time.Time
+)
+
+const foundationStyleCacheTTL = 10 * time.Second
+
+// foundationProgressStyle returns a lipgloss style whose foreground is the
+// same amber→gold color used by the Ebiten progress bar overlay.
+// Results are memoized; the cache is cleared every foundationStyleCacheTTL.
+func foundationProgressStyle(progress float64) lipgloss.Style {
+	now := time.Now()
+	if now.After(foundationStyleCacheExpiry) {
+		clear(foundationStyleCache)
+		foundationStyleCacheExpiry = now.Add(foundationStyleCacheTTL)
+	}
+	if s, ok := foundationStyleCache[progress]; ok {
+		return s
+	}
+	cr, cg, cb := FoundationProgressRGB(progress)
+	s := lipgloss.NewStyle().Foreground(lipgloss.Color(fmt.Sprintf("#%02X%02X%02X", cr, cg, cb)))
+	foundationStyleCache[progress] = s
+	return s
+}
+
 // TickMsg is sent each tick interval to drive the game loop.
 type TickMsg time.Time
 
@@ -29,7 +56,6 @@ var (
 	playerStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))            // blue
 	forestStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))             // green
 	stumpStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))             // dark gray
-	foundationStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))             // yellow (dim)
 	logStorageStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Bold(true)  // bold yellow
 	houseStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true)  // bold magenta
 	resourceDepotStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("14")).Bold(true) // bold cyan
@@ -190,7 +216,8 @@ func (m Model) View() string {
 			// Structure overlays take priority over terrain.
 			switch tile.Structure {
 			case structures.FoundationLogStorage, structures.FoundationHouse, structures.FoundationResourceDepot:
-				sb.WriteString(foundationStyle.Render("?"))
+				progress, _ := m.game.State.FoundationProgressAt(geom.Point{X: worldX, Y: worldY})
+				sb.WriteString(foundationProgressStyle(progress).Render("?"))
 				continue
 			case structures.LogStorage:
 				sb.WriteString(logStorageStyle.Render("L"))
@@ -250,9 +277,6 @@ func (m Model) View() string {
 	xp, nextMilestone := m.game.XPInfo()
 	status += fmt.Sprintf("  XP: %d/%d", xp, nextMilestone)
 
-	if progress, ok := m.game.State.FoundationProgress(); ok {
-		status += "  " + buildProgressBar(progress)
-	}
 	sb.WriteByte('\n')
 	sb.WriteString(status)
 

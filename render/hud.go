@@ -16,15 +16,49 @@ import (
 
 const hudHeight = 20
 
+const (
+	foundationBarHeight  = 4
+	foundationBarPadding = 2 // pixels above the top edge of the tile
+	foundationBarInset   = 2 // pixels inset from left and right edges
+)
+
+// drawFoundationOverlays draws a colored progress bar above each active
+// foundation that is visible in the current viewport. The bar floats
+// foundationBarPadding pixels above the top edge of the foundation footprint
+// and spans the full footprint width (minus foundationBarInset on each side).
+// Color transitions from dark amber (0%) to bright gold (100%) using the same
+// progression as the TUI shading.
+func drawFoundationOverlays(screen *ebiten.Image, g *game.Game, vpX, vpY int) {
+	for _, fi := range g.State.AllFoundationsProgress() {
+		sx := float32((fi.Origin.X-vpX)*tileSize + foundationBarInset)
+		sy := float32((fi.Origin.Y-vpY)*tileSize - foundationBarHeight - foundationBarPadding)
+		if sy < 0 {
+			continue // bar would be above the viewport
+		}
+		barW := float32(fi.Width*tileSize - 2*foundationBarInset)
+		fillW := barW * float32(fi.Progress)
+
+		// Background.
+		vector.FillRect(screen, sx, sy, barW, foundationBarHeight, colorFoundationBarBG, false)
+
+		// Fill using shared amber→gold progression.
+		cr, cg, cb := FoundationProgressRGB(fi.Progress)
+		if fillW > 0 {
+			vector.FillRect(screen, sx, sy, fillW, foundationBarHeight, color.RGBA{R: cr, G: cg, B: cb, A: 220}, false)
+		}
+	}
+}
+
 var (
-	colorHUDBG      = color.RGBA{0, 0, 0, 200}
-	colorHUDText    = color.RGBA{255, 255, 255, 255}
-	colorOverlay    = color.RGBA{0, 0, 0, 180}
-	colorCardBG     = color.RGBA{42, 42, 42, 255}
-	colorCardBorder = color.RGBA{212, 168, 64, 255}
-	colorCardTitle  = color.RGBA{255, 255, 255, 255}
-	colorCardDesc   = color.RGBA{204, 204, 204, 255}
-	colorCardHint   = color.RGBA{255, 215, 0, 255}
+	colorHUDBG           = color.RGBA{0, 0, 0, 200}
+	colorFoundationBarBG = color.RGBA{0, 0, 0, 160}
+	colorHUDText         = color.RGBA{255, 255, 255, 255}
+	colorOverlay         = color.RGBA{0, 0, 0, 180}
+	colorCardBG          = color.RGBA{42, 42, 42, 255}
+	colorCardBorder      = color.RGBA{212, 168, 64, 255}
+	colorCardTitle       = color.RGBA{255, 255, 255, 255}
+	colorCardDesc        = color.RGBA{204, 204, 204, 255}
+	colorCardHint        = color.RGBA{255, 215, 0, 255}
 	// colorTitlePanelBG intentionally shares the card background color.
 	colorTitlePanelBG = colorCardBG
 )
@@ -61,10 +95,6 @@ func drawHUD(screen *ebiten.Image, g *game.Game, face *textv2.GoXFace, screenW, 
 
 	xp, nextMilestone := g.XPInfo()
 	status += fmt.Sprintf("  XP: %d/%d", xp, nextMilestone)
-
-	if progress, ok := g.State.FoundationProgress(); ok {
-		status += "  " + buildProgressBar(progress)
-	}
 
 	op := &textv2.DrawOptions{}
 	op.GeoM.Translate(8, float64(screenH-hudHeight)+4)

@@ -1,8 +1,6 @@
 package render
 
 import (
-	"fmt"
-	"strings"
 	"time"
 
 	"forester/game"
@@ -49,10 +47,15 @@ func clampF(v, lo, hi float64) float64 {
 	return v
 }
 
-// buildProgressBar renders a text progress bar, e.g. "Building: ████░░░░ 75%".
-func buildProgressBar(progress float64) string {
-	const width = 8
-	filled := clamp(int(progress*width), 0, width)
-	bar := strings.Repeat("█", filled) + strings.Repeat("░", width-filled)
-	return fmt.Sprintf("Building: %s %d%%", bar, int(progress*100))
+// FoundationProgressRGB returns a linearly interpolated amber→gold RGB color
+// for the given build progress (0.0–1.0). Used by both the TUI and Ebiten
+// renderers so both use the same color progression.
+//
+// 0%  → dark amber  (80,  60,  0)
+// 100% → bright gold (255, 215, 0)
+func FoundationProgressRGB(progress float64) (r, g, b uint8) {
+	p := clampF(progress, 0, 1)
+	r = uint8(80 + p*175)
+	g = uint8(60 + p*155)
+	return // b stays zero
 }

@@ -238,6 +238,7 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 		}
 	}
 
+	drawFoundationOverlays(screen, e.game, vpX, vpY)
 	drawHUD(screen, e.game, e.hudFace, e.screenW, e.screenH)
 	if e.debugVillager {
 		drawVillagerDebugBar(screen, e.game, e.hudFace, e.screenW, e.screenH, e.debugVillagerIdx)

@@ -29,9 +29,17 @@ func (s *State) AddOffer(ids []string) {
 	s.pendingOfferIDs = append(s.pendingOfferIDs, ids)
 }
 
-// FoundationProgress returns the build progress (0.0–1.0) of the first active foundation,
-// and whether any foundation is in progress. Uses structureIndex to look up BuildCost.
-func (s *State) FoundationProgress() (float64, bool) {
+// FoundationInfo holds rendering data for one active foundation.
+type FoundationInfo struct {
+	Origin   geom.Point
+	Width    int
+	Height   int
+	Progress float64 // 0.0–1.0
+}
+
+// AllFoundationsProgress returns FoundationInfo for every active foundation.
+func (s *State) AllFoundationsProgress() []FoundationInfo {
+	var result []FoundationInfo
 	for origin, deposited := range s.FoundationDeposited {
 		entry, ok := s.World.structureIndex[origin]
 		if !ok {
@@ -41,9 +49,33 @@ func (s *State) FoundationProgress() (float64, bool) {
 		if cost == 0 {
 			continue
 		}
-		return float64(deposited) / float64(cost), true
+		w, h := entry.Def.Footprint()
+		result = append(result, FoundationInfo{
+			Origin:   origin,
+			Width:    w,
+			Height:   h,
+			Progress: float64(deposited) / float64(cost),
+		})
 	}
-	return 0, false
+	return result
+}
+
+// FoundationProgressAt returns the build progress (0.0–1.0) for the foundation
+// that owns tile pt, or (0, false) if pt is not part of an active foundation.
+func (s *State) FoundationProgressAt(pt geom.Point) (progress float64, ok bool) {
+	entry, exists := s.World.structureIndex[pt]
+	if !exists {
+		return 0, false
+	}
+	deposited, active := s.FoundationDeposited[entry.Origin]
+	if !active {
+		return 0, false
+	}
+	cost := entry.Def.BuildCost()
+	if cost == 0 {
+		return 0, false
+	}
+	return float64(deposited) / float64(cost), true
 }
 
 // newState creates an initial game state with defaults.
