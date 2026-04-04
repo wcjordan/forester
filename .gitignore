@@ -30,3 +30,5 @@ assets/sprites/lpc*
 assets/sprites/player-spritesheet.*
 assets/sprites/container-v4_2*
 
+# Claude
+.claude/worktrees
