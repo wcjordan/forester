@@ -10,6 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"forester/game"
+	"forester/game/geom"
 	_ "forester/game/resources"
 	"forester/game/structures"
 	_ "forester/game/upgrades"
@@ -320,10 +321,10 @@ func TestHouseWorkflow(t *testing.T) {
 	for i := range maxBuild2Ticks {
 		tickDraining(&m, clock, g) // auto-drain any XP milestone offers
 		// Check whether the foundation is still in progress and past the 90% threshold.
-		// Note: FoundationProgress returns (0, false) before the first deposit; isBuilt
+		// Note: FoundationProgressAt returns (0, false) before the first deposit; isBuilt
 		// guards against that case so we never break prematurely on an untouched foundation.
 		isBuilt := g.State.World.CountStructureInstances(structures.House) >= 2
-		progress, hasPending := g.State.FoundationProgress()
+		progress, hasPending := g.State.FoundationProgressAt(geom.Point{X: 50, Y: 51})
 		if isBuilt || (hasPending && progress > 0.9) {
 			break
 		}
