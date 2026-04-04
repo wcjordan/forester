@@ -22,10 +22,6 @@ const (
 	foundationBarInset   = 2 // pixels inset from left and right edges
 )
 
-var (
-	colorFoundationBarBG = color.RGBA{0, 0, 0, 160}
-)
-
 // drawFoundationOverlays draws a colored progress bar above each active
 // foundation that is visible in the current viewport. The bar floats
 // foundationBarPadding pixels above the top edge of the foundation footprint
@@ -46,23 +42,23 @@ func drawFoundationOverlays(screen *ebiten.Image, g *game.Game, vpX, vpY int) {
 		vector.FillRect(screen, sx, sy, barW, foundationBarHeight, colorFoundationBarBG, false)
 
 		// Fill using shared amber→gold progression.
-		r, g2, b := FoundationProgressRGB(fi.Progress)
-		fillColor := color.RGBA{R: r, G: g2, B: b, A: 220}
+		cr, cg, cb := FoundationProgressRGB(fi.Progress)
 		if fillW > 0 {
-			vector.FillRect(screen, sx, sy, fillW, foundationBarHeight, fillColor, false)
+			vector.FillRect(screen, sx, sy, fillW, foundationBarHeight, color.RGBA{R: cr, G: cg, B: cb, A: 220}, false)
 		}
 	}
 }
 
 var (
-	colorHUDBG      = color.RGBA{0, 0, 0, 200}
-	colorHUDText    = color.RGBA{255, 255, 255, 255}
-	colorOverlay    = color.RGBA{0, 0, 0, 180}
-	colorCardBG     = color.RGBA{42, 42, 42, 255}
-	colorCardBorder = color.RGBA{212, 168, 64, 255}
-	colorCardTitle  = color.RGBA{255, 255, 255, 255}
-	colorCardDesc   = color.RGBA{204, 204, 204, 255}
-	colorCardHint   = color.RGBA{255, 215, 0, 255}
+	colorHUDBG           = color.RGBA{0, 0, 0, 200}
+	colorFoundationBarBG = color.RGBA{0, 0, 0, 160}
+	colorHUDText         = color.RGBA{255, 255, 255, 255}
+	colorOverlay         = color.RGBA{0, 0, 0, 180}
+	colorCardBG          = color.RGBA{42, 42, 42, 255}
+	colorCardBorder      = color.RGBA{212, 168, 64, 255}
+	colorCardTitle       = color.RGBA{255, 255, 255, 255}
+	colorCardDesc        = color.RGBA{204, 204, 204, 255}
+	colorCardHint        = color.RGBA{255, 215, 0, 255}
 	// colorTitlePanelBG intentionally shares the card background color.
 	colorTitlePanelBG = colorCardBG
 )

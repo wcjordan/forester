@@ -16,12 +16,31 @@ import (
 	"forester/game/structures"
 )
 
+// foundationStyleCache memoizes lipgloss styles keyed by progress value.
+// It is cleared every foundationStyleCacheTTL to bound its lifetime.
+var (
+	foundationStyleCache       = make(map[float64]lipgloss.Style)
+	foundationStyleCacheExpiry time.Time
+)
+
+const foundationStyleCacheTTL = 10 * time.Second
+
 // foundationProgressStyle returns a lipgloss style whose foreground is the
 // same amber→gold color used by the Ebiten progress bar overlay.
+// Results are memoized; the cache is cleared every foundationStyleCacheTTL.
 func foundationProgressStyle(progress float64) lipgloss.Style {
-	r, g, b := FoundationProgressRGB(progress)
-	hex := fmt.Sprintf("#%02X%02X%02X", r, g, b)
-	return lipgloss.NewStyle().Foreground(lipgloss.Color(hex))
+	now := time.Now()
+	if now.After(foundationStyleCacheExpiry) {
+		clear(foundationStyleCache)
+		foundationStyleCacheExpiry = now.Add(foundationStyleCacheTTL)
+	}
+	if s, ok := foundationStyleCache[progress]; ok {
+		return s
+	}
+	cr, cg, cb := FoundationProgressRGB(progress)
+	s := lipgloss.NewStyle().Foreground(lipgloss.Color(fmt.Sprintf("#%02X%02X%02X", cr, cg, cb)))
+	foundationStyleCache[progress] = s
+	return s
 }
 
 // TickMsg is sent each tick interval to drive the game loop.

@@ -57,6 +57,5 @@ func FoundationProgressRGB(progress float64) (r, g, b uint8) {
 	p := clampF(progress, 0, 1)
 	r = uint8(80 + p*175)
 	g = uint8(60 + p*155)
-	b = 0
-	return
+	return // b stays zero
 }
