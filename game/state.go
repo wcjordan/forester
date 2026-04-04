@@ -29,16 +29,6 @@ func (s *State) AddOffer(ids []string) {
 	s.pendingOfferIDs = append(s.pendingOfferIDs, ids)
 }
 
-// FoundationProgress returns the build progress (0.0–1.0) of the first active
-// foundation, and whether any foundation is in progress.
-func (s *State) FoundationProgress() (progress float64, ok bool) {
-	all := s.AllFoundationsProgress()
-	if len(all) == 0 {
-		return 0, false
-	}
-	return all[0].Progress, true
-}
-
 // FoundationInfo holds rendering data for one active foundation.
 type FoundationInfo struct {
 	Origin   geom.Point
