@@ -46,7 +46,7 @@ func drawFoundationOverlays(screen *ebiten.Image, g *game.Game, vpX, vpY int) {
 		vector.FillRect(screen, sx, sy, barW, foundationBarHeight, colorFoundationBarBG, false)
 
 		// Fill using shared amber→gold progression.
-		r, g2, b := foundationProgressRGB(fi.Progress)
+		r, g2, b := FoundationProgressRGB(fi.Progress)
 		fillColor := color.RGBA{R: r, G: g2, B: b, A: 220}
 		if fillW > 0 {
 			vector.FillRect(screen, sx, sy, fillW, foundationBarHeight, fillColor, false)
@@ -99,10 +99,6 @@ func drawHUD(screen *ebiten.Image, g *game.Game, face *textv2.GoXFace, screenW, 
 
 	xp, nextMilestone := g.XPInfo()
 	status += fmt.Sprintf("  XP: %d/%d", xp, nextMilestone)
-
-	if progress, ok := g.State.FoundationProgress(); ok {
-		status += "  " + buildProgressBar(progress)
-	}
 
 	op := &textv2.DrawOptions{}
 	op.GeoM.Translate(8, float64(screenH-hudHeight)+4)

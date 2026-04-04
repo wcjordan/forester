@@ -19,7 +19,7 @@ import (
 // foundationProgressStyle returns a lipgloss style whose foreground is the
 // same amber→gold color used by the Ebiten progress bar overlay.
 func foundationProgressStyle(progress float64) lipgloss.Style {
-	r, g, b := foundationProgressRGB(progress)
+	r, g, b := FoundationProgressRGB(progress)
 	hex := fmt.Sprintf("#%02X%02X%02X", r, g, b)
 	return lipgloss.NewStyle().Foreground(lipgloss.Color(hex))
 }
@@ -258,9 +258,6 @@ func (m Model) View() string {
 	xp, nextMilestone := m.game.XPInfo()
 	status += fmt.Sprintf("  XP: %d/%d", xp, nextMilestone)
 
-	if progress, ok := m.game.State.FoundationProgress(); ok {
-		status += "  " + buildProgressBar(progress)
-	}
 	sb.WriteByte('\n')
 	sb.WriteString(status)
 

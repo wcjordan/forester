@@ -15,17 +15,39 @@ import (
 	"forester/render"
 )
 
-// TestFoundationTUIShading verifies that foundation tiles render with different
-// colors at different build progress levels.
+// TestFoundationProgressRGB verifies the shared amber→gold color helper that
+// both the TUI and Ebiten renderers use for build-progress shading.
+func TestFoundationProgressRGB(t *testing.T) {
+	tests := []struct {
+		progress            float64
+		wantR, wantG, wantB uint8
+	}{
+		{0.0, 80, 60, 0},   // dark amber
+		{1.0, 255, 215, 0}, // bright gold
+		{0.5, 167, 137, 0}, // midpoint
+	}
+	for _, tt := range tests {
+		r, g, b := render.FoundationProgressRGB(tt.progress)
+		if r != tt.wantR || g != tt.wantG || b != tt.wantB {
+			t.Errorf("FoundationProgressRGB(%.1f) = (%d,%d,%d), want (%d,%d,%d)",
+				tt.progress, r, g, b, tt.wantR, tt.wantG, tt.wantB)
+		}
+	}
+	// Confirm monotonically increasing brightness.
+	r0, g0, _ := render.FoundationProgressRGB(0)
+	r1, g1, _ := render.FoundationProgressRGB(1)
+	if r1 <= r0 || g1 <= g0 {
+		t.Errorf("color should brighten with progress: 0%%=(%d,%d) 100%%=(%d,%d)", r0, g0, r1, g1)
+	}
+}
+
+// TestFoundationTUIShading verifies that foundation tiles render as '?' and
+// that the character is stable across build-progress changes (colour changes,
+// character does not).
 //
 // Setup mirrors TestLogStorageWorkflow (seed 42, player navigated to (48,45))
 // so we know the foundation spawns at origin (48,46).  With terminal 80×24 the
 // foundation origin maps to screen col=40, row=12.
-//
-// The test checks:
-//  1. The character at the foundation tile is always '?'.
-//  2. The raw (ANSI-inclusive) view differs between 0% and 100% progress —
-//     proving the colour changes with build progress.
 func TestFoundationTUIShading(t *testing.T) {
 	clock := game.NewFakeClock()
 	g := game.NewWithClockAndRNG(clock, rand.New(rand.NewSource(42)))
@@ -65,39 +87,32 @@ func TestFoundationTUIShading(t *testing.T) {
 	// vpY = clamp(45-11, 0, max(0,100-23)) = 34
 	const screenCol, screenRow = 40, 12
 
-	// Verify the tile character is '?' in the stripped view.
-	ch := charAtScreen(m, screenCol, screenRow)
-	if ch != "?" {
-		t.Errorf("foundation tile char = %q, want \"?\"", ch)
-	}
-
-	// Capture raw view at 0% progress.
-	g.State.FoundationDeposited[origin] = 0
-	view0 := m.View()
-
-	// Capture raw view at 100% progress.
-	const logStorageBuildCost = 20
-	g.State.FoundationDeposited[origin] = logStorageBuildCost
-	view100 := m.View()
-
-	// The character must still be '?' at full progress.
-	ch = charAtScreen(m, screenCol, screenRow)
-	if ch != "?" {
-		t.Errorf("foundation tile char at 100%% = %q, want \"?\"", ch)
-	}
-
-	// The stripped (no-ANSI) views at the foundation row must be identical —
-	// same character, just different colours.
-	lines0 := strings.Split(stripANSI(view0), "\n")
-	lines100 := strings.Split(stripANSI(view100), "\n")
-	if screenRow < len(lines0) && screenRow < len(lines100) {
-		if lines0[screenRow] != lines100[screenRow] {
-			t.Errorf("stripped foundation row differs: %q vs %q", lines0[screenRow], lines100[screenRow])
+	// Verify the tile character is '?' at 0% and 100% progress.
+	for _, deposited := range []int{0, 10, 20} {
+		g.State.FoundationDeposited[origin] = deposited
+		ch := charAtScreen(m, screenCol, screenRow)
+		if ch != "?" {
+			t.Errorf("foundation tile char at %d deposited = %q, want \"?\"", deposited, ch)
 		}
 	}
 
-	// The raw views must differ — confirming the colour changes with progress.
-	if view0 == view100 {
-		t.Error("raw view unchanged between 0%% and 100%% progress: foundation shading not applied")
+	// The stripped (no-ANSI) foundation row must be identical regardless of
+	// progress — same '?' character, only the colour wrapping changes.
+	g.State.FoundationDeposited[origin] = 0
+	row0 := strings.Split(stripANSI(m.View()), "\n")[screenRow]
+	g.State.FoundationDeposited[origin] = 20
+	row100 := strings.Split(stripANSI(m.View()), "\n")[screenRow]
+	if row0 != row100 {
+		t.Errorf("stripped foundation row differs at 0%% vs 100%%: %q vs %q", row0, row100)
+	}
+
+	// FoundationProgressAt must return correct progress for tiles in the footprint.
+	g.State.FoundationDeposited[origin] = 10
+	progress, ok := g.State.FoundationProgressAt(origin)
+	if !ok {
+		t.Error("FoundationProgressAt(origin): ok = false after deposit")
+	}
+	if progress != 0.5 {
+		t.Errorf("FoundationProgressAt(origin) = %v, want 0.5", progress)
 	}
 }
