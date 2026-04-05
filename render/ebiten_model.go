@@ -269,13 +269,8 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 	// Pass 1: terrain bases. All base tiles are painted before any sprite overlay
 	// so that overflowing sprites (e.g. mature tree canopy) are never masked by a
 	// neighbouring tile's ground layer.
-	// Loops extend 1 tile beyond the visible region in every direction so that
-	// sprites whose origin tile is just off-screen (tree canopies, multi-tile
-	// buildings) still contribute their visible pixels. world.TileAt returns nil
-	// for out-of-bounds coordinates and those tiles are skipped; the GPU clips
-	// any pixels that fall outside the screen.
-	for row := -1; row <= viewH; row++ {
-		for col := -1; col <= viewW; col++ {
+	for row := 0; row < viewH; row++ {
+		for col := 0; col < viewW; col++ {
 			worldX := vpX + col
 			worldY := vpY + row
 			tile := world.TileAt(worldX, worldY)
@@ -293,8 +288,8 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 	// origin may be outside the tile loop range for large buildings, but the
 	// screen position is computed from world coords so the GPU clips correctly.
 	drawnStructureOrigins := make(map[geom.Point]bool)
-	for row := -1; row <= viewH; row++ {
-		for col := -1; col <= viewW; col++ {
+	for row := 0; row < viewH; row++ {
+		for col := 0; col < viewW; col++ {
 			worldX := vpX + col
 			worldY := vpY + row
 			tile := world.TileAt(worldX, worldY)
