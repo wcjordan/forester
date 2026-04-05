@@ -6,11 +6,11 @@ import (
 	"forester/game"
 )
 
-// statusDuration is how long a save/load status message is shown.
-const statusDuration = 2 * time.Second
+// StatusDuration is how long a save/load status message is shown.
+const StatusDuration = 2 * time.Second
 
-// saveStatusText returns the display string for a SaveStatusCode, or "" for none.
-func saveStatusText(code game.SaveStatusCode) string {
+// SaveStatusText returns the display string for a SaveStatusCode, or "" for none.
+func SaveStatusText(code game.SaveStatusCode) string {
 	switch code {
 	case game.SaveStatusSaved:
 		return "Game saved"
@@ -27,7 +27,8 @@ func saveStatusText(code game.SaveStatusCode) string {
 	}
 }
 
-func clamp(v, lo, hi int) int {
+// Clamp returns v clamped to [lo, hi].
+func Clamp(v, lo, hi int) int {
 	if v < lo {
 		return lo
 	}
@@ -37,7 +38,8 @@ func clamp(v, lo, hi int) int {
 	return v
 }
 
-func clampF(v, lo, hi float64) float64 {
+// ClampF returns v clamped to [lo, hi].
+func ClampF(v, lo, hi float64) float64 {
 	if v < lo {
 		return lo
 	}
@@ -54,8 +56,6 @@ func clampF(v, lo, hi float64) float64 {
 // 0%  → dark amber  (80,  60,  0)
 // 100% → bright gold (255, 215, 0)
 func FoundationProgressRGB(progress float64) (r, g, b uint8) {
-	p := clampF(progress, 0, 1)
-	r = uint8(80 + p*175)
-	g = uint8(60 + p*155)
-	return // b stays zero
+	p := ClampF(progress, 0, 1)
+	return uint8(80 + p*175), uint8(60 + p*155), 0
 }

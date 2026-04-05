@@ -1,4 +1,4 @@
-package render
+package gui
 
 import (
 	"image"
@@ -110,6 +110,9 @@ func initResourceDepotPlaceholder() {
 	img.Fill(color.RGBA{R: 0xD4, G: 0x7F, B: 0x00, A: 0xFF}) // amber/gold
 	resourceDepotPlaceholderImg = img
 }
+
+// tileSize is the side length in pixels of one world tile at zoom=1.
+const tileSize = 32
 
 // Universal LPC spritesheet constants (64×64 px per frame).
 // Row groups each have 4 rows: +0=up, +1=left, +2=down, +3=right.

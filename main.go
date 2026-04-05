@@ -10,7 +10,7 @@ import (
 	_ "forester/game/resources"
 	_ "forester/game/structures"
 	_ "forester/game/upgrades"
-	"forester/render"
+	gui "forester/render/gui"
 )
 
 func main() {
@@ -24,7 +24,7 @@ func main() {
 	ebiten.SetWindowSize(1280, 720)
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetWindowTitle("Forester")
-	if err := ebiten.RunGame(render.NewEbitenGame(g)); err != nil {
+	if err := ebiten.RunGame(gui.NewEbitenGame(g)); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}

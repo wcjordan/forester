@@ -1,4 +1,4 @@
-package render
+package gui
 
 import (
 	"image/color"
@@ -11,9 +11,8 @@ import (
 
 	"forester/game"
 	"forester/game/geom"
+	"forester/render"
 )
-
-const tileSize = 32
 
 const (
 	zoomMin     = 0.75
@@ -61,7 +60,7 @@ func NewEbitenGame(g *game.Game) *EbitenGame {
 
 // applyZoom multiplies the current zoom by delta and clamps to [zoomMin, zoomMax].
 func (e *EbitenGame) applyZoom(delta float64) {
-	e.zoom = clampF(e.zoom*delta, zoomMin, zoomMax)
+	e.zoom = render.ClampF(e.zoom*delta, zoomMin, zoomMax)
 }
 
 // saveGame syncs zoom into game state then saves.
@@ -185,8 +184,8 @@ func (e *EbitenGame) Update() error {
 	viewW := int(math.Ceil(float64(e.screenW)/scaledTile)) + 1
 	viewH := int(math.Ceil(float64(e.screenH)/scaledTile)) + 1
 	// Use exact screen-pixel math so the target is a continuous function of zoom.
-	targetCamX := clampF(float64(player.X)-float64(e.screenW)/(2*scaledTile), 0, float64(max(0, world.Width-viewW)))
-	targetCamY := clampF(float64(player.Y)-float64(e.screenH)/(2*scaledTile), 0, float64(max(0, world.Height-viewH)))
+	targetCamX := render.ClampF(float64(player.X)-float64(e.screenW)/(2*scaledTile), 0, float64(max(0, world.Width-viewW)))
+	targetCamY := render.ClampF(float64(player.Y)-float64(e.screenH)/(2*scaledTile), 0, float64(max(0, world.Height-viewH)))
 	if e.zoom != prevZoom {
 		e.camX = targetCamX
 		e.camY = targetCamY
@@ -333,11 +332,13 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 
 	drawFoundationOverlays(screen, e.game, e.camX, e.camY, e.zoom)
 	drawHUD(screen, e.game, e.hudFace, e.screenW, e.screenH)
+	statusMsg := render.SaveStatusText(e.game.Status.Code)
+	statusActive := statusMsg != "" && now.Before(e.game.Status.SetAt.Add(render.StatusDuration))
 	if e.debugVillager {
-		drawVillagerDebugBar(screen, e.game, e.hudFace, e.screenW, e.screenH, e.debugVillagerIdx)
+		drawVillagerDebugBar(screen, e.game, e.hudFace, e.screenW, e.screenH, e.debugVillagerIdx, statusActive)
 	}
-	if msg := saveStatusText(e.game.Status.Code); msg != "" && now.Before(e.game.Status.SetAt.Add(statusDuration)) {
-		drawStatusBar(screen, msg, e.hudFace, e.screenW, e.screenH)
+	if statusActive {
+		drawStatusBar(screen, statusMsg, e.hudFace, e.screenW, e.screenH)
 	}
 }
 
