@@ -152,81 +152,69 @@ func (p *Player) MoveSmooth(dx, dy float64, w *World, dt time.Duration) {
 	speed := float64(time.Second) / float64(cooldown) // tiles/sec
 
 	if dx != 0 {
-		p.PosX = p.advancePosX(p.PosX+dx*speed*dt.Seconds(), dx, p.Y, w)
+		p.PosX = advancePos1D(p.PosX, p.PosX+dx*speed*dt.Seconds(), dx, p.Y, true, w)
 		p.X = int(math.Floor(p.PosX))
 	}
 	if dy != 0 {
-		p.PosY = p.advancePosY(p.PosY+dy*speed*dt.Seconds(), dy, p.X, w)
+		p.PosY = advancePos1D(p.PosY, p.PosY+dy*speed*dt.Seconds(), dy, p.X, false, w)
 		p.Y = int(math.Floor(p.PosY))
 	}
 }
 
-// advancePosX returns the allowed new X position after attempting to move to newX.
-// Checks only the immediately adjacent tile in the direction of movement (dx > 0 or dx < 0).
-// If that tile is blocked or out of bounds, the position is clamped to the near side
-// of that tile boundary. WalkCount is incremented when entering a road-eligible tile.
-func (p *Player) advancePosX(newX, dx float64, tileY int, w *World) float64 {
-	oldTileX := int(math.Floor(p.PosX))
-	if dx > 0 {
-		boundary := float64(oldTileX + 1)
-		if newX < boundary {
-			return newX // still within current tile
+// advancePos1D returns the allowed new position along one axis after attempting to
+// move from oldPos to newPos in direction dir (+1 or -1). Only the immediately
+// adjacent cell in the direction of movement is checked (prevents skipping past walls
+// when dt is large). fixed is the coordinate on the perpendicular axis.
+// isX controls the tile lookup order: true → TileAt(moving, fixed), false → TileAt(fixed, moving).
+// WalkCount is incremented when the move enters a road-eligible tile.
+func advancePos1D(oldPos, newPos, dir float64, fixed int, isX bool, w *World) float64 {
+	tileAt := func(moving int) *Tile {
+		if isX {
+			return w.TileAt(moving, fixed)
 		}
-		dest := w.TileAt(oldTileX+1, tileY)
-		if !w.InBounds(oldTileX+1, tileY) || (dest != nil && dest.Structure != NoStructure) {
-			return math.Nextafter(boundary, float64(oldTileX))
+		return w.TileAt(fixed, moving)
+	}
+	inBounds := func(moving int) bool {
+		if isX {
+			return w.InBounds(moving, fixed)
 		}
-		if dest != nil && isRoadEligible(dest) {
-			dest.WalkCount++
-		}
-		return newX
+		return w.InBounds(fixed, moving)
 	}
-	// dx < 0
-	boundary := float64(oldTileX)
-	if newX >= boundary {
-		return newX // still within current tile
-	}
-	dest := w.TileAt(oldTileX-1, tileY)
-	if !w.InBounds(oldTileX-1, tileY) || (dest != nil && dest.Structure != NoStructure) {
-		return boundary
-	}
-	if dest != nil && isRoadEligible(dest) {
-		dest.WalkCount++
-	}
-	return newX
-}
 
-// advancePosY returns the allowed new Y position after attempting to move to newY.
-// Symmetric with advancePosX.
-func (p *Player) advancePosY(newY, dy float64, tileX int, w *World) float64 {
-	oldTileY := int(math.Floor(p.PosY))
-	if dy > 0 {
-		boundary := float64(oldTileY + 1)
-		if newY < boundary {
-			return newY
+	oldCell := int(math.Floor(oldPos))
+	if dir > 0 {
+		boundary := float64(oldCell + 1)
+		if newPos < boundary {
+			return newPos // still within current tile
 		}
-		dest := w.TileAt(tileX, oldTileY+1)
-		if !w.InBounds(tileX, oldTileY+1) || (dest != nil && dest.Structure != NoStructure) {
-			return math.Nextafter(boundary, float64(oldTileY))
+		if !inBounds(oldCell + 1) {
+			return math.Nextafter(boundary, oldPos)
+		}
+		dest := tileAt(oldCell + 1)
+		if dest != nil && dest.Structure != NoStructure {
+			return math.Nextafter(boundary, oldPos)
 		}
 		if dest != nil && isRoadEligible(dest) {
 			dest.WalkCount++
 		}
-		return newY
+		return newPos
 	}
-	// dy < 0
-	boundary := float64(oldTileY)
-	if newY >= boundary {
-		return newY
+	// dir < 0
+	boundary := float64(oldCell)
+	if newPos >= boundary {
+		return newPos // still within current tile
 	}
-	dest := w.TileAt(tileX, oldTileY-1)
-	if !w.InBounds(tileX, oldTileY-1) || (dest != nil && dest.Structure != NoStructure) {
+	if !inBounds(oldCell - 1) {
+		return boundary
+	}
+	dest := tileAt(oldCell - 1)
+	if dest != nil && dest.Structure != NoStructure {
 		return boundary
 	}
 	if dest != nil && isRoadEligible(dest) {
 		dest.WalkCount++
 	}
-	return newY
+	return newPos
 }
 
 // defaultMoveCooldown is the base time between moves on standard terrain (Grassland).

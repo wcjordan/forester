@@ -202,6 +202,18 @@ func TestRoadLevelFor(t *testing.T) {
 	}
 }
 
+func TestMove_SyncsPosXY(t *testing.T) {
+	w := NewWorld(10, 10)
+	p := NewPlayer(5, 5)
+	t0 := time.Now()
+
+	p.Move(1, 0, w, t0) // moves to (6,5)
+
+	if p.PosX != float64(p.X) || p.PosY != float64(p.Y) {
+		t.Errorf("PosX/PosY = (%v,%v), want (%v,%v) after Move", p.PosX, p.PosY, float64(p.X), float64(p.Y))
+	}
+}
+
 func TestMoveSmooth_SubTile(t *testing.T) {
 	w := NewWorld(10, 10)
 	p := NewPlayer(5, 5)

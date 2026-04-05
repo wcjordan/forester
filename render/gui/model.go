@@ -167,7 +167,9 @@ func (e *EbitenGame) Update() error {
 		dx = 1
 		e.playerMoving = true
 	}
-	player.MoveSmooth(dx, dy, world, dt)
+	if e.playerMoving {
+		player.MoveSmooth(dx, dy, world, dt)
+	}
 
 	if e.playerMoving {
 		e.animTick++
@@ -296,7 +298,7 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 	// the loop, look up the NW origin and draw the full sprite from there. The
 	// origin may be outside the tile loop range for large buildings, but the
 	// screen position is computed from world coords so the GPU clips correctly.
-	// Player is drawn after all columns in its depth row (floor(playerRenderY)) so
+	// Player is drawn after all columns in its depth row (floor(player.PosY)) so
 	// that depth-sorting relative to trees and building roofs is preserved.
 	drawnStructureOrigins := make(map[geom.Point]struct{})
 	playerDepthRow := int(math.Floor(player.PosY))

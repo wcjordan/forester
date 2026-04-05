@@ -141,7 +141,7 @@ Always use `World.TileAt(x, y)` to access tiles safely (returns `nil` for out-of
 ### Dual renderer
 Two renderers exist side by side in the `render/` package:
 - **TUI** (`tui_model.go`, `//go:build !js`): bubbletea drives a `TickMsg` every `GameTickInterval` (100ms) which calls `game.Tick()`. Player input via `tea.KeyMsg`.
-- **Ebitengine** (`ebiten_model.go`): Ebitengine calls `Update()` ~60/s. `Update` accumulates time and calls `game.Tick()` every 100ms. WASD held keys call `player.Move()`; the player's 150ms move cooldown throttles actual movement.
+- **Ebitengine** (`ebiten_model.go`): Ebitengine calls `Update()` ~60/s. `Update` accumulates time and calls `game.Tick()` every 100ms. WASD held keys call `player.MoveSmooth()` with a delta-time, giving continuous sub-tile movement at terrain-appropriate speed. The TUI uses the cooldown-gated `player.Move()` instead.
 
 Select renderer at runtime: `./forester` → Ebitengine window; `./forester --tui` → bubbletea TUI.
 
