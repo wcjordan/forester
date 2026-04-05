@@ -1,9 +1,10 @@
-package render
+package gui
 
 import (
 	"fmt"
 	"image/color"
 	"strings"
+	"unicode/utf8"
 
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	textv2 "github.com/hajimehoshi/ebiten/v2/text/v2"
@@ -12,6 +13,7 @@ import (
 
 	"forester/game"
 	"forester/game/structures"
+	"forester/render"
 )
 
 const hudHeight = 20
@@ -47,7 +49,7 @@ func drawFoundationOverlays(screen *ebiten.Image, g *game.Game, camX, camY, zoom
 		vector.FillRect(screen, sx, sy, barW, foundationBarHeight, colorFoundationBarBG, false)
 
 		// Fill using shared amber→gold progression.
-		cr, cg, cb := FoundationProgressRGB(fi.Progress)
+		cr, cg, cb := render.FoundationProgressRGB(fi.Progress)
 		if fillW > 0 {
 			vector.FillRect(screen, sx, sy, fillW, foundationBarHeight, color.RGBA{R: cr, G: cg, B: cb, A: 220}, false)
 		}
@@ -120,10 +122,15 @@ func drawStatusBar(screen *ebiten.Image, msg string, face *textv2.GoXFace, scree
 	textv2.Draw(screen, " "+msg, face, op)
 }
 
-// drawVillagerDebugBar renders a second HUD row above the main status bar showing
-// debug info for the selected villager.
-func drawVillagerDebugBar(screen *ebiten.Image, g *game.Game, face *textv2.GoXFace, screenW, screenH, idx int) {
-	barY := screenH - hudHeight*2
+// drawVillagerDebugBar renders a HUD row above the status bar showing debug info
+// for the selected villager. Pass shiftUp=true when the status bar is also visible
+// so the two bars stack rather than overlap.
+func drawVillagerDebugBar(screen *ebiten.Image, g *game.Game, face *textv2.GoXFace, screenW, screenH, idx int, shiftUp bool) {
+	slot := 2
+	if shiftUp {
+		slot = 3
+	}
+	barY := screenH - hudHeight*slot
 	vector.FillRect(screen,
 		0, float32(barY),
 		float32(screenW), float32(hudHeight),
@@ -135,7 +142,7 @@ func drawVillagerDebugBar(screen *ebiten.Image, g *game.Game, face *textv2.GoXFa
 	if n == 0 {
 		text = " Debug: no villagers"
 	} else {
-		i := clamp(idx, 0, n-1)
+		i := render.Clamp(idx, 0, n-1)
 		v := villagers[i]
 		text = fmt.Sprintf(" Debug V%d/%d  Pos: (%d,%d)  Task: %s  Target: (%d,%d)  Wood: %d/%d",
 			i+1, n, v.X, v.Y, v.Task, v.TargetX, v.TargetY, v.Wood, game.VillagerMaxCarry)
@@ -218,7 +225,7 @@ func wrapDescription(text string, maxLen int) []string {
 	return lines
 }
 
-// wrapParagraph breaks a single paragraph into lines no longer than maxLen characters.
+// wrapParagraph breaks a single paragraph into lines no longer than maxLen runes.
 func wrapParagraph(text string, maxLen int) []string {
 	words := strings.Fields(text)
 	if len(words) == 0 {
@@ -226,15 +233,20 @@ func wrapParagraph(text string, maxLen int) []string {
 	}
 	var lines []string
 	var current strings.Builder
+	currentLen := 0 // rune count of current line
 	for _, w := range words {
-		if current.Len() > 0 && current.Len()+1+len(w) > maxLen {
+		wLen := utf8.RuneCountInString(w)
+		if currentLen > 0 && currentLen+1+wLen > maxLen {
 			lines = append(lines, current.String())
 			current.Reset()
+			currentLen = 0
 		}
-		if current.Len() > 0 {
+		if currentLen > 0 {
 			current.WriteByte(' ')
+			currentLen++
 		}
 		current.WriteString(w)
+		currentLen += wLen
 	}
 	if current.Len() > 0 {
 		lines = append(lines, current.String())

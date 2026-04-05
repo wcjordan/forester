@@ -28,8 +28,9 @@ const foundationStyleCacheTTL = 10 * time.Second
 // foundationProgressStyle returns a lipgloss style whose foreground is the
 // same amber→gold color used by the Ebiten progress bar overlay.
 // Results are memoized; the cache is cleared every foundationStyleCacheTTL.
-func foundationProgressStyle(progress float64) lipgloss.Style {
-	now := time.Now()
+// now should come from the model's clock so tests with a FakeClock expire the
+// cache predictably.
+func foundationProgressStyle(now time.Time, progress float64) lipgloss.Style {
 	if now.After(foundationStyleCacheExpiry) {
 		clear(foundationStyleCache)
 		foundationStyleCacheExpiry = now.Add(foundationStyleCacheTTL)
@@ -166,8 +167,9 @@ func (m Model) View() string {
 
 	// Status bar occupies the last line; map gets the rest.
 	// Debug bar (when visible) and save/load status each take one additional line.
-	statusMsg := saveStatusText(m.game.Status.Code)
-	statusActive := statusMsg != "" && m.clock.Now().Before(m.game.Status.SetAt.Add(statusDuration))
+	now := m.clock.Now()
+	statusMsg := SaveStatusText(m.game.Status.Code)
+	statusActive := statusMsg != "" && now.Before(m.game.Status.SetAt.Add(StatusDuration))
 	mapHeight := m.termHeight - 1
 	if m.debugVillager {
 		mapHeight--
@@ -182,8 +184,8 @@ func (m Model) View() string {
 
 	// Top-left corner of the viewport in world coordinates.
 	// Center the viewport on the player, clamped to world bounds.
-	vpX := clamp(player.X-mapWidth/2, 0, max(0, world.Width-mapWidth))
-	vpY := clamp(player.Y-mapHeight/2, 0, max(0, world.Height-mapHeight))
+	vpX := Clamp(player.X-mapWidth/2, 0, max(0, world.Width-mapWidth))
+	vpY := Clamp(player.Y-mapHeight/2, 0, max(0, world.Height-mapHeight))
 
 	// Build a position set for O(1) villager lookup during rendering.
 	villagerPos := make(map[geom.Point]struct{}, m.game.Villagers.Count())
@@ -217,7 +219,7 @@ func (m Model) View() string {
 			switch tile.Structure {
 			case structures.FoundationLogStorage, structures.FoundationHouse, structures.FoundationResourceDepot:
 				progress, _ := m.game.State.FoundationProgressAt(geom.Point{X: worldX, Y: worldY})
-				sb.WriteString(foundationProgressStyle(progress).Render("?"))
+				sb.WriteString(foundationProgressStyle(now, progress).Render("?"))
 				continue
 			case structures.LogStorage:
 				sb.WriteString(logStorageStyle.Render("L"))
@@ -299,7 +301,7 @@ func (m Model) villagerDebugBar() string {
 	if n == 0 {
 		return " Debug: no villagers"
 	}
-	idx := clamp(m.debugVillagerIdx, 0, n-1)
+	idx := Clamp(m.debugVillagerIdx, 0, n-1)
 	v := villagers[idx]
 	return fmt.Sprintf(" Debug V%d/%d  Pos: (%d,%d)  Task: %s  Target: (%d,%d)  Wood: %d/%d",
 		idx+1, n, v.X, v.Y, v.Task, v.TargetX, v.TargetY, v.Wood, game.VillagerMaxCarry)
