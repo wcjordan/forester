@@ -116,6 +116,7 @@ func (e *EbitenGame) Update() error {
 	}
 
 	// Zoom: scroll wheel, +/- keys, and two-finger pinch.
+	prevZoom := e.zoom
 	if _, dy := ebiten.Wheel(); dy != 0 {
 		e.applyZoom(math.Pow(1.1, dy))
 	}
@@ -178,14 +179,21 @@ func (e *EbitenGame) Update() error {
 		}
 	}
 
-	// Update camera with lerp toward player.
+	// Update camera: snap immediately on zoom change to keep player centered;
+	// lerp smoothly during normal player movement.
 	scaledTile := float64(tileSize) * e.zoom
 	viewW := int(math.Ceil(float64(e.screenW)/scaledTile)) + 1
 	viewH := int(math.Ceil(float64(e.screenH)/scaledTile)) + 1
-	targetCamX := clampF(float64(player.X)-float64(viewW)/2, 0, float64(max(0, world.Width-viewW)))
-	targetCamY := clampF(float64(player.Y)-float64(viewH)/2, 0, float64(max(0, world.Height-viewH)))
-	e.camX += (targetCamX - e.camX) * 0.12
-	e.camY += (targetCamY - e.camY) * 0.12
+	// Use exact screen-pixel math so the target is a continuous function of zoom.
+	targetCamX := clampF(float64(player.X)-float64(e.screenW)/(2*scaledTile), 0, float64(max(0, world.Width-viewW)))
+	targetCamY := clampF(float64(player.Y)-float64(e.screenH)/(2*scaledTile), 0, float64(max(0, world.Height-viewH)))
+	if e.zoom != prevZoom {
+		e.camX = targetCamX
+		e.camY = targetCamY
+	} else {
+		e.camX += (targetCamX - e.camX) * 0.12
+		e.camY += (targetCamY - e.camY) * 0.12
+	}
 
 	// Game tick at GameTickInterval cadence.
 	if now.Sub(e.lastTick) >= game.GameTickInterval {
