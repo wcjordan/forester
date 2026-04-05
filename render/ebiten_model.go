@@ -179,8 +179,9 @@ func (e *EbitenGame) Update() error {
 	}
 
 	// Update camera with lerp toward player.
-	viewW := e.screenW / tileSize
-	viewH := e.screenH / tileSize
+	scaledTile := float64(tileSize) * e.zoom
+	viewW := int(math.Ceil(float64(e.screenW)/scaledTile)) + 1
+	viewH := int(math.Ceil(float64(e.screenH)/scaledTile)) + 1
 	targetCamX := clampF(float64(player.X)-float64(viewW)/2, 0, float64(max(0, world.Width-viewW)))
 	targetCamY := clampF(float64(player.Y)-float64(viewH)/2, 0, float64(max(0, world.Height-viewH)))
 	e.camX += (targetCamX - e.camX) * 0.12
@@ -235,8 +236,9 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 
 	vpX := int(e.camX)
 	vpY := int(e.camY)
-	viewW := e.screenW / tileSize
-	viewH := e.screenH / tileSize
+	scaledTile := float64(tileSize) * e.zoom
+	viewW := int(math.Ceil(float64(e.screenW)/scaledTile)) + 1
+	viewH := int(math.Ceil(float64(e.screenH)/scaledTile)) + 1
 
 	// Build villager position set for O(1) lookup.
 	villagerPos := make(map[geom.Point]struct{}, e.game.Villagers.Count())
@@ -249,8 +251,8 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 
 	drawSprite := func(da drawArgs, screenX, screenY float64) {
 		opts.GeoM.Reset()
-		opts.GeoM.Scale(da.scale, da.scale)
-		opts.GeoM.Translate(screenX+da.offsetX, screenY+da.offsetY)
+		opts.GeoM.Scale(da.scale*e.zoom, da.scale*e.zoom)
+		opts.GeoM.Translate(screenX+da.offsetX*e.zoom, screenY+da.offsetY*e.zoom)
 		screen.DrawImage(da.img, &opts)
 	}
 
@@ -266,7 +268,7 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 				continue
 			}
 			base, _ := spriteForTile(tile, world, worldX, worldY)
-			drawSprite(base, float64(col*tileSize), float64(row*tileSize))
+			drawSprite(base, float64(col)*scaledTile, float64(row)*scaledTile)
 		}
 	}
 
@@ -280,8 +282,8 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 				continue
 			}
 
-			screenX := float64(col * tileSize)
-			screenY := float64(row * tileSize)
+			screenX := float64(col) * scaledTile
+			screenY := float64(row) * scaledTile
 
 			_, overlays := spriteForTile(tile, world, worldX, worldY)
 			for _, da := range overlays {
