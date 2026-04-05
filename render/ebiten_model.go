@@ -244,6 +244,8 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 
 	vpX := int(e.camX)
 	vpY := int(e.camY)
+	fracX := e.camX - float64(vpX) // sub-tile offset: fraction of a tile the camera has scrolled past vpX
+	fracY := e.camY - float64(vpY)
 	scaledTile := float64(tileSize) * e.zoom
 	viewW := int(math.Ceil(float64(e.screenW)/scaledTile)) + 1
 	viewH := int(math.Ceil(float64(e.screenH)/scaledTile)) + 1
@@ -276,7 +278,7 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 				continue
 			}
 			base, _ := spriteForTile(tile, world, worldX, worldY)
-			drawSprite(base, float64(col)*scaledTile, float64(row)*scaledTile)
+			drawSprite(base, (float64(col)-fracX)*scaledTile, (float64(row)-fracY)*scaledTile)
 		}
 	}
 
@@ -290,8 +292,8 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 				continue
 			}
 
-			screenX := float64(col) * scaledTile
-			screenY := float64(row) * scaledTile
+			screenX := (float64(col) - fracX) * scaledTile
+			screenY := (float64(row) - fracY) * scaledTile
 
 			_, overlays := spriteForTile(tile, world, worldX, worldY)
 			for _, da := range overlays {
@@ -308,7 +310,7 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 		}
 	}
 
-	drawFoundationOverlays(screen, e.game, vpX, vpY, e.zoom)
+	drawFoundationOverlays(screen, e.game, e.camX, e.camY, e.zoom)
 	drawHUD(screen, e.game, e.hudFace, e.screenW, e.screenH)
 	if e.debugVillager {
 		drawVillagerDebugBar(screen, e.game, e.hudFace, e.screenW, e.screenH, e.debugVillagerIdx)
