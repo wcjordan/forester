@@ -1,6 +1,9 @@
 package game
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
 // CooldownType identifies a named per-player interaction cooldown.
 type CooldownType int
@@ -18,7 +21,8 @@ const (
 
 // Player represents the player character.
 type Player struct {
-	X, Y               int
+	X, Y               int     // current tile (always int(math.Floor(PosX/PosY)))
+	PosX, PosY         float64 // continuous position in tile coordinates
 	FacingDX, FacingDY int
 	Inventory          map[ResourceType]int
 	MaxCarry           int
@@ -43,7 +47,7 @@ type Player struct {
 // NewPlayer creates a player at the given position, facing north.
 func NewPlayer(x, y int) *Player {
 	return &Player{
-		X: x, Y: y, FacingDX: 0, FacingDY: -1,
+		X: x, Y: y, PosX: float64(x), PosY: float64(y), FacingDX: 0, FacingDY: -1,
 		Inventory:           make(map[ResourceType]int),
 		MaxCarry:            InitialCarryingCapacity,
 		BuildInterval:       DepositTickInterval,
@@ -113,9 +117,116 @@ func (p *Player) Move(dx, dy int, w *World, now time.Time) {
 	}
 	p.X = nx
 	p.Y = ny
+	p.PosX = float64(p.X)
+	p.PosY = float64(p.Y)
 	if isRoadEligible(destTile) {
 		destTile.WalkCount++
 	}
+}
+
+// MoveSmooth moves the player continuously in direction (dx, dy) over duration dt.
+// dx and dy are expected to be in {-1, 0, 1}. The player's PosX/PosY are updated
+// to the new continuous position; X and Y are synced to int(math.Floor(PosX/PosY)).
+// Collision is checked at tile boundaries: the player stops just before a blocked
+// tile. WalkCount is incremented when entering a road-eligible tile.
+// No-op when dx == 0 && dy == 0.
+func (p *Player) MoveSmooth(dx, dy float64, w *World, dt time.Duration) {
+	if dx == 0 && dy == 0 {
+		return
+	}
+	if dx != 0 {
+		p.FacingDX = int(math.Copysign(1, dx))
+		p.FacingDY = 0
+	}
+	if dy != 0 {
+		p.FacingDY = int(math.Copysign(1, dy))
+		p.FacingDX = 0
+	}
+
+	curTile := w.TileAt(p.X, p.Y)
+	baseCooldown := defaultMoveCooldown
+	if curTile != nil {
+		baseCooldown = MoveCooldownFor(curTile)
+	}
+	cooldown := time.Duration(float64(baseCooldown) * p.MoveSpeedMultiplier)
+	speed := float64(time.Second) / float64(cooldown) // tiles/sec
+
+	if dx != 0 {
+		p.PosX = p.advancePosX(p.PosX+dx*speed*dt.Seconds(), dx, p.Y, w)
+		p.X = int(math.Floor(p.PosX))
+	}
+	if dy != 0 {
+		p.PosY = p.advancePosY(p.PosY+dy*speed*dt.Seconds(), dy, p.X, w)
+		p.Y = int(math.Floor(p.PosY))
+	}
+}
+
+// advancePosX returns the allowed new X position after attempting to move to newX.
+// Checks only the immediately adjacent tile in the direction of movement (dx > 0 or dx < 0).
+// If that tile is blocked or out of bounds, the position is clamped to the near side
+// of that tile boundary. WalkCount is incremented when entering a road-eligible tile.
+func (p *Player) advancePosX(newX, dx float64, tileY int, w *World) float64 {
+	oldTileX := int(math.Floor(p.PosX))
+	if dx > 0 {
+		boundary := float64(oldTileX + 1)
+		if newX < boundary {
+			return newX // still within current tile
+		}
+		dest := w.TileAt(oldTileX+1, tileY)
+		if !w.InBounds(oldTileX+1, tileY) || (dest != nil && dest.Structure != NoStructure) {
+			return math.Nextafter(boundary, float64(oldTileX))
+		}
+		if dest != nil && isRoadEligible(dest) {
+			dest.WalkCount++
+		}
+		return newX
+	}
+	// dx < 0
+	boundary := float64(oldTileX)
+	if newX >= boundary {
+		return newX // still within current tile
+	}
+	dest := w.TileAt(oldTileX-1, tileY)
+	if !w.InBounds(oldTileX-1, tileY) || (dest != nil && dest.Structure != NoStructure) {
+		return boundary
+	}
+	if dest != nil && isRoadEligible(dest) {
+		dest.WalkCount++
+	}
+	return newX
+}
+
+// advancePosY returns the allowed new Y position after attempting to move to newY.
+// Symmetric with advancePosX.
+func (p *Player) advancePosY(newY, dy float64, tileX int, w *World) float64 {
+	oldTileY := int(math.Floor(p.PosY))
+	if dy > 0 {
+		boundary := float64(oldTileY + 1)
+		if newY < boundary {
+			return newY
+		}
+		dest := w.TileAt(tileX, oldTileY+1)
+		if !w.InBounds(tileX, oldTileY+1) || (dest != nil && dest.Structure != NoStructure) {
+			return math.Nextafter(boundary, float64(oldTileY))
+		}
+		if dest != nil && isRoadEligible(dest) {
+			dest.WalkCount++
+		}
+		return newY
+	}
+	// dy < 0
+	boundary := float64(oldTileY)
+	if newY >= boundary {
+		return newY
+	}
+	dest := w.TileAt(tileX, oldTileY-1)
+	if !w.InBounds(tileX, oldTileY-1) || (dest != nil && dest.Structure != NoStructure) {
+		return boundary
+	}
+	if dest != nil && isRoadEligible(dest) {
+		dest.WalkCount++
+	}
+	return newY
 }
 
 // defaultMoveCooldown is the base time between moves on standard terrain (Grassland).
@@ -172,6 +283,7 @@ const harvestTickInterval = 100 * time.Millisecond
 // Runtime-only fields (Cooldowns, pendingCooldowns, LastHarvestAt, LastThrustAt) are excluded.
 type PlayerSaveData struct {
 	X, Y                int
+	PosX, PosY          float64
 	FacingDX, FacingDY  int
 	Inventory           map[ResourceType]int
 	MaxCarry            int
@@ -186,6 +298,8 @@ func (p *Player) SaveData() PlayerSaveData {
 	return PlayerSaveData{
 		X:                   p.X,
 		Y:                   p.Y,
+		PosX:                p.PosX,
+		PosY:                p.PosY,
 		FacingDX:            p.FacingDX,
 		FacingDY:            p.FacingDY,
 		Inventory:           copyMap(p.Inventory),
@@ -202,6 +316,15 @@ func (p *Player) SaveData() PlayerSaveData {
 func (p *Player) LoadFrom(data PlayerSaveData) {
 	p.X = data.X
 	p.Y = data.Y
+	// PosX/PosY may be zero for saves written before continuous movement was added;
+	// fall back to the integer tile position in that case.
+	if data.PosX == 0 && data.PosY == 0 {
+		p.PosX = float64(data.X)
+		p.PosY = float64(data.Y)
+	} else {
+		p.PosX = data.PosX
+		p.PosY = data.PosY
+	}
 	p.FacingDX = data.FacingDX
 	p.FacingDY = data.FacingDY
 	p.Inventory = copyMap(data.Inventory)

@@ -202,6 +202,90 @@ func TestRoadLevelFor(t *testing.T) {
 	}
 }
 
+func TestMoveSmooth_SubTile(t *testing.T) {
+	w := NewWorld(10, 10)
+	p := NewPlayer(5, 5)
+
+	// 50ms is less than one full tile at default cooldown (150ms), so position
+	// should advance but stay within tile 5.
+	p.MoveSmooth(1, 0, w, 50*time.Millisecond)
+
+	if p.PosX <= 5.0 || p.PosX >= 6.0 {
+		t.Errorf("PosX = %v, want in (5.0, 6.0)", p.PosX)
+	}
+	if p.X != 5 {
+		t.Errorf("X = %d, want 5 (still within tile 5)", p.X)
+	}
+}
+
+func TestMoveSmooth_TileCrossing(t *testing.T) {
+	w := NewWorld(10, 10)
+	p := NewPlayer(5, 5)
+
+	// 200ms is more than one full tile at default cooldown (150ms).
+	p.MoveSmooth(1, 0, w, 200*time.Millisecond)
+
+	if p.X != 6 {
+		t.Errorf("X = %d, want 6 (crossed tile boundary)", p.X)
+	}
+	if p.PosX < 6.0 {
+		t.Errorf("PosX = %v, want >= 6.0", p.PosX)
+	}
+}
+
+func TestMoveSmooth_Collision(t *testing.T) {
+	w := NewWorld(10, 10)
+	w.PlaceBuilt(6, 5, gametest.LogStorageDef{})
+	p := NewPlayer(5, 5)
+
+	// Would cross into tile 6, but it is blocked by a structure.
+	p.MoveSmooth(1, 0, w, 200*time.Millisecond)
+
+	if p.X != 5 {
+		t.Errorf("X = %d, want 5 (blocked by structure)", p.X)
+	}
+	if p.PosX >= 6.0 {
+		t.Errorf("PosX = %v, should be < 6.0 (stopped at boundary)", p.PosX)
+	}
+}
+
+func TestMoveSmooth_Bounds(t *testing.T) {
+	w := NewWorld(10, 10)
+	p := NewPlayer(0, 5)
+
+	// Moving left at the left edge: should stop at boundary.
+	p.MoveSmooth(-1, 0, w, 200*time.Millisecond)
+
+	if p.PosX < 0 {
+		t.Errorf("PosX = %v, should be >= 0 (world boundary)", p.PosX)
+	}
+	if p.X < 0 {
+		t.Errorf("X = %d, should be >= 0", p.X)
+	}
+}
+
+func TestMoveSmooth_WalkCount(t *testing.T) {
+	w := NewWorld(10, 10)
+	p := NewPlayer(5, 5)
+
+	p.MoveSmooth(1, 0, w, 200*time.Millisecond) // crosses into tile (6,5)
+
+	if w.TileAt(6, 5).WalkCount != 1 {
+		t.Errorf("WalkCount = %d, want 1", w.TileAt(6, 5).WalkCount)
+	}
+}
+
+func TestMoveSmooth_FacingUpdated(t *testing.T) {
+	w := NewWorld(10, 10)
+	p := NewPlayer(5, 5)
+
+	p.MoveSmooth(0, 1, w, 10*time.Millisecond) // move down
+
+	if p.FacingDX != 0 || p.FacingDY != 1 {
+		t.Errorf("facing = (%d,%d), want (0,1)", p.FacingDX, p.FacingDY)
+	}
+}
+
 func TestPlayerMove_IncrementsWalkCount(t *testing.T) {
 	w := NewWorld(10, 10)
 	p := NewPlayer(5, 5)
