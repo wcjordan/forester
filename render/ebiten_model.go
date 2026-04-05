@@ -288,6 +288,11 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 	}
 
 	// Pass 2: sprite overlays (trees, structures, villagers, player).
+	// Structures are drawn once per origin: when any tile of a structure enters
+	// the loop, look up the NW origin and draw the full sprite from there. The
+	// origin may be outside the tile loop range for large buildings, but the
+	// screen position is computed from world coords so the GPU clips correctly.
+	drawnStructureOrigins := make(map[geom.Point]bool)
 	for row := -1; row <= viewH; row++ {
 		for col := -1; col <= viewW; col++ {
 			worldX := vpX + col
@@ -300,15 +305,29 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 			screenX := (float64(col) - fracX) * scaledTile
 			screenY := (float64(row) - fracY) * scaledTile
 
-			_, overlays := spriteForTile(tile, world, worldX, worldY)
-			for _, da := range overlays {
-				drawSprite(da, screenX, screenY)
+			if tile.Structure != game.NoStructure {
+				// Draw the structure sprite exactly once, from the origin's screen position.
+				if origin, ok := world.StructureOriginAt(worldX, worldY); ok && !drawnStructureOrigins[origin] {
+					drawnStructureOrigins[origin] = true
+					if originTile := world.TileAt(origin.X, origin.Y); originTile != nil {
+						ox := (float64(origin.X-vpX) - fracX) * scaledTile
+						oy := (float64(origin.Y-vpY) - fracY) * scaledTile
+						_, overlays := spriteForTile(originTile, world, origin.X, origin.Y)
+						for _, da := range overlays {
+							drawSprite(da, ox, oy)
+						}
+					}
+				}
+			} else {
+				_, overlays := spriteForTile(tile, world, worldX, worldY)
+				for _, da := range overlays {
+					drawSprite(da, screenX, screenY)
+				}
 			}
 
 			if _, ok := villagerPos[geom.Point{X: worldX, Y: worldY}]; ok {
 				drawSprite(spriteForVillager(), screenX, screenY)
 			}
-
 			if worldX == player.X && worldY == player.Y {
 				drawSprite(spriteForPlayer(playerBaseRow, playerDir, playerFrame, playerSlash128), screenX, screenY)
 			}
