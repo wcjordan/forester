@@ -287,7 +287,7 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 	// the loop, look up the NW origin and draw the full sprite from there. The
 	// origin may be outside the tile loop range for large buildings, but the
 	// screen position is computed from world coords so the GPU clips correctly.
-	drawnStructureOrigins := make(map[geom.Point]bool)
+	drawnStructureOrigins := make(map[geom.Point]struct{})
 	for row := 0; row < viewH; row++ {
 		for col := 0; col < viewW; col++ {
 			worldX := vpX + col
@@ -302,14 +302,16 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 
 			if tile.Structure != game.NoStructure {
 				// Draw the structure sprite exactly once, from the origin's screen position.
-				if origin, ok := world.StructureOriginAt(worldX, worldY); ok && !drawnStructureOrigins[origin] {
-					drawnStructureOrigins[origin] = true
-					if originTile := world.TileAt(origin.X, origin.Y); originTile != nil {
-						ox := (float64(origin.X-vpX) - fracX) * scaledTile
-						oy := (float64(origin.Y-vpY) - fracY) * scaledTile
-						_, overlays := spriteForTile(originTile, world, origin.X, origin.Y)
-						for _, da := range overlays {
-							drawSprite(da, ox, oy)
+				if origin, ok := world.StructureOriginAt(worldX, worldY); ok {
+					if _, seen := drawnStructureOrigins[origin]; !seen {
+						drawnStructureOrigins[origin] = struct{}{}
+						if originTile := world.TileAt(origin.X, origin.Y); originTile != nil {
+							ox := (float64(origin.X-vpX) - fracX) * scaledTile
+							oy := (float64(origin.Y-vpY) - fracY) * scaledTile
+							_, overlays := spriteForTile(originTile, world, origin.X, origin.Y)
+							for _, da := range overlays {
+								drawSprite(da, ox, oy)
+							}
 						}
 					}
 				}
