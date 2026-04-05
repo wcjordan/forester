@@ -11,6 +11,7 @@ type Game struct {
 	Stores    *StorageManager
 	Villagers *VillagerManager
 	Status    SaveStatus
+	ZoomLevel float64
 	rng       *rand.Rand
 	clock     Clock
 }
