@@ -2,6 +2,7 @@ package render
 
 import (
 	"image/color"
+	"math"
 	"time"
 
 	ebiten "github.com/hajimehoshi/ebiten/v2"
@@ -14,6 +15,12 @@ import (
 
 const tileSize = 32
 
+const (
+	zoomMin     = 0.75
+	zoomMax     = 2.0
+	zoomKeyStep = 0.02 // per-frame zoom delta while key held (~1.2× per second at 60 fps)
+)
+
 var colorBackground = color.RGBA{R: 0x1A, G: 0x1A, B: 0x1A, A: 0xFF}
 
 // EbitenGame implements ebiten.Game and renders the world using LPC sprites.
@@ -25,6 +32,8 @@ type EbitenGame struct {
 	camY             float64
 	screenW          int
 	screenH          int
+	zoom             float64
+	prevPinchDist    float64 // distance between two touch points last frame; 0 = no active pinch
 	hudFace          *textv2.GoXFace
 	debugVillager    bool
 	debugVillagerIdx int
@@ -36,12 +45,38 @@ type EbitenGame struct {
 
 // NewEbitenGame creates an EbitenGame wrapping the given game using the system clock.
 func NewEbitenGame(g *game.Game) *EbitenGame {
+	zoom := g.ZoomLevel
+	if zoom == 0 {
+		zoom = 1.0
+	}
 	return &EbitenGame{
 		game:    g,
 		clock:   game.RealClock{},
 		screenW: 1280,
 		screenH: 720,
+		zoom:    zoom,
 		hudFace: newHUDFace(),
+	}
+}
+
+// applyZoom multiplies the current zoom by delta and clamps to [zoomMin, zoomMax].
+func (e *EbitenGame) applyZoom(delta float64) {
+	e.zoom = clampF(e.zoom*delta, zoomMin, zoomMax)
+}
+
+// saveGame syncs zoom into game state then saves.
+func (e *EbitenGame) saveGame() {
+	e.game.ZoomLevel = e.zoom
+	e.game.Save()
+}
+
+// loadGame loads game state then reads zoom back (0 → 1.0 default).
+func (e *EbitenGame) loadGame() {
+	e.game.Load()
+	if e.game.ZoomLevel == 0 {
+		e.zoom = 1.0
+	} else {
+		e.zoom = e.game.ZoomLevel
 	}
 }
 
@@ -71,13 +106,39 @@ func (e *EbitenGame) Update() error {
 	if ebiten.IsKeyPressed(ebiten.KeyControl) {
 		switch {
 		case inpututil.IsKeyJustPressed(ebiten.KeyS):
-			e.game.Save()
+			e.saveGame()
 		case inpututil.IsKeyJustPressed(ebiten.KeyL):
-			e.game.Load()
+			e.loadGame()
 		case inpututil.IsKeyJustPressed(ebiten.KeyN):
 			e.game.Reset()
 		}
 		return nil
+	}
+
+	// Zoom: scroll wheel, +/- keys, and two-finger pinch.
+	prevZoom := e.zoom
+	if _, dy := ebiten.Wheel(); dy != 0 {
+		e.applyZoom(math.Pow(1.1, dy))
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyEqual) || ebiten.IsKeyPressed(ebiten.KeyKPAdd) {
+		e.applyZoom(1 + zoomKeyStep)
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyMinus) || ebiten.IsKeyPressed(ebiten.KeyKPSubtract) {
+		e.applyZoom(1 - zoomKeyStep)
+	}
+	touchIDs := ebiten.AppendTouchIDs(nil)
+	if len(touchIDs) == 2 {
+		x0, y0 := ebiten.TouchPosition(touchIDs[0])
+		x1, y1 := ebiten.TouchPosition(touchIDs[1])
+		dx := float64(x1 - x0)
+		dy := float64(y1 - y0)
+		dist := math.Sqrt(dx*dx + dy*dy)
+		if e.prevPinchDist > 0 && dist > 0 {
+			e.applyZoom(dist / e.prevPinchDist)
+		}
+		e.prevPinchDist = dist
+	} else {
+		e.prevPinchDist = 0
 	}
 
 	// Movement: hold-to-move; player's 150ms cooldown throttles actual movement.
@@ -118,13 +179,21 @@ func (e *EbitenGame) Update() error {
 		}
 	}
 
-	// Update camera with lerp toward player.
-	viewW := e.screenW / tileSize
-	viewH := e.screenH / tileSize
-	targetCamX := clampF(float64(player.X)-float64(viewW)/2, 0, float64(max(0, world.Width-viewW)))
-	targetCamY := clampF(float64(player.Y)-float64(viewH)/2, 0, float64(max(0, world.Height-viewH)))
-	e.camX += (targetCamX - e.camX) * 0.12
-	e.camY += (targetCamY - e.camY) * 0.12
+	// Update camera: snap immediately on zoom change to keep player centered;
+	// lerp smoothly during normal player movement.
+	scaledTile := float64(tileSize) * e.zoom
+	viewW := int(math.Ceil(float64(e.screenW)/scaledTile)) + 1
+	viewH := int(math.Ceil(float64(e.screenH)/scaledTile)) + 1
+	// Use exact screen-pixel math so the target is a continuous function of zoom.
+	targetCamX := clampF(float64(player.X)-float64(e.screenW)/(2*scaledTile), 0, float64(max(0, world.Width-viewW)))
+	targetCamY := clampF(float64(player.Y)-float64(e.screenH)/(2*scaledTile), 0, float64(max(0, world.Height-viewH)))
+	if e.zoom != prevZoom {
+		e.camX = targetCamX
+		e.camY = targetCamY
+	} else {
+		e.camX += (targetCamX - e.camX) * 0.12
+		e.camY += (targetCamY - e.camY) * 0.12
+	}
 
 	// Game tick at GameTickInterval cadence.
 	if now.Sub(e.lastTick) >= game.GameTickInterval {
@@ -175,8 +244,11 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 
 	vpX := int(e.camX)
 	vpY := int(e.camY)
-	viewW := e.screenW / tileSize
-	viewH := e.screenH / tileSize
+	fracX := e.camX - float64(vpX) // sub-tile offset: fraction of a tile the camera has scrolled past vpX
+	fracY := e.camY - float64(vpY)
+	scaledTile := float64(tileSize) * e.zoom
+	viewW := int(math.Ceil(float64(e.screenW)/scaledTile)) + 1
+	viewH := int(math.Ceil(float64(e.screenH)/scaledTile)) + 1
 
 	// Build villager position set for O(1) lookup.
 	villagerPos := make(map[geom.Point]struct{}, e.game.Villagers.Count())
@@ -189,8 +261,8 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 
 	drawSprite := func(da drawArgs, screenX, screenY float64) {
 		opts.GeoM.Reset()
-		opts.GeoM.Scale(da.scale, da.scale)
-		opts.GeoM.Translate(screenX+da.offsetX, screenY+da.offsetY)
+		opts.GeoM.Scale(da.scale*e.zoom, da.scale*e.zoom)
+		opts.GeoM.Translate(screenX+da.offsetX*e.zoom, screenY+da.offsetY*e.zoom)
 		screen.DrawImage(da.img, &opts)
 	}
 
@@ -206,11 +278,16 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 				continue
 			}
 			base, _ := spriteForTile(tile, world, worldX, worldY)
-			drawSprite(base, float64(col*tileSize), float64(row*tileSize))
+			drawSprite(base, (float64(col)-fracX)*scaledTile, (float64(row)-fracY)*scaledTile)
 		}
 	}
 
 	// Pass 2: sprite overlays (trees, structures, villagers, player).
+	// Structures are drawn once per origin: when any tile of a structure enters
+	// the loop, look up the NW origin and draw the full sprite from there. The
+	// origin may be outside the tile loop range for large buildings, but the
+	// screen position is computed from world coords so the GPU clips correctly.
+	drawnStructureOrigins := make(map[geom.Point]struct{})
 	for row := 0; row < viewH; row++ {
 		for col := 0; col < viewW; col++ {
 			worldX := vpX + col
@@ -220,25 +297,41 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 				continue
 			}
 
-			screenX := float64(col * tileSize)
-			screenY := float64(row * tileSize)
+			screenX := (float64(col) - fracX) * scaledTile
+			screenY := (float64(row) - fracY) * scaledTile
 
-			_, overlays := spriteForTile(tile, world, worldX, worldY)
-			for _, da := range overlays {
-				drawSprite(da, screenX, screenY)
+			if tile.Structure != game.NoStructure {
+				// Draw the structure sprite exactly once, from the origin's screen position.
+				if origin, ok := world.StructureOriginAt(worldX, worldY); ok {
+					if _, seen := drawnStructureOrigins[origin]; !seen {
+						drawnStructureOrigins[origin] = struct{}{}
+						if originTile := world.TileAt(origin.X, origin.Y); originTile != nil {
+							ox := (float64(origin.X-vpX) - fracX) * scaledTile
+							oy := (float64(origin.Y-vpY) - fracY) * scaledTile
+							_, overlays := spriteForTile(originTile, world, origin.X, origin.Y)
+							for _, da := range overlays {
+								drawSprite(da, ox, oy)
+							}
+						}
+					}
+				}
+			} else {
+				_, overlays := spriteForTile(tile, world, worldX, worldY)
+				for _, da := range overlays {
+					drawSprite(da, screenX, screenY)
+				}
 			}
 
 			if _, ok := villagerPos[geom.Point{X: worldX, Y: worldY}]; ok {
 				drawSprite(spriteForVillager(), screenX, screenY)
 			}
-
 			if worldX == player.X && worldY == player.Y {
 				drawSprite(spriteForPlayer(playerBaseRow, playerDir, playerFrame, playerSlash128), screenX, screenY)
 			}
 		}
 	}
 
-	drawFoundationOverlays(screen, e.game, vpX, vpY)
+	drawFoundationOverlays(screen, e.game, e.camX, e.camY, e.zoom)
 	drawHUD(screen, e.game, e.hudFace, e.screenW, e.screenH)
 	if e.debugVillager {
 		drawVillagerDebugBar(screen, e.game, e.hudFace, e.screenW, e.screenH, e.debugVillagerIdx)

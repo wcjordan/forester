@@ -11,6 +11,9 @@ type Game struct {
 	Stores    *StorageManager
 	Villagers *VillagerManager
 	Status    SaveStatus
+	// ZoomLevel is a renderer preference stored here solely for persistence via
+	// SaveGameData. It is owned and updated by EbitenGame, not by game logic.
+	ZoomLevel float64
 	rng       *rand.Rand
 	clock     Clock
 }

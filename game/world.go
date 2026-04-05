@@ -153,6 +153,17 @@ func (w *World) IsStructureOrigin(x, y int) bool {
 	return ok && entry.Origin == (point{X: x, Y: y})
 }
 
+// StructureOriginAt returns the NW origin of the structure that occupies tile
+// (x, y), and true if (x, y) belongs to a structure. Returns (zero, false)
+// if (x, y) has no structure.
+func (w *World) StructureOriginAt(x, y int) (geom.Point, bool) {
+	entry, ok := w.structureIndex[point{X: x, Y: y}]
+	if !ok {
+		return geom.Point{}, false
+	}
+	return entry.Origin, true
+}
+
 // PlaceFoundation places def as a foundation at (x, y), deriving the tile
 // type from def.FoundationType() and the footprint from def.Footprint().
 func (w *World) PlaceFoundation(x, y int, def StructureDef) {

@@ -141,6 +141,22 @@ func TestSaveDataCompletedBeats(t *testing.T) {
 	}
 }
 
+func TestSaveDataZoomLevel(t *testing.T) {
+	g := testGame(t)
+	g.ZoomLevel = 2.5
+	d := g.SaveData()
+	if d.ZoomLevel != 2.5 {
+		t.Errorf("ZoomLevel = %v, want 2.5", d.ZoomLevel)
+	}
+	g2 := testGame(t)
+	if err := g2.loadSaveData(d); err != nil {
+		t.Fatalf("loadSaveData error: %v", err)
+	}
+	if g2.ZoomLevel != 2.5 {
+		t.Errorf("loaded ZoomLevel = %v, want 2.5", g2.ZoomLevel)
+	}
+}
+
 // registerTestSaveDef registers testSaveDef for the duration of the test.
 func registerTestSaveDef(t *testing.T) {
 	t.Helper()

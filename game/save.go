@@ -14,6 +14,7 @@ type SaveGameData struct {
 	XPMilestoneIdx      int
 	PendingOfferIDs     [][]string
 	CompletedBeats      map[string]bool
+	ZoomLevel           float64
 }
 
 // SaveData collects a full snapshot of the game state for persistence.
@@ -30,6 +31,7 @@ func (g *Game) SaveData() SaveGameData {
 		XPMilestoneIdx:      s.XPMilestoneIdx,
 		PendingOfferIDs:     copyStringSliceSlice(s.pendingOfferIDs),
 		CompletedBeats:      copyMap(s.completedBeats),
+		ZoomLevel:           g.ZoomLevel,
 	}
 }
 
@@ -61,6 +63,7 @@ func (g *Game) loadSaveData(data SaveGameData) error {
 	}
 	g.Stores = stores
 	g.Villagers = vm
+	g.ZoomLevel = data.ZoomLevel
 	return nil
 }
 

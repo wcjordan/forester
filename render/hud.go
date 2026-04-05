@@ -28,14 +28,19 @@ const (
 // and spans the full footprint width (minus foundationBarInset on each side).
 // Color transitions from dark amber (0%) to bright gold (100%) using the same
 // progression as the TUI shading.
-func drawFoundationOverlays(screen *ebiten.Image, g *game.Game, vpX, vpY int) {
+func drawFoundationOverlays(screen *ebiten.Image, g *game.Game, camX, camY, zoom float64) {
+	scaledTile := float64(tileSize) * zoom
+	vpX := int(camX)
+	vpY := int(camY)
+	fracX := camX - float64(vpX)
+	fracY := camY - float64(vpY)
 	for _, fi := range g.State.AllFoundationsProgress() {
-		sx := float32((fi.Origin.X-vpX)*tileSize + foundationBarInset)
-		sy := float32((fi.Origin.Y-vpY)*tileSize - foundationBarHeight - foundationBarPadding)
+		sx := float32((float64(fi.Origin.X-vpX)-fracX)*scaledTile) + foundationBarInset
+		sy := float32((float64(fi.Origin.Y-vpY)-fracY)*scaledTile) - foundationBarHeight - foundationBarPadding
 		if sy < 0 {
 			continue // bar would be above the viewport
 		}
-		barW := float32(fi.Width*tileSize - 2*foundationBarInset)
+		barW := float32(float64(fi.Width)*scaledTile) - 2*foundationBarInset
 		fillW := barW * float32(fi.Progress)
 
 		// Background.
