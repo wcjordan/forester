@@ -2,6 +2,7 @@ package render
 
 import (
 	"image/color"
+	"math"
 	"time"
 
 	ebiten "github.com/hajimehoshi/ebiten/v2"
@@ -14,6 +15,12 @@ import (
 
 const tileSize = 32
 
+const (
+	zoomMin     = 0.25
+	zoomMax     = 4.0
+	zoomKeyStep = 0.02 // per-frame zoom delta while key held (~1.2× per second at 60 fps)
+)
+
 var colorBackground = color.RGBA{R: 0x1A, G: 0x1A, B: 0x1A, A: 0xFF}
 
 // EbitenGame implements ebiten.Game and renders the world using LPC sprites.
@@ -25,6 +32,8 @@ type EbitenGame struct {
 	camY             float64
 	screenW          int
 	screenH          int
+	zoom             float64
+	prevPinchDist    float64 // distance between two touch points last frame; 0 = no active pinch
 	hudFace          *textv2.GoXFace
 	debugVillager    bool
 	debugVillagerIdx int
@@ -36,12 +45,38 @@ type EbitenGame struct {
 
 // NewEbitenGame creates an EbitenGame wrapping the given game using the system clock.
 func NewEbitenGame(g *game.Game) *EbitenGame {
+	zoom := g.ZoomLevel
+	if zoom == 0 {
+		zoom = 1.0
+	}
 	return &EbitenGame{
 		game:    g,
 		clock:   game.RealClock{},
 		screenW: 1280,
 		screenH: 720,
+		zoom:    zoom,
 		hudFace: newHUDFace(),
+	}
+}
+
+// applyZoom multiplies the current zoom by delta and clamps to [zoomMin, zoomMax].
+func (e *EbitenGame) applyZoom(delta float64) {
+	e.zoom = clampF(e.zoom*delta, zoomMin, zoomMax)
+}
+
+// saveGame syncs zoom into game state then saves.
+func (e *EbitenGame) saveGame() {
+	e.game.ZoomLevel = e.zoom
+	e.game.Save()
+}
+
+// loadGame loads game state then reads zoom back (0 → 1.0 default).
+func (e *EbitenGame) loadGame() {
+	e.game.Load()
+	if e.game.ZoomLevel == 0 {
+		e.zoom = 1.0
+	} else {
+		e.zoom = e.game.ZoomLevel
 	}
 }
 
@@ -71,13 +106,38 @@ func (e *EbitenGame) Update() error {
 	if ebiten.IsKeyPressed(ebiten.KeyControl) {
 		switch {
 		case inpututil.IsKeyJustPressed(ebiten.KeyS):
-			e.game.Save()
+			e.saveGame()
 		case inpututil.IsKeyJustPressed(ebiten.KeyL):
-			e.game.Load()
+			e.loadGame()
 		case inpututil.IsKeyJustPressed(ebiten.KeyN):
 			e.game.Reset()
 		}
 		return nil
+	}
+
+	// Zoom: scroll wheel, +/- keys, and two-finger pinch.
+	if _, dy := ebiten.Wheel(); dy != 0 {
+		e.applyZoom(math.Pow(1.1, dy))
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyEqual) || ebiten.IsKeyPressed(ebiten.KeyKPAdd) {
+		e.applyZoom(1 + zoomKeyStep)
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyMinus) || ebiten.IsKeyPressed(ebiten.KeyKPSubtract) {
+		e.applyZoom(1 - zoomKeyStep)
+	}
+	touchIDs := ebiten.AppendTouchIDs(nil)
+	if len(touchIDs) == 2 {
+		x0, y0 := ebiten.TouchPosition(touchIDs[0])
+		x1, y1 := ebiten.TouchPosition(touchIDs[1])
+		dx := float64(x1 - x0)
+		dy := float64(y1 - y0)
+		dist := math.Sqrt(dx*dx + dy*dy)
+		if e.prevPinchDist > 0 && dist > 0 {
+			e.applyZoom(dist / e.prevPinchDist)
+		}
+		e.prevPinchDist = dist
+	} else {
+		e.prevPinchDist = 0
 	}
 
 	// Movement: hold-to-move; player's 150ms cooldown throttles actual movement.
