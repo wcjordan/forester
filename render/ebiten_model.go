@@ -16,8 +16,8 @@ import (
 const tileSize = 32
 
 const (
-	zoomMin     = 0.25
-	zoomMax     = 4.0
+	zoomMin     = 0.75
+	zoomMax     = 2.0
 	zoomKeyStep = 0.02 // per-frame zoom delta while key held (~1.2× per second at 60 fps)
 )
 
