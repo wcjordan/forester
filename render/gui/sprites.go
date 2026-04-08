@@ -278,9 +278,9 @@ func spriteForPlayer(baseRow, dir, frame int, slash128 bool) drawArgs {
 		return drawArgs{img: playerSlash128Frames[dir][frame], scale: 0.5, offsetX: -16, offsetY: 0}
 	}
 	if baseRow == lpcThrustBaseRow {
-		return drawArgs{img: playerThrustFrames[dir][frame], scale: 0.5}
+		return drawArgs{img: playerThrustFrames[dir][frame], scale: 0.5, offsetX: -16, offsetY: -16}
 	}
-	return drawArgs{img: playerWalkFrames[dir][frame], scale: 0.5}
+	return drawArgs{img: playerWalkFrames[dir][frame], scale: 0.5, offsetX: -16, offsetY: -16}
 }
 
 // spriteForVillager returns drawArgs for a villager character.

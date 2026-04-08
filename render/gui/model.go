@@ -277,9 +277,9 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 		screen.DrawImage(da.img, &opts)
 	}
 
-	// Pass 1: terrain bases. All base tiles are painted before any sprite overlay
-	// so that overflowing sprites (e.g. mature tree canopy) are never masked by a
-	// neighbouring tile's ground layer.
+	// Pass 1: terrain bases and road overlays. Roads are ground-level and must not
+	// occlude the player, so they are composited here rather than in pass 2.
+	// All other overflowing sprites (trees, structures) are deferred to pass 2.
 	for row := 0; row < viewH; row++ {
 		for col := 0; col < viewW; col++ {
 			worldX := vpX + col
@@ -288,8 +288,15 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 			if tile == nil {
 				continue
 			}
-			base, _ := spriteForTile(tile, world, worldX, worldY)
-			drawSprite(base, (float64(col)-fracX)*scaledTile, (float64(row)-fracY)*scaledTile)
+			sx := (float64(col) - fracX) * scaledTile
+			sy := (float64(row) - fracY) * scaledTile
+			base, overlays := spriteForTile(tile, world, worldX, worldY)
+			drawSprite(base, sx, sy)
+			if game.RoadLevelFor(tile) > 0 {
+				for _, da := range overlays {
+					drawSprite(da, sx, sy)
+				}
+			}
 		}
 	}
 
@@ -331,7 +338,7 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 						}
 					}
 				}
-			} else {
+			} else if game.RoadLevelFor(tile) == 0 {
 				_, overlays := spriteForTile(tile, world, worldX, worldY)
 				for _, da := range overlays {
 					drawSprite(da, screenX, screenY)
