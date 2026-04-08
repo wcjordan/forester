@@ -13,23 +13,23 @@ func TestMovePlayer(t *testing.T) {
 	t0 := time.Now()
 
 	p.Move(1, 0, w, t0)
-	if p.X != 6 || p.Y != 5 {
-		t.Errorf("after move right: got (%d,%d), want (6,5)", p.X, p.Y)
+	if p.TileX() != 6 || p.TileY() != 5 {
+		t.Errorf("after move right: got (%d,%d), want (6,5)", p.TileX(), p.TileY())
 	}
 
 	p.Move(0, 1, w, t0.Add(200*time.Millisecond))
-	if p.X != 6 || p.Y != 6 {
-		t.Errorf("after move down: got (%d,%d), want (6,6)", p.X, p.Y)
+	if p.TileX() != 6 || p.TileY() != 6 {
+		t.Errorf("after move down: got (%d,%d), want (6,6)", p.TileX(), p.TileY())
 	}
 
 	p.Move(-1, 0, w, t0.Add(400*time.Millisecond))
-	if p.X != 5 || p.Y != 6 {
-		t.Errorf("after move left: got (%d,%d), want (5,6)", p.X, p.Y)
+	if p.TileX() != 5 || p.TileY() != 6 {
+		t.Errorf("after move left: got (%d,%d), want (5,6)", p.TileX(), p.TileY())
 	}
 
 	p.Move(0, -1, w, t0.Add(600*time.Millisecond))
-	if p.X != 5 || p.Y != 5 {
-		t.Errorf("after move up: got (%d,%d), want (5,5)", p.X, p.Y)
+	if p.TileX() != 5 || p.TileY() != 5 {
+		t.Errorf("after move up: got (%d,%d), want (5,5)", p.TileX(), p.TileY())
 	}
 }
 
@@ -40,23 +40,23 @@ func TestMovePlayerBounds(t *testing.T) {
 	// At left/top edge — cannot move further.
 	p := NewPlayer(0, 0)
 	p.Move(-1, 0, w, t0)
-	if p.X != 0 {
-		t.Errorf("moved past left edge: X = %d, want 0", p.X)
+	if p.TileX() != 0 {
+		t.Errorf("moved past left edge: X = %d, want 0", p.TileX())
 	}
 	p.Move(0, -1, w, t0.Add(200*time.Millisecond))
-	if p.Y != 0 {
-		t.Errorf("moved past top edge: Y = %d, want 0", p.Y)
+	if p.TileY() != 0 {
+		t.Errorf("moved past top edge: Y = %d, want 0", p.TileY())
 	}
 
 	// At right/bottom edge — cannot move further.
 	p = NewPlayer(9, 9)
 	p.Move(1, 0, w, t0)
-	if p.X != 9 {
-		t.Errorf("moved past right edge: X = %d, want 9", p.X)
+	if p.TileX() != 9 {
+		t.Errorf("moved past right edge: X = %d, want 9", p.TileX())
 	}
 	p.Move(0, 1, w, t0.Add(200*time.Millisecond))
-	if p.Y != 9 {
-		t.Errorf("moved past bottom edge: Y = %d, want 9", p.Y)
+	if p.TileY() != 9 {
+		t.Errorf("moved past bottom edge: Y = %d, want 9", p.TileY())
 	}
 }
 
@@ -67,20 +67,20 @@ func TestPlayerMoveCooldown(t *testing.T) {
 
 	// First move always succeeds (Move cooldown unset — zero time is always expired).
 	p.Move(1, 0, w, t0)
-	if p.X != 6 {
-		t.Fatalf("first move: X = %d, want 6", p.X)
+	if p.TileX() != 6 {
+		t.Fatalf("first move: X = %d, want 6", p.TileX())
 	}
 
 	// Same timestamp: cooldown not elapsed — move blocked.
 	p.Move(1, 0, w, t0)
-	if p.X != 6 {
-		t.Errorf("same-timestamp move: X = %d, want 6 (cooldown should block)", p.X)
+	if p.TileX() != 6 {
+		t.Errorf("same-timestamp move: X = %d, want 6 (cooldown should block)", p.TileX())
 	}
 
 	// After cooldown elapses: move succeeds.
 	p.Move(1, 0, w, t0.Add(defaultMoveCooldown))
-	if p.X != 7 {
-		t.Errorf("after cooldown: X = %d, want 7", p.X)
+	if p.TileX() != 7 {
+		t.Errorf("after cooldown: X = %d, want 7", p.TileX())
 	}
 }
 
@@ -90,8 +90,8 @@ func TestMovePlayerStructureBlocking(t *testing.T) {
 		w.PlaceBuilt(6, 5, gametest.LogStorageDef{})
 		p := NewPlayer(5, 5)
 		p.Move(1, 0, w, time.Now()) // try to move into (6,5)
-		if p.X != 5 {
-			t.Errorf("X = %d, want 5 (should be blocked by LogStorage)", p.X)
+		if p.TileX() != 5 {
+			t.Errorf("X = %d, want 5 (should be blocked by LogStorage)", p.TileX())
 		}
 	})
 
@@ -100,8 +100,8 @@ func TestMovePlayerStructureBlocking(t *testing.T) {
 		w.PlaceFoundation(6, 5, gametest.LogStorageDef{})
 		p := NewPlayer(5, 5)
 		p.Move(1, 0, w, time.Now())
-		if p.X != 5 {
-			t.Errorf("X = %d, want 5 (foundation tiles should block movement)", p.X)
+		if p.TileX() != 5 {
+			t.Errorf("X = %d, want 5 (foundation tiles should block movement)", p.TileX())
 		}
 	})
 }
@@ -209,8 +209,8 @@ func TestMove_SyncsPosXY(t *testing.T) {
 
 	p.Move(1, 0, w, t0) // moves to (6,5)
 
-	if p.PosX != float64(p.X) || p.PosY != float64(p.Y) {
-		t.Errorf("PosX/PosY = (%v,%v), want (%v,%v) after Move", p.PosX, p.PosY, float64(p.X), float64(p.Y))
+	if p.PosX != float64(p.TileX()) || p.PosY != float64(p.TileY()) {
+		t.Errorf("PosX/PosY = (%v,%v), want (%v,%v) after Move", p.PosX, p.PosY, float64(p.TileX()), float64(p.TileY()))
 	}
 }
 
@@ -225,8 +225,8 @@ func TestMoveSmooth_SubTile(t *testing.T) {
 	if p.PosX <= 5.0 || p.PosX >= 6.0 {
 		t.Errorf("PosX = %v, want in (5.0, 6.0)", p.PosX)
 	}
-	if p.X != 5 {
-		t.Errorf("X = %d, want 5 (still within tile 5)", p.X)
+	if p.TileX() != 5 {
+		t.Errorf("X = %d, want 5 (still within tile 5)", p.TileX())
 	}
 }
 
@@ -237,8 +237,8 @@ func TestMoveSmooth_TileCrossing(t *testing.T) {
 	// 200ms is more than one full tile at default cooldown (150ms).
 	p.MoveSmooth(1, 0, w, 200*time.Millisecond)
 
-	if p.X != 6 {
-		t.Errorf("X = %d, want 6 (crossed tile boundary)", p.X)
+	if p.TileX() != 6 {
+		t.Errorf("X = %d, want 6 (crossed tile boundary)", p.TileX())
 	}
 	if p.PosX < 6.0 {
 		t.Errorf("PosX = %v, want >= 6.0", p.PosX)
@@ -253,8 +253,8 @@ func TestMoveSmooth_Collision(t *testing.T) {
 	// Would cross into tile 6, but it is blocked by a structure.
 	p.MoveSmooth(1, 0, w, 200*time.Millisecond)
 
-	if p.X != 5 {
-		t.Errorf("X = %d, want 5 (blocked by structure)", p.X)
+	if p.TileX() != 5 {
+		t.Errorf("X = %d, want 5 (blocked by structure)", p.TileX())
 	}
 	if p.PosX >= 6.0 {
 		t.Errorf("PosX = %v, should be < 6.0 (stopped at boundary)", p.PosX)
@@ -271,8 +271,8 @@ func TestMoveSmooth_Bounds(t *testing.T) {
 	if p.PosX < 0 {
 		t.Errorf("PosX = %v, should be >= 0 (world boundary)", p.PosX)
 	}
-	if p.X < 0 {
-		t.Errorf("X = %d, should be >= 0", p.X)
+	if p.TileX() < 0 {
+		t.Errorf("X = %d, should be >= 0", p.TileX())
 	}
 }
 
@@ -324,11 +324,11 @@ func TestPlayerMove_IncrementsWalkCount(t *testing.T) {
 func TestNewPlayer(t *testing.T) {
 	p := NewPlayer(10, 20)
 
-	if p.X != 10 {
-		t.Errorf("X = %d, want 10", p.X)
+	if p.TileX() != 10 {
+		t.Errorf("X = %d, want 10", p.TileX())
 	}
-	if p.Y != 20 {
-		t.Errorf("Y = %d, want 20", p.Y)
+	if p.TileY() != 20 {
+		t.Errorf("Y = %d, want 20", p.TileY())
 	}
 	if p.Inventory[Wood] != 0 {
 		t.Errorf("Inventory[Wood] = %d, want 0", p.Inventory[Wood])

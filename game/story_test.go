@@ -24,10 +24,10 @@ func (testWoodDef) Harvest(env *Env, now time.Time) {
 	}
 	dx, dy := p.FacingDX, p.FacingDY
 	targets := [4][2]int{
-		{p.X, p.Y},
-		{p.X + dx, p.Y + dy},
-		{p.X + dx - dy, p.Y + dy + dx},
-		{p.X + dx + dy, p.Y + dy - dx},
+		{p.TileX(), p.TileY()},
+		{p.TileX() + dx, p.TileY() + dy},
+		{p.TileX() + dx - dy, p.TileY() + dy + dx},
+		{p.TileX() + dx + dy, p.TileY() + dy - dx},
 	}
 	for _, coord := range targets {
 		tile := env.State.World.TileAt(coord[0], coord[1])

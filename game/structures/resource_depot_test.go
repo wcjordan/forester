@@ -30,8 +30,7 @@ func makeDepotGame() *game.Game {
 // until it is fully built. Player must already be adjacent.
 func buildDepotAt(g *game.Game, ox, oy, playerX, playerY int) {
 	g.State.World.PlaceFoundation(ox, oy, resourceDepotDef{})
-	g.State.Player.X = playerX
-	g.State.Player.Y = playerY
+	g.State.Player.SetTilePos(playerX, playerY)
 	g.State.Player.Inventory[game.Wood] = resourceDepotBuildCost
 	g.State.Player.SetCooldown(game.Build, time.Time{})
 	t0 := time.Now()
@@ -71,8 +70,7 @@ func TestResourceDepotDepositWood(t *testing.T) {
 	origin := geom.Point{X: 10, Y: 10}
 	buildDepotAt(g, origin.X, origin.Y, 9, 10)
 
-	g.State.Player.X = 9
-	g.State.Player.Y = 10
+	g.State.Player.SetTilePos(9, 10)
 	g.State.Player.Inventory[game.Wood] = 5
 	g.State.Player.SetCooldown(game.Deposit, time.Time{})
 

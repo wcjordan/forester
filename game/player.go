@@ -21,7 +21,6 @@ const (
 
 // Player represents the player character.
 type Player struct {
-	X, Y               int     // current tile (always int(math.Floor(PosX/PosY)))
 	PosX, PosY         float64 // continuous position in tile coordinates
 	FacingDX, FacingDY int
 	Inventory          map[ResourceType]int
@@ -44,10 +43,23 @@ type Player struct {
 	LastThrustAt time.Time
 }
 
+// TileX returns the tile column the player currently occupies.
+func (p *Player) TileX() int { return int(math.Floor(p.PosX)) }
+
+// TileY returns the tile row the player currently occupies.
+func (p *Player) TileY() int { return int(math.Floor(p.PosY)) }
+
+// SetTilePos snaps the player to the given tile position. Use for test setup and
+// save/load; during gameplay use Move or MoveSmooth.
+func (p *Player) SetTilePos(x, y int) {
+	p.PosX = float64(x)
+	p.PosY = float64(y)
+}
+
 // NewPlayer creates a player at the given position, facing north.
 func NewPlayer(x, y int) *Player {
 	return &Player{
-		X: x, Y: y, PosX: float64(x), PosY: float64(y), FacingDX: 0, FacingDY: -1,
+		PosX: float64(x), PosY: float64(y), FacingDX: 0, FacingDY: -1,
 		Inventory:           make(map[ResourceType]int),
 		MaxCarry:            InitialCarryingCapacity,
 		BuildInterval:       DepositTickInterval,
@@ -93,7 +105,7 @@ func (p *Player) commitCooldowns() {
 // Movement is blocked by world bounds and any tile that contains a structure.
 // Updates the player's facing direction when the cooldown is satisfied.
 func (p *Player) Move(dx, dy int, w *World, now time.Time) {
-	tile := w.TileAt(p.X, p.Y)
+	tile := w.TileAt(p.TileX(), p.TileY())
 	baseCooldown := defaultMoveCooldown
 	if tile != nil {
 		baseCooldown = MoveCooldownFor(tile)
@@ -107,7 +119,7 @@ func (p *Player) Move(dx, dy int, w *World, now time.Time) {
 		p.FacingDX = dx
 		p.FacingDY = dy
 	}
-	nx, ny := p.X+dx, p.Y+dy
+	nx, ny := p.TileX()+dx, p.TileY()+dy
 	if !w.InBounds(nx, ny) {
 		return
 	}
@@ -115,10 +127,8 @@ func (p *Player) Move(dx, dy int, w *World, now time.Time) {
 	if destTile != nil && destTile.Structure != NoStructure {
 		return
 	}
-	p.X = nx
-	p.Y = ny
-	p.PosX = float64(p.X)
-	p.PosY = float64(p.Y)
+	p.PosX = float64(nx)
+	p.PosY = float64(ny)
 	if isRoadEligible(destTile) {
 		destTile.WalkCount++
 	}
@@ -143,7 +153,7 @@ func (p *Player) MoveSmooth(dx, dy float64, w *World, dt time.Duration) {
 		p.FacingDX = 0
 	}
 
-	curTile := w.TileAt(p.X, p.Y)
+	curTile := w.TileAt(p.TileX(), p.TileY())
 	baseCooldown := defaultMoveCooldown
 	if curTile != nil {
 		baseCooldown = MoveCooldownFor(curTile)
@@ -152,12 +162,10 @@ func (p *Player) MoveSmooth(dx, dy float64, w *World, dt time.Duration) {
 	speed := float64(time.Second) / float64(cooldown) // tiles/sec
 
 	if dx != 0 {
-		p.PosX = advancePos1D(p.PosX, p.PosX+dx*speed*dt.Seconds(), dx, p.Y, true, w)
-		p.X = int(math.Floor(p.PosX))
+		p.PosX = advancePos1D(p.PosX, p.PosX+dx*speed*dt.Seconds(), dx, p.TileY(), true, w)
 	}
 	if dy != 0 {
-		p.PosY = advancePos1D(p.PosY, p.PosY+dy*speed*dt.Seconds(), dy, p.X, false, w)
-		p.Y = int(math.Floor(p.PosY))
+		p.PosY = advancePos1D(p.PosY, p.PosY+dy*speed*dt.Seconds(), dy, p.TileX(), false, w)
 	}
 }
 
@@ -284,8 +292,8 @@ type PlayerSaveData struct {
 // SaveData returns a snapshot of the player's persistent state.
 func (p *Player) SaveData() PlayerSaveData {
 	return PlayerSaveData{
-		X:                   p.X,
-		Y:                   p.Y,
+		X:                   p.TileX(),
+		Y:                   p.TileY(),
 		PosX:                p.PosX,
 		PosY:                p.PosY,
 		FacingDX:            p.FacingDX,
@@ -302,8 +310,6 @@ func (p *Player) SaveData() PlayerSaveData {
 // LoadFrom restores the player's persistent state from data.
 // Runtime-only fields (Cooldowns, pendingCooldowns) are reset to empty maps.
 func (p *Player) LoadFrom(data PlayerSaveData) {
-	p.X = data.X
-	p.Y = data.Y
 	// PosX/PosY may be zero for saves written before continuous movement was added;
 	// fall back to the integer tile position in that case.
 	if data.PosX == 0 && data.PosY == 0 {

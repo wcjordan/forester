@@ -71,11 +71,11 @@ func tickDraining(m *render.Model, clock *game.FakeClock, g *game.Game) {
 // It reads the player's current tile cooldown from the game state directly.
 func moveDir(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) {
 	p := g.State.Player
-	tile := g.State.World.TileAt(p.X, p.Y)
+	tile := g.State.World.TileAt(p.TileX(), p.TileY())
 	cooldown := game.MoveCooldownFor(tile)
 	clock.Advance(cooldown)
 	sendKey(m, dir)
-	renderFrame(*m, fmt.Sprintf("move %s → (%d, %d)", dir, g.State.Player.X, g.State.Player.Y))
+	renderFrame(*m, fmt.Sprintf("move %s → (%d, %d)", dir, g.State.Player.TileX(), g.State.Player.TileY()))
 }
 
 // moveSafe advances the clock by the greater of the current tile's move cooldown
@@ -85,7 +85,7 @@ func moveDir(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) {
 // moveDir because the previous 300ms cooldown hasn't expired.
 func moveSafe(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) {
 	p := g.State.Player
-	tile := g.State.World.TileAt(p.X, p.Y)
+	tile := g.State.World.TileAt(p.TileX(), p.TileY())
 	needed := game.MoveCooldownFor(tile)
 	remaining := p.Cooldowns[game.Move].Sub(clock.Now())
 	if remaining > needed {
@@ -94,5 +94,5 @@ func moveSafe(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) 
 		clock.Advance(needed)
 	}
 	sendKey(m, dir)
-	renderFrame(*m, fmt.Sprintf("moveSafe %s → (%d,%d)", dir, g.State.Player.X, g.State.Player.Y))
+	renderFrame(*m, fmt.Sprintf("moveSafe %s → (%d,%d)", dir, g.State.Player.TileX(), g.State.Player.TileY()))
 }

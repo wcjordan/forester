@@ -63,9 +63,9 @@ func TestHouseWorkflow(t *testing.T) {
 	for _, dir := range []string{"a", "a", "w", "w", "w", "w", "w"} {
 		moveSafe(&m, clock, g, dir)
 	}
-	if g.State.Player.X != 48 || g.State.Player.Y != 45 {
+	if g.State.Player.TileX() != 48 || g.State.Player.TileY() != 45 {
 		t.Fatalf("phase 1: expected player at (48,45), got (%d,%d)",
-			g.State.Player.X, g.State.Player.Y)
+			g.State.Player.TileX(), g.State.Player.TileY())
 	}
 
 	// ── Phase 2: Build log storage + accept MaxCarry upgrade ─────────────────
@@ -116,9 +116,9 @@ func TestHouseWorkflow(t *testing.T) {
 			g.State.Player.Inventory[game.Wood], houseBuildCost)
 	}
 	// Player should be at (48,40) after 5 north steps from (48,44 start).
-	if g.State.Player.X != 48 || g.State.Player.Y != 40 {
+	if g.State.Player.TileX() != 48 || g.State.Player.TileY() != 40 {
 		t.Fatalf("phase 3: expected player at (48,40), got (%d,%d)",
-			g.State.Player.X, g.State.Player.Y)
+			g.State.Player.TileX(), g.State.Player.TileY())
 	}
 
 	// ── Phase 4: Return south to deposit position (48,45) ───────────────────
@@ -126,9 +126,9 @@ func TestHouseWorkflow(t *testing.T) {
 	for range stepsNorth {
 		moveSafe(&m, clock, g, "s") // south
 	}
-	if g.State.Player.X != 48 || g.State.Player.Y != 45 {
+	if g.State.Player.TileX() != 48 || g.State.Player.TileY() != 45 {
 		t.Fatalf("phase 4: expected player at (48,45), got (%d,%d)",
-			g.State.Player.X, g.State.Player.Y)
+			g.State.Player.TileX(), g.State.Player.TileY())
 	}
 
 	// ── Phase 5: Deposit 50 wood to trigger house foundation ─────────────────
@@ -174,9 +174,9 @@ func TestHouseWorkflow(t *testing.T) {
 	for range 6 {
 		moveSafe(&m, clock, g, "s") // south
 	}
-	if g.State.Player.X != 46 || g.State.Player.Y != 51 {
+	if g.State.Player.TileX() != 46 || g.State.Player.TileY() != 51 {
 		t.Fatalf("phase 6: expected player at (46,51), got (%d,%d)",
-			g.State.Player.X, g.State.Player.Y)
+			g.State.Player.TileX(), g.State.Player.TileY())
 	}
 
 	// ── Phase 7: Build house ──────────────────────────────────────────────────
@@ -262,9 +262,9 @@ func TestHouseWorkflow(t *testing.T) {
 	for range 6 {
 		moveSafe(&m, clock, g, "w") // north → (53,44): east of log storage (x=48–51)
 	}
-	if g.State.Player.X != 53 || g.State.Player.Y != 44 {
+	if g.State.Player.TileX() != 53 || g.State.Player.TileY() != 44 {
 		t.Fatalf("phase 9: expected player at (53,44), got (%d,%d)",
-			g.State.Player.X, g.State.Player.Y)
+			g.State.Player.TileX(), g.State.Player.TileY())
 	}
 	// Harvest at (53,44) then sweep 3 more positions north; 15 ticks each position.
 	const woodFor2ndHouse = houseBuildCost*9/10 + 1 // 46 (>90% of 50)
@@ -278,9 +278,9 @@ func TestHouseWorkflow(t *testing.T) {
 		}
 	}
 	// Player is now at (53,41) after 3 north moves from (53,44).
-	if g.State.Player.X != 53 || g.State.Player.Y != 41 {
+	if g.State.Player.TileX() != 53 || g.State.Player.TileY() != 41 {
 		t.Fatalf("phase 9: expected player at (53,41), got (%d,%d)",
-			g.State.Player.X, g.State.Player.Y)
+			g.State.Player.TileX(), g.State.Player.TileY())
 	}
 	if g.State.Player.Inventory[game.Wood] < woodFor2ndHouse {
 		t.Fatalf("phase 9: only harvested %d wood; need %d (≥46)",
@@ -302,9 +302,9 @@ func TestHouseWorkflow(t *testing.T) {
 		moveSafe(&m, clock, g, "a") // west
 	}
 	moveSafe(&m, clock, g, "s") // south → (49,51)
-	if g.State.Player.X != 49 || g.State.Player.Y != 51 {
+	if g.State.Player.TileX() != 49 || g.State.Player.TileY() != 51 {
 		t.Fatalf("phase 10: expected player at (49,51), got (%d,%d)",
-			g.State.Player.X, g.State.Player.Y)
+			g.State.Player.TileX(), g.State.Player.TileY())
 	}
 	// Verify the 2nd foundation is directly east of the player at (50,51).
 	if tile := g.State.World.TileAt(50, 51); tile == nil || tile.Structure != structures.FoundationHouse {
@@ -341,9 +341,9 @@ func TestHouseWorkflow(t *testing.T) {
 	if g.State.World.CountStructureInstances(structures.House) < 2 {
 		announcePhase(m, "Phase 12: Player steps back to (49,50); villager completes the 2nd house")
 		moveSafe(&m, clock, g, "w") // north → (49,50); adjacent to log storage, not foundation
-		if g.State.Player.X != 49 || g.State.Player.Y != 50 {
+		if g.State.Player.TileX() != 49 || g.State.Player.TileY() != 50 {
 			t.Fatalf("phase 12: expected player at (49,50), got (%d,%d)",
-				g.State.Player.X, g.State.Player.Y)
+				g.State.Player.TileX(), g.State.Player.TileY())
 		}
 		const maxVillagerBuildTicks = 500 // villager chops until full before depositing, so cycles are longer
 		for i := range maxVillagerBuildTicks {

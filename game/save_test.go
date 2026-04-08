@@ -172,8 +172,7 @@ func TestLoadSaveDataRoundTrip(t *testing.T) {
 
 	// Set up initial state.
 	g := testGame(t)
-	g.State.Player.X = 13
-	g.State.Player.Y = 17
+	g.State.Player.SetTilePos(13, 17)
 	g.State.Player.Inventory[Wood] = 5
 	g.State.Player.MaxCarry = 30
 	g.State.World.Tiles[2][3] = Tile{Terrain: Forest, TreeSize: 8, WalkCount: 2}
@@ -198,8 +197,8 @@ func TestLoadSaveDataRoundTrip(t *testing.T) {
 
 	// Player.
 	p2 := g2.State.Player
-	if p2.X != 13 || p2.Y != 17 {
-		t.Errorf("Player pos = (%d,%d), want (13,17)", p2.X, p2.Y)
+	if p2.TileX() != 13 || p2.TileY() != 17 {
+		t.Errorf("Player pos = (%d,%d), want (13,17)", p2.TileX(), p2.TileY())
 	}
 	if p2.Inventory[Wood] != 5 {
 		t.Errorf("Inventory[Wood] = %d, want 5", p2.Inventory[Wood])

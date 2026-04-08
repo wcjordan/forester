@@ -26,11 +26,11 @@ func TestNewPlayerPosition(t *testing.T) {
 	g := New()
 
 	// Player should start at center of 100x100 world
-	if g.State.Player.X != 50 {
-		t.Errorf("player X = %d, want 50", g.State.Player.X)
+	if g.State.Player.TileX() != 50 {
+		t.Errorf("player X = %d, want 50", g.State.Player.TileX())
 	}
-	if g.State.Player.Y != 50 {
-		t.Errorf("player Y = %d, want 50", g.State.Player.Y)
+	if g.State.Player.TileY() != 50 {
+		t.Errorf("player Y = %d, want 50", g.State.Player.TileY())
 	}
 }
 

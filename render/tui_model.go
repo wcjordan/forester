@@ -184,8 +184,8 @@ func (m Model) View() string {
 
 	// Top-left corner of the viewport in world coordinates.
 	// Center the viewport on the player, clamped to world bounds.
-	vpX := Clamp(player.X-mapWidth/2, 0, max(0, world.Width-mapWidth))
-	vpY := Clamp(player.Y-mapHeight/2, 0, max(0, world.Height-mapHeight))
+	vpX := Clamp(player.TileX()-mapWidth/2, 0, max(0, world.Width-mapWidth))
+	vpY := Clamp(player.TileY()-mapHeight/2, 0, max(0, world.Height-mapHeight))
 
 	// Build a position set for O(1) villager lookup during rendering.
 	villagerPos := make(map[geom.Point]struct{}, m.game.Villagers.Count())
@@ -199,7 +199,7 @@ func (m Model) View() string {
 			worldX := vpX + col
 			worldY := vpY + row
 
-			if worldX == player.X && worldY == player.Y {
+			if worldX == player.TileX() && worldY == player.TileY() {
 				sb.WriteString(playerStyle.Render("@"))
 				continue
 			}
@@ -262,7 +262,7 @@ func (m Model) View() string {
 
 	// Status bar.
 	status := fmt.Sprintf(" Player: (%d, %d)  Wood: %d/%d",
-		player.X, player.Y, player.Inventory[game.Wood], player.MaxCarry)
+		player.TileX(), player.TileY(), player.Inventory[game.Wood], player.MaxCarry)
 
 	logStored := m.game.Stores.Total(game.Wood)
 	logCap := m.game.Stores.TotalCapacity(game.Wood)

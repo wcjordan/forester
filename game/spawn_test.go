@@ -56,8 +56,8 @@ func TestFoundationLocationBetweenPlayerAndSpawn(t *testing.T) {
 		t.Fatal("no foundation placed")
 	}
 	// Foundation x-coordinate should be between player and spawn center.
-	if gx < p.X || gx > spawnX {
-		t.Errorf("foundation x=%d not between player x=%d and spawn x=%d", gx, p.X, spawnX)
+	if gx < p.TileX() || gx > spawnX {
+		t.Errorf("foundation x=%d not between player x=%d and spawn x=%d", gx, p.TileX(), spawnX)
 	}
 }
 
