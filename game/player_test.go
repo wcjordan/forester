@@ -9,87 +9,85 @@ import (
 
 func TestMovePlayer(t *testing.T) {
 	w := NewWorld(10, 10)
-	p := NewPlayer(5, 5)
-	t0 := time.Now()
+	// 200ms > defaultMoveCooldown (150ms) guarantees a full tile crossing.
+	dt := 200 * time.Millisecond
 
-	p.Move(1, 0, w, t0)
-	if p.TileX() != 6 || p.TileY() != 5 {
-		t.Errorf("after move right: got (%d,%d), want (6,5)", p.TileX(), p.TileY())
-	}
-
-	p.Move(0, 1, w, t0.Add(200*time.Millisecond))
-	if p.TileX() != 6 || p.TileY() != 6 {
-		t.Errorf("after move down: got (%d,%d), want (6,6)", p.TileX(), p.TileY())
-	}
-
-	p.Move(-1, 0, w, t0.Add(400*time.Millisecond))
-	if p.TileX() != 5 || p.TileY() != 6 {
-		t.Errorf("after move left: got (%d,%d), want (5,6)", p.TileX(), p.TileY())
-	}
-
-	p.Move(0, -1, w, t0.Add(600*time.Millisecond))
-	if p.TileX() != 5 || p.TileY() != 5 {
-		t.Errorf("after move up: got (%d,%d), want (5,5)", p.TileX(), p.TileY())
+	for _, tc := range []struct {
+		name   string
+		dx, dy float64
+		wantX  int
+		wantY  int
+	}{
+		{"right", 1, 0, 6, 5},
+		{"down", 0, 1, 5, 6},
+		{"left", -1, 0, 4, 5},
+		{"up", 0, -1, 5, 4},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			p := NewPlayer(5, 5)
+			p.MoveSmooth(tc.dx, tc.dy, w, dt)
+			if p.TileX() != tc.wantX || p.TileY() != tc.wantY {
+				t.Errorf("got (%d,%d), want (%d,%d)", p.TileX(), p.TileY(), tc.wantX, tc.wantY)
+			}
+		})
 	}
 }
 
 func TestMovePlayerBounds(t *testing.T) {
 	w := NewWorld(10, 10)
-	t0 := time.Now()
+	dt := 200 * time.Millisecond
 
 	// At left/top edge — cannot move further.
 	p := NewPlayer(0, 0)
-	p.Move(-1, 0, w, t0)
+	p.MoveSmooth(-1, 0, w, dt)
 	if p.TileX() != 0 {
 		t.Errorf("moved past left edge: X = %d, want 0", p.TileX())
 	}
-	p.Move(0, -1, w, t0.Add(200*time.Millisecond))
+	p.MoveSmooth(0, -1, w, dt)
 	if p.TileY() != 0 {
 		t.Errorf("moved past top edge: Y = %d, want 0", p.TileY())
 	}
 
 	// At right/bottom edge — cannot move further.
 	p = NewPlayer(9, 9)
-	p.Move(1, 0, w, t0)
+	p.MoveSmooth(1, 0, w, dt)
 	if p.TileX() != 9 {
 		t.Errorf("moved past right edge: X = %d, want 9", p.TileX())
 	}
-	p.Move(0, 1, w, t0.Add(200*time.Millisecond))
+	p.MoveSmooth(0, 1, w, dt)
 	if p.TileY() != 9 {
 		t.Errorf("moved past bottom edge: Y = %d, want 9", p.TileY())
 	}
 }
 
-func TestPlayerMoveCooldown(t *testing.T) {
-	w := NewWorld(10, 10)
+func TestTileMoveDuration(t *testing.T) {
 	p := NewPlayer(5, 5)
-	t0 := time.Now()
 
-	// First move always succeeds (Move cooldown unset — zero time is always expired).
-	p.Move(1, 0, w, t0)
-	if p.TileX() != 6 {
-		t.Fatalf("first move: X = %d, want 6", p.TileX())
+	if got := p.TileMoveDuration(&Tile{Terrain: Grassland}); got != defaultMoveCooldown {
+		t.Errorf("Grassland: %v, want %v", got, defaultMoveCooldown)
+	}
+	if got := p.TileMoveDuration(&Tile{Terrain: Forest, TreeSize: 5}); got != 300*time.Millisecond {
+		t.Errorf("Forest: %v, want 300ms", got)
+	}
+	if got := p.TileMoveDuration(nil); got != defaultMoveCooldown {
+		t.Errorf("nil tile: %v, want %v", got, defaultMoveCooldown)
 	}
 
-	// Same timestamp: cooldown not elapsed — move blocked.
-	p.Move(1, 0, w, t0)
-	if p.TileX() != 6 {
-		t.Errorf("same-timestamp move: X = %d, want 6 (cooldown should block)", p.TileX())
-	}
-
-	// After cooldown elapses: move succeeds.
-	p.Move(1, 0, w, t0.Add(defaultMoveCooldown))
-	if p.TileX() != 7 {
-		t.Errorf("after cooldown: X = %d, want 7", p.TileX())
+	// After speed upgrade: duration decreases.
+	p.MoveSpeed /= 0.9
+	if got := p.TileMoveDuration(&Tile{Terrain: Grassland}); got >= defaultMoveCooldown {
+		t.Errorf("upgraded Grassland duration %v should be < %v", got, defaultMoveCooldown)
 	}
 }
 
 func TestMovePlayerStructureBlocking(t *testing.T) {
+	dt := 200 * time.Millisecond
+
 	t.Run("blocked by LogStorage", func(t *testing.T) {
 		w := NewWorld(10, 10)
 		w.PlaceBuilt(6, 5, gametest.LogStorageDef{})
 		p := NewPlayer(5, 5)
-		p.Move(1, 0, w, time.Now()) // try to move into (6,5)
+		p.MoveSmooth(1, 0, w, dt) // try to move into (6,5)
 		if p.TileX() != 5 {
 			t.Errorf("X = %d, want 5 (should be blocked by LogStorage)", p.TileX())
 		}
@@ -99,7 +97,7 @@ func TestMovePlayerStructureBlocking(t *testing.T) {
 		w := NewWorld(10, 10)
 		w.PlaceFoundation(6, 5, gametest.LogStorageDef{})
 		p := NewPlayer(5, 5)
-		p.Move(1, 0, w, time.Now())
+		p.MoveSmooth(1, 0, w, dt)
 		if p.TileX() != 5 {
 			t.Errorf("X = %d, want 5 (foundation tiles should block movement)", p.TileX())
 		}
@@ -202,18 +200,6 @@ func TestRoadLevelFor(t *testing.T) {
 	}
 }
 
-func TestMove_SyncsPosXY(t *testing.T) {
-	w := NewWorld(10, 10)
-	p := NewPlayer(5, 5)
-	t0 := time.Now()
-
-	p.Move(1, 0, w, t0) // moves to (6,5)
-
-	if p.PosX != float64(p.TileX()) || p.PosY != float64(p.TileY()) {
-		t.Errorf("PosX/PosY = (%v,%v), want (%v,%v) after Move", p.PosX, p.PosY, float64(p.TileX()), float64(p.TileY()))
-	}
-}
-
 func TestMoveSmooth_SubTile(t *testing.T) {
 	w := NewWorld(10, 10)
 	p := NewPlayer(5, 5)
@@ -300,24 +286,22 @@ func TestMoveSmooth_FacingUpdated(t *testing.T) {
 
 func TestPlayerMove_IncrementsWalkCount(t *testing.T) {
 	w := NewWorld(10, 10)
-	p := NewPlayer(5, 5)
-	t0 := time.Now()
+	dt := 200 * time.Millisecond
 
 	// Grassland destination: WalkCount should increment.
-	p.Move(1, 0, w, t0) // moves to (6,5)
-	tile := w.TileAt(6, 5)
-	if tile.WalkCount != 1 {
-		t.Errorf("Grassland tile WalkCount = %d, want 1", tile.WalkCount)
+	p := NewPlayer(5, 5)
+	p.MoveSmooth(1, 0, w, dt) // moves to (6,5)
+	if w.TileAt(6, 5).WalkCount != 1 {
+		t.Errorf("Grassland tile WalkCount = %d, want 1", w.TileAt(6, 5).WalkCount)
 	}
 
-	// Forest destination: WalkCount should NOT increment.
+	// Forest destination: WalkCount should NOT increment (not road-eligible).
 	w.TileAt(5, 5).Terrain = Forest
 	w.TileAt(5, 5).TreeSize = 5
 	p2 := NewPlayer(4, 5)
-	p2.Move(1, 0, w, t0) // moves to (5,5) — Forest
-	forestTile := w.TileAt(5, 5)
-	if forestTile.WalkCount != 0 {
-		t.Errorf("Forest tile WalkCount = %d, want 0", forestTile.WalkCount)
+	p2.MoveSmooth(1, 0, w, dt) // moves to (5,5) — Forest
+	if w.TileAt(5, 5).WalkCount != 0 {
+		t.Errorf("Forest tile WalkCount = %d, want 0", w.TileAt(5, 5).WalkCount)
 	}
 }
 

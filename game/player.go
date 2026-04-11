@@ -11,8 +11,6 @@ type CooldownType int
 const (
 	// Deposit is the cooldown type for depositing resources into a built storage structure.
 	Deposit CooldownType = iota
-	// Move is the cooldown type for player movement.
-	Move
 	// Build is the cooldown type for depositing resources into a foundation (building it up).
 	Build
 	// Harvest is the cooldown type for auto-harvesting adjacent trees.
@@ -111,41 +109,6 @@ func (p *Player) commitCooldowns() {
 	clear(p.pendingCooldowns)
 }
 
-// Move attempts to move the player by (dx, dy).
-// The move is skipped if the move cooldown has not elapsed since the last move attempt.
-// Cooldown duration is based on the terrain of the tile the player currently stands on.
-// Movement is blocked by world bounds and any tile that contains a structure.
-// Updates the player's facing direction when the cooldown is satisfied.
-func (p *Player) Move(dx, dy int, w *World, now time.Time) {
-	tile := w.TileAt(p.TileX(), p.TileY())
-	baseCooldown := defaultMoveCooldown
-	if tile != nil {
-		baseCooldown = MoveCooldownFor(tile)
-	}
-	cooldown := time.Duration(float64(baseCooldown) * defaultMoveSpeed / p.MoveSpeed)
-	if !p.CooldownExpired(Move, now) {
-		return
-	}
-	p.SetCooldown(Move, now.Add(cooldown))
-	if dx != 0 || dy != 0 {
-		p.FacingDX = dx
-		p.FacingDY = dy
-	}
-	nx, ny := p.TileX()+dx, p.TileY()+dy
-	if !w.InBounds(nx, ny) {
-		return
-	}
-	destTile := w.TileAt(nx, ny)
-	if destTile != nil && destTile.Structure != NoStructure {
-		return
-	}
-	p.PosX = float64(nx)
-	p.PosY = float64(ny)
-	if isRoadEligible(destTile) {
-		destTile.WalkCount++
-	}
-}
-
 // MoveSmooth moves the player continuously in direction (dx, dy) over duration dt.
 // dx and dy are expected to be in {-1, 0, 1}. The player's PosX/PosY are updated
 // to the new continuous position; X and Y are synced to int(math.Floor(PosX/PosY)).
@@ -216,6 +179,10 @@ func advancePos1D(oldPos, newPos, dir float64, fixed int, isX bool, w *World) fl
 		if dest != nil && isRoadEligible(dest) {
 			dest.WalkCount++
 		}
+		// Clamp to within the destination tile: prevents multi-tile overshoot when dt is large.
+		if newPos >= float64(oldCell+2) {
+			return math.Nextafter(float64(oldCell+2), boundary)
+		}
 		return newPos
 	}
 	// dir < 0
@@ -232,6 +199,10 @@ func advancePos1D(oldPos, newPos, dir float64, fixed int, isX bool, w *World) fl
 	}
 	if dest != nil && isRoadEligible(dest) {
 		dest.WalkCount++
+	}
+	// Clamp to within the destination tile: prevents multi-tile overshoot when dt is large.
+	if newPos < float64(oldCell-1) {
+		return float64(oldCell - 1)
 	}
 	return newPos
 }

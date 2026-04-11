@@ -25,7 +25,8 @@ func TestFoundationBuildMechanic(t *testing.T) {
 
 	t.Run("foundation blocks player movement", func(t *testing.T) {
 		s, _ := makeFoundationState(0)
-		s.Player.Move(1, 0, s.World, time.Now()) // try to step into (5,5) — foundation tile
+		dt := s.Player.TileMoveDuration(s.World.TileAt(s.Player.TileX(), s.Player.TileY()))
+		s.Player.MoveSmooth(1, 0, s.World, dt) // try to step into (5,5) — foundation tile
 		if s.Player.TileX() != 4 {
 			t.Errorf("player X = %d, want 4 (foundation should block movement)", s.Player.TileX())
 		}

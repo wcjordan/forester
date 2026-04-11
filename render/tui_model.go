@@ -130,15 +130,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		player := m.game.State.Player
+		world := m.game.State.World
+		tile := world.TileAt(player.TileX(), player.TileY())
+		dt := player.TileMoveDuration(tile)
 		switch msg.String() {
 		case "up", "w":
-			m.game.State.Player.Move(0, -1, m.game.State.World, m.clock.Now())
+			player.MoveSmooth(0, -1, world, dt)
 		case "down", "s":
-			m.game.State.Player.Move(0, 1, m.game.State.World, m.clock.Now())
+			player.MoveSmooth(0, 1, world, dt)
 		case "left", "a":
-			m.game.State.Player.Move(-1, 0, m.game.State.World, m.clock.Now())
+			player.MoveSmooth(-1, 0, world, dt)
 		case "right", "d":
-			m.game.State.Player.Move(1, 0, m.game.State.World, m.clock.Now())
+			player.MoveSmooth(1, 0, world, dt)
 		case "\\":
 			m.debugVillager = !m.debugVillager
 		case "[":

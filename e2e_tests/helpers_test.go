@@ -67,32 +67,17 @@ func tickDraining(m *render.Model, clock *game.FakeClock, g *game.Game) {
 	drainOffers(g)
 }
 
-// moveDir advances the clock by the current tile's move cooldown, then sends the key.
-// It reads the player's current tile cooldown from the game state directly.
+// moveDir advances the clock by the player's tile-traversal duration, then sends the key.
 func moveDir(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) {
 	p := g.State.Player
 	tile := g.State.World.TileAt(p.TileX(), p.TileY())
-	cooldown := game.MoveCooldownFor(tile)
-	clock.Advance(cooldown)
+	clock.Advance(p.TileMoveDuration(tile))
 	sendKey(m, dir)
 	renderFrame(*m, fmt.Sprintf("move %s → (%d, %d)", dir, g.State.Player.TileX(), g.State.Player.TileY()))
 }
 
-// moveSafe advances the clock by the greater of the current tile's move cooldown
-// or the remaining move cooldown, then sends the directional key. This correctly
-// handles Forest→Grassland transitions: after moving off a Forest tile (300ms
-// cooldown set), the subsequent Grassland move (only 150ms) would fail with
-// moveDir because the previous 300ms cooldown hasn't expired.
+// moveSafe is an alias for moveDir. Previously it handled Forest→Grassland cooldown
+// transitions, but MoveSmooth has no per-player move cooldown so the two are equivalent.
 func moveSafe(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) {
-	p := g.State.Player
-	tile := g.State.World.TileAt(p.TileX(), p.TileY())
-	needed := game.MoveCooldownFor(tile)
-	remaining := p.Cooldowns[game.Move].Sub(clock.Now())
-	if remaining > needed {
-		clock.Advance(remaining)
-	} else {
-		clock.Advance(needed)
-	}
-	sendKey(m, dir)
-	renderFrame(*m, fmt.Sprintf("moveSafe %s → (%d,%d)", dir, g.State.Player.TileX(), g.State.Player.TileY()))
+	moveDir(m, clock, g, dir)
 }
