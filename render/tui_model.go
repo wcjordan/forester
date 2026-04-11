@@ -56,13 +56,9 @@ func doTick() tea.Cmd {
 // movTickMsg is sent each movement tick interval (~30 fps) to drive smooth movement.
 type movTickMsg time.Time
 
-// movTickInterval is how often movement is applied while a direction key is held.
+// movTickInterval is the movement tick duration (~30 fps). Used as the dt cap
+// for key-event-driven movement and as the render refresh heartbeat.
 const movTickInterval = 33 * time.Millisecond
-
-// keyHoldThreshold is how long after the last key event movement continues.
-// Terminals repeat key events while a key is held; if no event arrives within
-// this window the key is considered released.
-const keyHoldThreshold = 200 * time.Millisecond
 
 func doMovTick() tea.Cmd {
 	return tea.Tick(movTickInterval, func(t time.Time) tea.Msg {
@@ -89,8 +85,7 @@ type Model struct {
 	termWidth        int
 	termHeight       int
 	clock            game.Clock
-	heldDX, heldDY   float64   // direction of currently held movement key (0 when released)
-	lastKeyAt        time.Time // time of last direction key event
+	lastKeyAt        time.Time // time of last direction key event (for dt cap)
 	debugVillager    bool      // whether the debug bar is visible
 	debugVillagerIdx int       // currently selected villager index
 }
@@ -123,12 +118,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, doTick()
 
 	case movTickMsg:
-		now := m.clock.Now()
-		if (m.heldDX != 0 || m.heldDY != 0) && now.Sub(m.lastKeyAt) < keyHoldThreshold {
-			player := m.game.State.Player
-			world := m.game.State.World
-			player.MoveSmooth(m.heldDX, m.heldDY, world, movTickInterval)
-		}
 		return m, doMovTick()
 
 	case tea.KeyMsg:
@@ -180,9 +169,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		if dx != 0 || dy != 0 {
-			m.heldDX = dx
-			m.heldDY = dy
-			m.lastKeyAt = m.clock.Now()
+			now := m.clock.Now()
+			// Compute dt from elapsed time since last key event, capped at one
+			// movement tick to prevent large jumps after pauses. On first press
+			// (lastKeyAt is zero) use movTickInterval directly.
+			dt := movTickInterval
+			if !m.lastKeyAt.IsZero() {
+				if elapsed := now.Sub(m.lastKeyAt); elapsed < movTickInterval {
+					dt = elapsed
+				}
+			}
+			m.lastKeyAt = now
+			player := m.game.State.Player
+			world := m.game.State.World
+			player.MoveSmooth(dx, dy, world, dt)
 		}
 	}
 
