@@ -53,6 +53,23 @@ func doTick() tea.Cmd {
 	})
 }
 
+// movTickMsg is sent each movement tick interval (~30 fps) to drive smooth movement.
+type movTickMsg time.Time
+
+// movTickInterval is how often movement is applied while a direction key is held.
+const movTickInterval = 33 * time.Millisecond
+
+// keyHoldThreshold is how long after the last key event movement continues.
+// Terminals repeat key events while a key is held; if no event arrives within
+// this window the key is considered released.
+const keyHoldThreshold = 200 * time.Millisecond
+
+func doMovTick() tea.Cmd {
+	return tea.Tick(movTickInterval, func(t time.Time) tea.Msg {
+		return movTickMsg(t)
+	})
+}
+
 var (
 	playerStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))            // blue
 	forestStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))             // green
@@ -72,9 +89,10 @@ type Model struct {
 	termWidth        int
 	termHeight       int
 	clock            game.Clock
-	lastMoveAt       time.Time
-	debugVillager    bool // whether the debug bar is visible
-	debugVillagerIdx int  // currently selected villager index
+	heldDX, heldDY   float64   // direction of currently held movement key (0 when released)
+	lastKeyAt        time.Time // time of last direction key event
+	debugVillager    bool      // whether the debug bar is visible
+	debugVillagerIdx int       // currently selected villager index
 }
 
 // NewModel creates a Model wrapping the given game using the system clock.
@@ -85,12 +103,12 @@ func NewModel(g *game.Game) Model {
 // NewModelWithClock creates a Model with the given clock. Use in tests to
 // inject a FakeClock for deterministic time control.
 func NewModelWithClock(g *game.Game, clock game.Clock) Model {
-	return Model{game: g, clock: clock, lastMoveAt: clock.Now()}
+	return Model{game: g, clock: clock}
 }
 
-// Init satisfies tea.Model. Starts the harvest tick loop.
+// Init satisfies tea.Model. Starts the game tick and movement tick loops.
 func (m Model) Init() tea.Cmd {
-	return doTick()
+	return tea.Batch(doTick(), doMovTick())
 }
 
 // Update handles messages and returns the updated model.
@@ -103,6 +121,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case TickMsg:
 		m.game.Tick()
 		return m, doTick()
+
+	case movTickMsg:
+		now := m.clock.Now()
+		if (m.heldDX != 0 || m.heldDY != 0) && now.Sub(m.lastKeyAt) < keyHoldThreshold {
+			player := m.game.State.Player
+			world := m.game.State.World
+			player.MoveSmooth(m.heldDX, m.heldDY, world, movTickInterval)
+		}
+		return m, doMovTick()
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -131,9 +158,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		player := m.game.State.Player
-		world := m.game.State.World
-		now := m.clock.Now()
 		var dx, dy float64
 		switch msg.String() {
 		case "up", "w":
@@ -156,13 +180,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		if dx != 0 || dy != 0 {
-			dt := now.Sub(m.lastMoveAt)
-			const maxDt = 500 * time.Millisecond
-			if dt > maxDt {
-				dt = maxDt
-			}
-			m.lastMoveAt = now
-			player.MoveSmooth(dx, dy, world, dt)
+			m.heldDX = dx
+			m.heldDY = dy
+			m.lastKeyAt = m.clock.Now()
 		}
 	}
 
