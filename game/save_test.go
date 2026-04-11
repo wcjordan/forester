@@ -30,8 +30,8 @@ func testGame(t *testing.T) *Game {
 func TestSaveDataPlayerPosition(t *testing.T) {
 	g := testGame(t)
 	d := g.SaveData()
-	if d.Player.X != 7 || d.Player.Y != 9 {
-		t.Errorf("Player position = (%d,%d), want (7,9)", d.Player.X, d.Player.Y)
+	if d.Player.PosX != 7 || d.Player.PosY != 9 {
+		t.Errorf("Player position = (%g,%g), want (7,9)", d.Player.PosX, d.Player.PosY)
 	}
 }
 

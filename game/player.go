@@ -278,6 +278,9 @@ const harvestTickInterval = 100 * time.Millisecond
 // PlayerSaveData holds the persistent fields of Player.
 // Runtime-only fields (Cooldowns, pendingCooldowns, LastHarvestAt, LastThrustAt) are excluded.
 type PlayerSaveData struct {
+	// X, Y are kept for backward-compat reading of saves written before PosX/PosY
+	// were introduced. New saves do not write these fields; LoadFrom falls back to
+	// them only when PosX and PosY are both zero.
 	X, Y                int
 	PosX, PosY          float64
 	FacingDX, FacingDY  int
@@ -292,8 +295,7 @@ type PlayerSaveData struct {
 // SaveData returns a snapshot of the player's persistent state.
 func (p *Player) SaveData() PlayerSaveData {
 	return PlayerSaveData{
-		X:                   p.TileX(),
-		Y:                   p.TileY(),
+		// X/Y intentionally omitted — PosX/PosY are the canonical saved position.
 		PosX:                p.PosX,
 		PosY:                p.PosY,
 		FacingDX:            p.FacingDX,
