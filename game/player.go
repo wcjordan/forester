@@ -29,11 +29,12 @@ type Player struct {
 	DepositInterval time.Duration
 	// HarvestInterval controls how often the player auto-harvests adjacent trees.
 	HarvestInterval time.Duration
-	// MoveSpeed is the player's movement speed in tiles/sec on default terrain.
-	// Higher = faster. Terrain adjusts this proportionally via MoveCooldownFor.
-	MoveSpeed        float64
-	Cooldowns        map[CooldownType]time.Time
-	pendingCooldowns map[CooldownType]time.Time
+	// MoveSpeedMultiplier is the player's movement speed multiplier.
+	// 1.0 = default; higher = faster. Only this multiplier is persisted, not the
+	// base speed, so future changes to DefaultMoveSpeed affect all loaded saves.
+	MoveSpeedMultiplier float64
+	Cooldowns           map[CooldownType]time.Time
+	pendingCooldowns    map[CooldownType]time.Time
 	// LastHarvestAt is the last time the player successfully harvested wood (harvest > 0).
 	// Used by the render layer to trigger the slash animation.
 	LastHarvestAt time.Time
@@ -48,17 +49,6 @@ func (p *Player) TileX() int { return int(math.Floor(p.PosX)) }
 // TileY returns the tile row the player currently occupies.
 func (p *Player) TileY() int { return int(math.Floor(p.PosY)) }
 
-// TileMoveDuration returns the time it takes the player to traverse one tile of
-// the given terrain at their current speed. Pass nil to get the default-terrain
-// duration. Used by the TUI to compute a dt per key-press event.
-func (p *Player) TileMoveDuration(tile *Tile) time.Duration {
-	c := defaultMoveCooldown
-	if tile != nil {
-		c = MoveCooldownFor(tile)
-	}
-	return time.Duration(float64(c) * defaultMoveSpeed / p.MoveSpeed)
-}
-
 // SetTilePos snaps the player to the given tile position. Use for test setup and
 // save/load; during gameplay use MoveSmooth.
 func (p *Player) SetTilePos(x, y int) {
@@ -70,14 +60,14 @@ func (p *Player) SetTilePos(x, y int) {
 func NewPlayer(x, y int) *Player {
 	return &Player{
 		PosX: float64(x), PosY: float64(y), FacingDX: 0, FacingDY: -1,
-		Inventory:        make(map[ResourceType]int),
-		MaxCarry:         InitialCarryingCapacity,
-		BuildInterval:    DepositTickInterval,
-		DepositInterval:  DepositTickInterval,
-		HarvestInterval:  harvestTickInterval,
-		MoveSpeed:        defaultMoveSpeed,
-		Cooldowns:        make(map[CooldownType]time.Time),
-		pendingCooldowns: make(map[CooldownType]time.Time),
+		Inventory:           make(map[ResourceType]int),
+		MaxCarry:            InitialCarryingCapacity,
+		BuildInterval:       DepositTickInterval,
+		DepositInterval:     DepositTickInterval,
+		HarvestInterval:     harvestTickInterval,
+		MoveSpeedMultiplier: 1.0,
+		Cooldowns:           make(map[CooldownType]time.Time),
+		pendingCooldowns:    make(map[CooldownType]time.Time),
 	}
 }
 
@@ -129,11 +119,7 @@ func (p *Player) MoveSmooth(dx, dy float64, w *World, dt time.Duration) {
 	}
 
 	curTile := w.TileAt(p.TileX(), p.TileY())
-	terrainCooldown := defaultMoveCooldown
-	if curTile != nil {
-		terrainCooldown = MoveCooldownFor(curTile)
-	}
-	speed := p.MoveSpeed * float64(defaultMoveCooldown) / float64(terrainCooldown)
+	speed := DefaultMoveSpeed * p.MoveSpeedMultiplier * TerrainSpeedFor(curTile)
 
 	if dx != 0 {
 		p.PosX = advancePos1D(p.PosX, p.PosX+dx*speed*dt.Seconds(), dx, p.TileY(), true, w)
@@ -144,11 +130,11 @@ func (p *Player) MoveSmooth(dx, dy float64, w *World, dt time.Duration) {
 }
 
 // advancePos1D returns the allowed new position along one axis after attempting to
-// move from oldPos to newPos in direction dir (+1 or -1). Only the immediately
-// adjacent cell in the direction of movement is checked (prevents skipping past walls
-// when dt is large). fixed is the coordinate on the perpendicular axis.
+// move from oldPos to newPos in direction dir (+1 or -1). All cells between
+// oldPos and newPos are checked in order; the player stops just before the first
+// blocked or out-of-bounds cell. WalkCount is incremented for each road-eligible
+// cell entered. fixed is the coordinate on the perpendicular axis.
 // isX controls the tile lookup order: true → TileAt(moving, fixed), false → TileAt(fixed, moving).
-// WalkCount is incremented when the move enters a road-eligible tile.
 func advancePos1D(oldPos, newPos, dir float64, fixed int, isX bool, w *World) float64 {
 	tileAt := func(moving int) *Tile {
 		if isX {
@@ -164,88 +150,76 @@ func advancePos1D(oldPos, newPos, dir float64, fixed int, isX bool, w *World) fl
 	}
 
 	oldCell := int(math.Floor(oldPos))
+	newCell := int(math.Floor(newPos))
+
 	if dir > 0 {
-		boundary := float64(oldCell + 1)
-		if newPos < boundary {
+		if newPos < float64(oldCell+1) {
 			return newPos // still within current tile
 		}
-		if !inBounds(oldCell + 1) {
-			return math.Nextafter(boundary, oldPos)
-		}
-		dest := tileAt(oldCell + 1)
-		if dest != nil && dest.Structure != NoStructure {
-			return math.Nextafter(boundary, oldPos)
-		}
-		if dest != nil && isRoadEligible(dest) {
-			dest.WalkCount++
-		}
-		// Clamp to within the destination tile: prevents multi-tile overshoot when dt is large.
-		if newPos >= float64(oldCell+2) {
-			return math.Nextafter(float64(oldCell+2), boundary)
+		for cell := oldCell + 1; cell <= newCell; cell++ {
+			if !inBounds(cell) {
+				return math.Nextafter(float64(cell), float64(cell-1))
+			}
+			dest := tileAt(cell)
+			if dest != nil && dest.Structure != NoStructure {
+				return math.Nextafter(float64(cell), float64(cell-1))
+			}
+			if dest != nil && isRoadEligible(dest) {
+				dest.WalkCount++
+			}
 		}
 		return newPos
 	}
 	// dir < 0
-	boundary := float64(oldCell)
-	if newPos >= boundary {
+	if newPos >= float64(oldCell) {
 		return newPos // still within current tile
 	}
-	if !inBounds(oldCell - 1) {
-		return boundary
-	}
-	dest := tileAt(oldCell - 1)
-	if dest != nil && dest.Structure != NoStructure {
-		return boundary
-	}
-	if dest != nil && isRoadEligible(dest) {
-		dest.WalkCount++
-	}
-	// Clamp to within the destination tile: prevents multi-tile overshoot when dt is large.
-	if newPos < float64(oldCell-1) {
-		return float64(oldCell - 1)
+	for cell := oldCell - 1; cell >= newCell; cell-- {
+		if !inBounds(cell) {
+			return float64(cell + 1)
+		}
+		dest := tileAt(cell)
+		if dest != nil && dest.Structure != NoStructure {
+			return float64(cell + 1)
+		}
+		if dest != nil && isRoadEligible(dest) {
+			dest.WalkCount++
+		}
 	}
 	return newPos
 }
 
-// defaultMoveCooldown is the base time between moves on standard terrain (Grassland).
-const defaultMoveCooldown = 150 * time.Millisecond
+// DefaultMoveSpeed is the player's base movement speed in tiles/sec on default terrain.
+// Exported so renderers and tests can compute traversal durations.
+const DefaultMoveSpeed = float64(time.Second) / float64(150*time.Millisecond) // ≈6.667 tiles/sec
 
-// defaultMoveSpeed is the player's movement speed in tiles/sec on default terrain.
-const defaultMoveSpeed = float64(time.Second) / float64(defaultMoveCooldown)
+// Terrain speed factors relative to Grassland (1.0).
+const (
+	forestSpeedFactor  = 0.5  // half speed through dense forest
+	troddenSpeedFactor = 1.25 // 1.25× on trodden path
+	roadSpeedFactor    = 1.65 // 1.65× on road
+)
 
-// troddenMoveCooldown is the time between moves on a trodden path tile.
-const troddenMoveCooldown = 120 * time.Millisecond
-
-// roadMoveCooldown is the time between moves on a road tile. This is also the
-// minimum possible move cooldown, so World.MoveCost normalizes by this value to
-// ensure all terrain costs are >= 1.0 (required for A* admissibility).
-const roadMoveCooldown = 90 * time.Millisecond
-
-// moveCooldowns defines the base time between moves per terrain type.
-// Terrain types not present fall through to defaultMoveCooldown.
-// Road-eligible tiles may override these values based on WalkCount; see MoveCooldownFor.
-var moveCooldowns = map[TerrainType]time.Duration{
-	Grassland: defaultMoveCooldown,
-	Forest:    300 * time.Millisecond,
-}
-
-// MoveCooldownFor returns the move cooldown for the given tile.
-// Road-eligible tiles use a shorter cooldown based on their traffic level.
-// Forest with TreeSize=0 (cut tree) uses defaultMoveCooldown.
-func MoveCooldownFor(tile *Tile) time.Duration {
+// TerrainSpeedFor returns the speed multiplier for the given tile relative to Grassland (1.0).
+// Forest = 0.5, trodden path = 1.25, road = 1.65.
+// nil tile returns 1.0.
+func TerrainSpeedFor(tile *Tile) float64 {
+	if tile == nil {
+		return 1.0
+	}
 	if tile.Terrain == Forest && tile.TreeSize == 0 {
-		return defaultMoveCooldown
+		return 1.0
 	}
 	switch RoadLevelFor(tile) {
 	case 2:
-		return roadMoveCooldown
+		return roadSpeedFactor
 	case 1:
-		return troddenMoveCooldown
+		return troddenSpeedFactor
 	}
-	if d, ok := moveCooldowns[tile.Terrain]; ok {
-		return d
+	if tile.Terrain == Forest {
+		return forestSpeedFactor
 	}
-	return defaultMoveCooldown
+	return 1.0
 }
 
 // InitialCarryingCapacity is the carrying capacity a new player starts with.
@@ -274,10 +248,9 @@ type PlayerSaveData struct {
 	BuildInterval      time.Duration
 	DepositInterval    time.Duration
 	HarvestInterval    time.Duration
-	MoveSpeed          float64
-	// MoveSpeedMultiplier is kept for backward-compat reading of saves written before
-	// MoveSpeed was introduced. New saves do not write this field; LoadFrom falls back
-	// to it only when MoveSpeed is zero.
+	// MoveSpeedMultiplier is the canonical speed field (direct: 1.0=default, >1.0=faster).
+	// Saves from origin/main wrote inverted values (lower=faster); LoadFrom converts
+	// values < 1.0 to the direct semantics.
 	MoveSpeedMultiplier float64
 }
 
@@ -285,17 +258,16 @@ type PlayerSaveData struct {
 func (p *Player) SaveData() PlayerSaveData {
 	return PlayerSaveData{
 		// X/Y intentionally omitted — PosX/PosY are the canonical saved position.
-		PosX:            p.PosX,
-		PosY:            p.PosY,
-		FacingDX:        p.FacingDX,
-		FacingDY:        p.FacingDY,
-		Inventory:       copyMap(p.Inventory),
-		MaxCarry:        p.MaxCarry,
-		BuildInterval:   p.BuildInterval,
-		DepositInterval: p.DepositInterval,
-		HarvestInterval: p.HarvestInterval,
-		MoveSpeed:       p.MoveSpeed,
-		// MoveSpeedMultiplier intentionally omitted — MoveSpeed is canonical.
+		PosX:                p.PosX,
+		PosY:                p.PosY,
+		FacingDX:            p.FacingDX,
+		FacingDY:            p.FacingDY,
+		Inventory:           copyMap(p.Inventory),
+		MaxCarry:            p.MaxCarry,
+		BuildInterval:       p.BuildInterval,
+		DepositInterval:     p.DepositInterval,
+		HarvestInterval:     p.HarvestInterval,
+		MoveSpeedMultiplier: p.MoveSpeedMultiplier,
 	}
 }
 
@@ -318,16 +290,16 @@ func (p *Player) LoadFrom(data PlayerSaveData) {
 	p.BuildInterval = data.BuildInterval
 	p.DepositInterval = data.DepositInterval
 	p.HarvestInterval = data.HarvestInterval
-	// MoveSpeed may be zero for saves written before it was introduced;
-	// fall back to converting the legacy MoveSpeedMultiplier in that case.
-	if data.MoveSpeed == 0 {
-		mult := data.MoveSpeedMultiplier
-		if mult == 0 {
-			mult = 1.0
-		}
-		p.MoveSpeed = defaultMoveSpeed / mult
+	mult := data.MoveSpeedMultiplier
+	if mult == 0 {
+		mult = 1.0
+	}
+	// Values < 1.0 are from origin/main saves where MoveSpeedMultiplier was inverted
+	// (lower = faster; e.g. 0.9 = 10% faster). Convert to direct semantics.
+	if mult < 1.0 {
+		p.MoveSpeedMultiplier = 1.0 / mult
 	} else {
-		p.MoveSpeed = data.MoveSpeed
+		p.MoveSpeedMultiplier = mult
 	}
 	p.Cooldowns = make(map[CooldownType]time.Time)
 	p.pendingCooldowns = make(map[CooldownType]time.Time)

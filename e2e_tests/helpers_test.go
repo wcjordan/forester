@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-
-	tea "github.com/charmbracelet/bubbletea"
+	"time"
 
 	"forester/game"
 	"forester/render"
@@ -37,13 +36,6 @@ func charAtScreen(m render.Model, col, row int) string {
 	return string(lines[row][col])
 }
 
-// sendKey fires a direction key ('w','a','s','d') through model.Update.
-func sendKey(m *render.Model, key string) {
-	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(key)}
-	updated, _ := m.Update(msg)
-	*m = updated.(render.Model)
-}
-
 // tick advances the clock by GameTickInterval and fires one TickMsg.
 func tick(m *render.Model, clock *game.FakeClock) {
 	clock.Advance(game.GameTickInterval)
@@ -67,12 +59,29 @@ func tickDraining(m *render.Model, clock *game.FakeClock, g *game.Game) {
 	drainOffers(g)
 }
 
-// moveDir advances the clock by the player's tile-traversal duration, then sends the key.
+// moveDir advances the clock by one tile-traversal duration and moves the player
+// directly via MoveSmooth. Bypasses the TUI key handler to avoid lastMoveAt
+// staleness from intervening ticks.
 func moveDir(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) {
 	p := g.State.Player
 	tile := g.State.World.TileAt(p.TileX(), p.TileY())
-	clock.Advance(p.TileMoveDuration(tile))
-	sendKey(m, dir)
+	// Use the base 150ms cooldown divided by terrain/speed factors to get an exact
+	// integer nanosecond duration. This avoids the 1ns truncation that occurs when
+	// dividing time.Second by DefaultMoveSpeed first, which can leave distance < 1 tile.
+	dt := time.Duration(float64(150*time.Millisecond) / (p.MoveSpeedMultiplier * game.TerrainSpeedFor(tile)))
+	clock.Advance(dt)
+	var dx, dy float64
+	switch dir {
+	case "w":
+		dy = -1
+	case "s":
+		dy = 1
+	case "a":
+		dx = -1
+	case "d":
+		dx = 1
+	}
+	p.MoveSmooth(dx, dy, g.State.World, dt)
 	renderFrame(*m, fmt.Sprintf("move %s → (%d, %d)", dir, g.State.Player.TileX(), g.State.Player.TileY()))
 }
 

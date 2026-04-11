@@ -9,7 +9,8 @@ import (
 
 func TestMovePlayer(t *testing.T) {
 	w := NewWorld(10, 10)
-	// 200ms > defaultMoveCooldown (150ms) guarantees a full tile crossing.
+	// 200ms at DefaultMoveSpeed ≈ 1.33 tiles. Starting from tile center (5.5)
+	// keeps the player in the adjacent tile for both positive and negative directions.
 	dt := 200 * time.Millisecond
 
 	for _, tc := range []struct {
@@ -25,6 +26,7 @@ func TestMovePlayer(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			p := NewPlayer(5, 5)
+			p.PosX, p.PosY = 5.5, 5.5 // tile center avoids boundary asymmetry
 			p.MoveSmooth(tc.dx, tc.dy, w, dt)
 			if p.TileX() != tc.wantX || p.TileY() != tc.wantY {
 				t.Errorf("got (%d,%d), want (%d,%d)", p.TileX(), p.TileY(), tc.wantX, tc.wantY)
@@ -60,23 +62,49 @@ func TestMovePlayerBounds(t *testing.T) {
 	}
 }
 
-func TestTileMoveDuration(t *testing.T) {
-	p := NewPlayer(5, 5)
+func TestTerrainSpeedFor(t *testing.T) {
+	forest := TerrainSpeedFor(&Tile{Terrain: Forest, TreeSize: 5})
+	grass := TerrainSpeedFor(&Tile{Terrain: Grassland})
+	cutTree := TerrainSpeedFor(&Tile{Terrain: Forest, TreeSize: 0})
+	trodden := TerrainSpeedFor(&Tile{Terrain: Grassland, WalkCount: WalkCountTrodden})
+	road := TerrainSpeedFor(&Tile{Terrain: Grassland, WalkCount: WalkCountRoad})
+	nilTile := TerrainSpeedFor(nil)
 
-	if got := p.TileMoveDuration(&Tile{Terrain: Grassland}); got != defaultMoveCooldown {
-		t.Errorf("Grassland: %v, want %v", got, defaultMoveCooldown)
+	if forest >= grass {
+		t.Errorf("Forest speed %v should be < Grassland %v", forest, grass)
 	}
-	if got := p.TileMoveDuration(&Tile{Terrain: Forest, TreeSize: 5}); got != 300*time.Millisecond {
-		t.Errorf("Forest: %v, want 300ms", got)
+	if cutTree != grass {
+		t.Errorf("cut tree speed %v should equal Grassland %v", cutTree, grass)
 	}
-	if got := p.TileMoveDuration(nil); got != defaultMoveCooldown {
-		t.Errorf("nil tile: %v, want %v", got, defaultMoveCooldown)
+	if trodden <= grass {
+		t.Errorf("trodden speed %v should be > Grassland %v", trodden, grass)
 	}
+	if road <= trodden {
+		t.Errorf("road speed %v should be > trodden %v", road, trodden)
+	}
+	if nilTile != 1.0 {
+		t.Errorf("nil tile speed = %v, want 1.0", nilTile)
+	}
+}
 
-	// After speed upgrade: duration decreases.
-	p.MoveSpeed /= 0.9
-	if got := p.TileMoveDuration(&Tile{Terrain: Grassland}); got >= defaultMoveCooldown {
-		t.Errorf("upgraded Grassland duration %v should be < %v", got, defaultMoveCooldown)
+func TestTerrainSpeedFor_RoadLevels(t *testing.T) {
+	plain := &Tile{Terrain: Grassland, WalkCount: 0}
+	trodden := &Tile{Terrain: Grassland, WalkCount: WalkCountTrodden}
+	road := &Tile{Terrain: Grassland, WalkCount: WalkCountRoad}
+	forest := &Tile{Terrain: Forest, TreeSize: 5, WalkCount: WalkCountRoad}
+
+	if got := TerrainSpeedFor(plain); got != 1.0 {
+		t.Errorf("plain Grassland: %v, want 1.0", got)
+	}
+	if got := TerrainSpeedFor(trodden); got != troddenSpeedFactor {
+		t.Errorf("trodden: %v, want %v", got, troddenSpeedFactor)
+	}
+	if got := TerrainSpeedFor(road); got != roadSpeedFactor {
+		t.Errorf("road: %v, want %v", got, roadSpeedFactor)
+	}
+	// Forest tiles ignore WalkCount.
+	if got := TerrainSpeedFor(forest); got != forestSpeedFactor {
+		t.Errorf("Forest with high WalkCount: %v, want %v", got, forestSpeedFactor)
 	}
 }
 
@@ -104,55 +132,11 @@ func TestMovePlayerStructureBlocking(t *testing.T) {
 	})
 }
 
-func TestMoveCooldowns(t *testing.T) {
-	forestCooldown := MoveCooldownFor(&Tile{Terrain: Forest, TreeSize: 5})
-	cutTreeCooldown := MoveCooldownFor(&Tile{Terrain: Forest, TreeSize: 0})
-	grassCooldown := MoveCooldownFor(&Tile{Terrain: Grassland})
-
-	if forestCooldown <= grassCooldown {
-		t.Errorf("Forest cooldown (%v) should be longer than Grassland (%v)", forestCooldown, grassCooldown)
-	}
-	if forestCooldown <= cutTreeCooldown {
-		t.Errorf("Forest cooldown (%v) should be longer than cut tree (%v)", forestCooldown, cutTreeCooldown)
-	}
-	if grassCooldown != cutTreeCooldown {
-		t.Errorf("Grassland (%v) and cut tree (%v) cooldowns should be equal", grassCooldown, cutTreeCooldown)
-	}
-}
-
-func TestMoveCooldownFor_RoadLevels(t *testing.T) {
-	plain := &Tile{Terrain: Grassland, WalkCount: 0}
-	trodden := &Tile{Terrain: Grassland, WalkCount: WalkCountTrodden}
-	road := &Tile{Terrain: Grassland, WalkCount: WalkCountRoad}
-	forest := &Tile{Terrain: Forest, TreeSize: 5, WalkCount: WalkCountRoad}
-
-	if got := MoveCooldownFor(plain); got != defaultMoveCooldown {
-		t.Errorf("plain Grassland: %v, want %v", got, defaultMoveCooldown)
-	}
-	if got := MoveCooldownFor(trodden); got != troddenMoveCooldown {
-		t.Errorf("trodden: %v, want %v", got, troddenMoveCooldown)
-	}
-	if got := MoveCooldownFor(road); got != roadMoveCooldown {
-		t.Errorf("road: %v, want %v", got, roadMoveCooldown)
-	}
-	// Forest tiles ignore WalkCount.
-	if got := MoveCooldownFor(forest); got != 300*time.Millisecond {
-		t.Errorf("Forest with high WalkCount: %v, want 300ms", got)
-	}
-	// Road cooldown is the shortest, so ordering must hold.
-	if roadMoveCooldown >= troddenMoveCooldown {
-		t.Error("roadMoveCooldown must be less than troddenMoveCooldown")
-	}
-	if troddenMoveCooldown >= defaultMoveCooldown {
-		t.Error("troddenMoveCooldown must be less than defaultMoveCooldown")
-	}
-}
-
 func TestMoveCost_RoadLevels(t *testing.T) {
 	w := NewWorld(5, 5)
 
-	// Default Grassland: cost should be defaultMoveCooldown/roadMoveCooldown.
-	wantGrass := float64(defaultMoveCooldown) / float64(roadMoveCooldown)
+	// Default Grassland: cost should be roadSpeedFactor / 1.0.
+	wantGrass := roadSpeedFactor / TerrainSpeedFor(&Tile{Terrain: Grassland})
 	if got := w.MoveCost(2, 2); got != wantGrass {
 		t.Errorf("Grassland MoveCost = %v, want %v", got, wantGrass)
 	}
@@ -171,7 +155,7 @@ func TestMoveCost_RoadLevels(t *testing.T) {
 		{Terrain: Forest, TreeSize: 5},
 		{Terrain: Forest, TreeSize: 0},
 	} {
-		cost := float64(MoveCooldownFor(tile)) / float64(roadMoveCooldown)
+		cost := roadSpeedFactor / TerrainSpeedFor(tile)
 		if cost < 1.0 {
 			t.Errorf("MoveCost for tile %+v = %v < 1.0; breaks A* admissibility", tile, cost)
 		}
@@ -270,6 +254,42 @@ func TestMoveSmooth_WalkCount(t *testing.T) {
 
 	if w.TileAt(6, 5).WalkCount != 1 {
 		t.Errorf("WalkCount = %d, want 1", w.TileAt(6, 5).WalkCount)
+	}
+}
+
+func TestMoveSmooth_MultiTile(t *testing.T) {
+	w := NewWorld(10, 10)
+	p := NewPlayer(5, 5)
+
+	// 400ms at DefaultMoveSpeed (≈6.667 tiles/sec) = ≈2.667 tiles — crosses tiles 6 and 7.
+	p.MoveSmooth(1, 0, w, 400*time.Millisecond)
+
+	if p.TileX() < 7 {
+		t.Errorf("X = %d, want >= 7 (should cross multiple tiles)", p.TileX())
+	}
+	// Both tiles 6 and 7 should have been entered.
+	if w.TileAt(6, 5).WalkCount != 1 {
+		t.Errorf("tile (6,5) WalkCount = %d, want 1", w.TileAt(6, 5).WalkCount)
+	}
+	if w.TileAt(7, 5).WalkCount != 1 {
+		t.Errorf("tile (7,5) WalkCount = %d, want 1", w.TileAt(7, 5).WalkCount)
+	}
+}
+
+func TestMoveSmooth_MultiTileBlockedMidway(t *testing.T) {
+	w := NewWorld(10, 10)
+	// Block tile 7, leave 6 open.
+	w.PlaceBuilt(7, 5, gametest.LogStorageDef{})
+	p := NewPlayer(5, 5)
+
+	// Large dt would reach tile 7, but it's blocked — should stop at 6.
+	p.MoveSmooth(1, 0, w, 400*time.Millisecond)
+
+	if p.TileX() != 6 {
+		t.Errorf("X = %d, want 6 (stopped before blocked tile 7)", p.TileX())
+	}
+	if p.PosX >= 7.0 {
+		t.Errorf("PosX = %v, should be < 7.0", p.PosX)
 	}
 }
 

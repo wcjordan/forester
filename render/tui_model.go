@@ -72,6 +72,7 @@ type Model struct {
 	termWidth        int
 	termHeight       int
 	clock            game.Clock
+	lastMoveAt       time.Time
 	debugVillager    bool // whether the debug bar is visible
 	debugVillagerIdx int  // currently selected villager index
 }
@@ -84,7 +85,7 @@ func NewModel(g *game.Game) Model {
 // NewModelWithClock creates a Model with the given clock. Use in tests to
 // inject a FakeClock for deterministic time control.
 func NewModelWithClock(g *game.Game, clock game.Clock) Model {
-	return Model{game: g, clock: clock}
+	return Model{game: g, clock: clock, lastMoveAt: clock.Now()}
 }
 
 // Init satisfies tea.Model. Starts the harvest tick loop.
@@ -132,17 +133,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		player := m.game.State.Player
 		world := m.game.State.World
-		tile := world.TileAt(player.TileX(), player.TileY())
-		dt := player.TileMoveDuration(tile)
+		now := m.clock.Now()
+		var dx, dy float64
 		switch msg.String() {
 		case "up", "w":
-			player.MoveSmooth(0, -1, world, dt)
+			dy = -1
 		case "down", "s":
-			player.MoveSmooth(0, 1, world, dt)
+			dy = 1
 		case "left", "a":
-			player.MoveSmooth(-1, 0, world, dt)
+			dx = -1
 		case "right", "d":
-			player.MoveSmooth(1, 0, world, dt)
+			dx = 1
 		case "\\":
 			m.debugVillager = !m.debugVillager
 		case "[":
@@ -153,6 +154,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if n := m.game.Villagers.Count(); n > 0 {
 				m.debugVillagerIdx = (m.debugVillagerIdx + 1) % n
 			}
+		}
+		if dx != 0 || dy != 0 {
+			dt := now.Sub(m.lastMoveAt)
+			const maxDt = 500 * time.Millisecond
+			if dt > maxDt {
+				dt = maxDt
+			}
+			m.lastMoveAt = now
+			player.MoveSmooth(dx, dy, world, dt)
 		}
 	}
 
