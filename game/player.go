@@ -31,10 +31,11 @@ type Player struct {
 	DepositInterval time.Duration
 	// HarvestInterval controls how often the player auto-harvests adjacent trees.
 	HarvestInterval time.Duration
-	// MoveSpeedMultiplier scales all movement cooldowns. Starts at 1.0; values below 1.0 are faster.
-	MoveSpeedMultiplier float64
-	Cooldowns           map[CooldownType]time.Time
-	pendingCooldowns    map[CooldownType]time.Time
+	// MoveSpeed is the player's movement speed in tiles/sec on default terrain.
+	// Higher = faster. Terrain adjusts this proportionally via MoveCooldownFor.
+	MoveSpeed        float64
+	Cooldowns        map[CooldownType]time.Time
+	pendingCooldowns map[CooldownType]time.Time
 	// LastHarvestAt is the last time the player successfully harvested wood (harvest > 0).
 	// Used by the render layer to trigger the slash animation.
 	LastHarvestAt time.Time
@@ -49,8 +50,19 @@ func (p *Player) TileX() int { return int(math.Floor(p.PosX)) }
 // TileY returns the tile row the player currently occupies.
 func (p *Player) TileY() int { return int(math.Floor(p.PosY)) }
 
+// TileMoveDuration returns the time it takes the player to traverse one tile of
+// the given terrain at their current speed. Pass nil to get the default-terrain
+// duration. Used by the TUI to compute a dt per key-press event.
+func (p *Player) TileMoveDuration(tile *Tile) time.Duration {
+	c := defaultMoveCooldown
+	if tile != nil {
+		c = MoveCooldownFor(tile)
+	}
+	return time.Duration(float64(c) * defaultMoveSpeed / p.MoveSpeed)
+}
+
 // SetTilePos snaps the player to the given tile position. Use for test setup and
-// save/load; during gameplay use Move or MoveSmooth.
+// save/load; during gameplay use MoveSmooth.
 func (p *Player) SetTilePos(x, y int) {
 	p.PosX = float64(x)
 	p.PosY = float64(y)
@@ -60,14 +72,14 @@ func (p *Player) SetTilePos(x, y int) {
 func NewPlayer(x, y int) *Player {
 	return &Player{
 		PosX: float64(x), PosY: float64(y), FacingDX: 0, FacingDY: -1,
-		Inventory:           make(map[ResourceType]int),
-		MaxCarry:            InitialCarryingCapacity,
-		BuildInterval:       DepositTickInterval,
-		DepositInterval:     DepositTickInterval,
-		HarvestInterval:     harvestTickInterval,
-		MoveSpeedMultiplier: 1.0,
-		Cooldowns:           make(map[CooldownType]time.Time),
-		pendingCooldowns:    make(map[CooldownType]time.Time),
+		Inventory:        make(map[ResourceType]int),
+		MaxCarry:         InitialCarryingCapacity,
+		BuildInterval:    DepositTickInterval,
+		DepositInterval:  DepositTickInterval,
+		HarvestInterval:  harvestTickInterval,
+		MoveSpeed:        defaultMoveSpeed,
+		Cooldowns:        make(map[CooldownType]time.Time),
+		pendingCooldowns: make(map[CooldownType]time.Time),
 	}
 }
 
@@ -110,7 +122,7 @@ func (p *Player) Move(dx, dy int, w *World, now time.Time) {
 	if tile != nil {
 		baseCooldown = MoveCooldownFor(tile)
 	}
-	cooldown := time.Duration(float64(baseCooldown) * p.MoveSpeedMultiplier)
+	cooldown := time.Duration(float64(baseCooldown) * defaultMoveSpeed / p.MoveSpeed)
 	if !p.CooldownExpired(Move, now) {
 		return
 	}
@@ -154,12 +166,11 @@ func (p *Player) MoveSmooth(dx, dy float64, w *World, dt time.Duration) {
 	}
 
 	curTile := w.TileAt(p.TileX(), p.TileY())
-	baseCooldown := defaultMoveCooldown
+	terrainCooldown := defaultMoveCooldown
 	if curTile != nil {
-		baseCooldown = MoveCooldownFor(curTile)
+		terrainCooldown = MoveCooldownFor(curTile)
 	}
-	cooldown := time.Duration(float64(baseCooldown) * p.MoveSpeedMultiplier)
-	speed := float64(time.Second) / float64(cooldown) // tiles/sec
+	speed := p.MoveSpeed * float64(defaultMoveCooldown) / float64(terrainCooldown)
 
 	if dx != 0 {
 		p.PosX = advancePos1D(p.PosX, p.PosX+dx*speed*dt.Seconds(), dx, p.TileY(), true, w)
@@ -228,6 +239,9 @@ func advancePos1D(oldPos, newPos, dir float64, fixed int, isX bool, w *World) fl
 // defaultMoveCooldown is the base time between moves on standard terrain (Grassland).
 const defaultMoveCooldown = 150 * time.Millisecond
 
+// defaultMoveSpeed is the player's movement speed in tiles/sec on default terrain.
+const defaultMoveSpeed = float64(time.Second) / float64(defaultMoveCooldown)
+
 // troddenMoveCooldown is the time between moves on a trodden path tile.
 const troddenMoveCooldown = 120 * time.Millisecond
 
@@ -281,14 +295,18 @@ type PlayerSaveData struct {
 	// X, Y are kept for backward-compat reading of saves written before PosX/PosY
 	// were introduced. New saves do not write these fields; LoadFrom falls back to
 	// them only when PosX and PosY are both zero.
-	X, Y                int
-	PosX, PosY          float64
-	FacingDX, FacingDY  int
-	Inventory           map[ResourceType]int
-	MaxCarry            int
-	BuildInterval       time.Duration
-	DepositInterval     time.Duration
-	HarvestInterval     time.Duration
+	X, Y               int
+	PosX, PosY         float64
+	FacingDX, FacingDY int
+	Inventory          map[ResourceType]int
+	MaxCarry           int
+	BuildInterval      time.Duration
+	DepositInterval    time.Duration
+	HarvestInterval    time.Duration
+	MoveSpeed          float64
+	// MoveSpeedMultiplier is kept for backward-compat reading of saves written before
+	// MoveSpeed was introduced. New saves do not write this field; LoadFrom falls back
+	// to it only when MoveSpeed is zero.
 	MoveSpeedMultiplier float64
 }
 
@@ -296,16 +314,17 @@ type PlayerSaveData struct {
 func (p *Player) SaveData() PlayerSaveData {
 	return PlayerSaveData{
 		// X/Y intentionally omitted — PosX/PosY are the canonical saved position.
-		PosX:                p.PosX,
-		PosY:                p.PosY,
-		FacingDX:            p.FacingDX,
-		FacingDY:            p.FacingDY,
-		Inventory:           copyMap(p.Inventory),
-		MaxCarry:            p.MaxCarry,
-		BuildInterval:       p.BuildInterval,
-		DepositInterval:     p.DepositInterval,
-		HarvestInterval:     p.HarvestInterval,
-		MoveSpeedMultiplier: p.MoveSpeedMultiplier,
+		PosX:            p.PosX,
+		PosY:            p.PosY,
+		FacingDX:        p.FacingDX,
+		FacingDY:        p.FacingDY,
+		Inventory:       copyMap(p.Inventory),
+		MaxCarry:        p.MaxCarry,
+		BuildInterval:   p.BuildInterval,
+		DepositInterval: p.DepositInterval,
+		HarvestInterval: p.HarvestInterval,
+		MoveSpeed:       p.MoveSpeed,
+		// MoveSpeedMultiplier intentionally omitted — MoveSpeed is canonical.
 	}
 }
 
@@ -328,7 +347,17 @@ func (p *Player) LoadFrom(data PlayerSaveData) {
 	p.BuildInterval = data.BuildInterval
 	p.DepositInterval = data.DepositInterval
 	p.HarvestInterval = data.HarvestInterval
-	p.MoveSpeedMultiplier = data.MoveSpeedMultiplier
+	// MoveSpeed may be zero for saves written before it was introduced;
+	// fall back to converting the legacy MoveSpeedMultiplier in that case.
+	if data.MoveSpeed == 0 {
+		mult := data.MoveSpeedMultiplier
+		if mult == 0 {
+			mult = 1.0
+		}
+		p.MoveSpeed = defaultMoveSpeed / mult
+	} else {
+		p.MoveSpeed = data.MoveSpeed
+	}
 	p.Cooldowns = make(map[CooldownType]time.Time)
 	p.pendingCooldowns = make(map[CooldownType]time.Time)
 }
