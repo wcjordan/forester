@@ -124,8 +124,8 @@ func loadFixture(t *testing.T, name string) (*game.Game, *game.FakeClock, render
 		t.Fatalf("loadFixture %q: unmarshal: %v", name, err)
 	}
 	g, clock, m := newTestGame()
-	if err := g.LoadFrom(saveData); err != nil {
-		t.Fatalf("loadFixture %q: LoadFrom: %v", name, err)
+	if err := g.LoadSaveData(saveData); err != nil {
+		t.Fatalf("loadFixture %q: LoadSaveData: %v", name, err)
 	}
 	return g, clock, m
 }
