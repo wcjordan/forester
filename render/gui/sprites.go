@@ -275,12 +275,12 @@ func playerAnimFrame(slashCycleStart, thrustCycleStart, now time.Time, moving bo
 // (0=up,1=left,2=down,3=right), and frame the column (0-based).
 func spriteForPlayer(baseRow, dir, frame int, slash128 bool) drawArgs {
 	if slash128 {
-		return drawArgs{img: playerSlash128Frames[dir][frame], scale: 0.5, offsetX: -16, offsetY: 0}
+		return drawArgs{img: playerSlash128Frames[dir][frame], scale: 0.5, offsetX: -32, offsetY: -16}
 	}
 	if baseRow == lpcThrustBaseRow {
-		return drawArgs{img: playerThrustFrames[dir][frame], scale: 0.5}
+		return drawArgs{img: playerThrustFrames[dir][frame], scale: 0.5, offsetX: -16, offsetY: -16}
 	}
-	return drawArgs{img: playerWalkFrames[dir][frame], scale: 0.5}
+	return drawArgs{img: playerWalkFrames[dir][frame], scale: 0.5, offsetX: -16, offsetY: -16}
 }
 
 // spriteForVillager returns drawArgs for a villager character.

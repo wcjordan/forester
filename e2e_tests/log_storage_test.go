@@ -48,9 +48,9 @@ func TestLogStorageWorkflow(t *testing.T) {
 	for _, dir := range []string{"a", "a", "w", "w", "w", "w", "w"} {
 		moveDir(&m, clock, g, dir)
 	}
-	if g.State.Player.X != 48 || g.State.Player.Y != 45 {
+	if g.State.Player.TileX() != 48 || g.State.Player.TileY() != 45 {
 		t.Fatalf("phase 1: expected player at (48,45), got (%d,%d)",
-			g.State.Player.X, g.State.Player.Y)
+			g.State.Player.TileX(), g.State.Player.TileY())
 	}
 
 	// ── Phase 2: Harvest until foundation appears ────────────────────────────
@@ -75,9 +75,9 @@ func TestLogStorageWorkflow(t *testing.T) {
 	// Attempting to move south into the foundation should be blocked.
 	announcePhase(m, "Phase 3: Verify foundation blocks south movement")
 	moveDir(&m, clock, g, "s")
-	if g.State.Player.X != 48 || g.State.Player.Y != 45 {
+	if g.State.Player.TileX() != 48 || g.State.Player.TileY() != 45 {
 		t.Errorf("phase 3: expected player at (48,45) (foundation blocks south), got (%d,%d)",
-			g.State.Player.X, g.State.Player.Y)
+			g.State.Player.TileX(), g.State.Player.TileY())
 	}
 
 	// ── Phase 4: Deposit wood to complete the foundation ─────────────────────
@@ -163,9 +163,9 @@ func TestLogStorageWorkflow(t *testing.T) {
 	// ── Assertions ────────────────────────────────────────────────────────────
 
 	// 1. Player position: at (48,45) — foundation blocked south throughout.
-	if g.State.Player.X != 48 || g.State.Player.Y != 45 {
+	if g.State.Player.TileX() != 48 || g.State.Player.TileY() != 45 {
 		t.Errorf("player position: got (%d,%d), want (48,45)",
-			g.State.Player.X, g.State.Player.Y)
+			g.State.Player.TileX(), g.State.Player.TileY())
 	}
 
 	// 2. Status bar shows the correct player position and wood count.

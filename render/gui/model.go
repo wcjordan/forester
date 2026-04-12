@@ -40,6 +40,7 @@ type EbitenGame struct {
 	animTick         int       // increments each Update while playerMoving; resets to 0 when idle
 	slashCycleStart  time.Time // wall-clock start of the current slash cycle; zero = inactive
 	thrustCycleStart time.Time // wall-clock start of the current thrust cycle; zero = inactive
+	lastFrameAt      time.Time // wall-clock time of the previous Update(), for delta-time
 }
 
 // NewEbitenGame creates an EbitenGame wrapping the given game using the system clock.
@@ -140,25 +141,36 @@ func (e *EbitenGame) Update() error {
 		e.prevPinchDist = 0
 	}
 
-	// Movement: hold-to-move; player's 150ms cooldown throttles actual movement.
-	// Also tracks whether any movement key is held for walk animation.
+	// Continuous movement: compute delta-time and call MoveSmooth with the held direction.
+	// Cap dt to 200ms to prevent large jumps after focus loss or pauses.
+	dt := now.Sub(e.lastFrameAt)
+	if e.lastFrameAt.IsZero() || dt > 200*time.Millisecond {
+		dt = 0
+	}
+	e.lastFrameAt = now
+
 	player := e.game.State.Player
 	world := e.game.State.World
+	var dx, dy float64
 	e.playerMoving = false
 	switch {
 	case ebiten.IsKeyPressed(ebiten.KeyW) || ebiten.IsKeyPressed(ebiten.KeyArrowUp):
-		player.Move(0, -1, world, now)
+		dy = -1
 		e.playerMoving = true
 	case ebiten.IsKeyPressed(ebiten.KeyS) || ebiten.IsKeyPressed(ebiten.KeyArrowDown):
-		player.Move(0, 1, world, now)
+		dy = 1
 		e.playerMoving = true
 	case ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyArrowLeft):
-		player.Move(-1, 0, world, now)
+		dx = -1
 		e.playerMoving = true
 	case ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyArrowRight):
-		player.Move(1, 0, world, now)
+		dx = 1
 		e.playerMoving = true
 	}
+	if e.playerMoving {
+		player.MoveSmooth(dx, dy, world, dt)
+	}
+
 	if e.playerMoving {
 		e.animTick++
 	} else {
@@ -183,9 +195,9 @@ func (e *EbitenGame) Update() error {
 	scaledTile := float64(tileSize) * e.zoom
 	viewW := int(math.Ceil(float64(e.screenW)/scaledTile)) + 1
 	viewH := int(math.Ceil(float64(e.screenH)/scaledTile)) + 1
-	// Use exact screen-pixel math so the target is a continuous function of zoom.
-	targetCamX := render.ClampF(float64(player.X)-float64(e.screenW)/(2*scaledTile), 0, float64(max(0, world.Width-viewW)))
-	targetCamY := render.ClampF(float64(player.Y)-float64(e.screenH)/(2*scaledTile), 0, float64(max(0, world.Height-viewH)))
+	// Track the player's continuous position so camera moves in lockstep with the sprite.
+	targetCamX := render.ClampF(player.PosX-float64(e.screenW)/(2*scaledTile), 0, float64(max(0, world.Width-viewW)))
+	targetCamY := render.ClampF(player.PosY-float64(e.screenH)/(2*scaledTile), 0, float64(max(0, world.Height-viewH)))
 	if e.zoom != prevZoom {
 		e.camX = targetCamX
 		e.camY = targetCamY
@@ -265,9 +277,9 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 		screen.DrawImage(da.img, &opts)
 	}
 
-	// Pass 1: terrain bases. All base tiles are painted before any sprite overlay
-	// so that overflowing sprites (e.g. mature tree canopy) are never masked by a
-	// neighbouring tile's ground layer.
+	// Pass 1: terrain bases and road overlays. Roads are ground-level and must not
+	// occlude the player, so they are composited here rather than in pass 2.
+	// All other overflowing sprites (trees, structures) are deferred to pass 2.
 	for row := 0; row < viewH; row++ {
 		for col := 0; col < viewW; col++ {
 			worldX := vpX + col
@@ -276,8 +288,15 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 			if tile == nil {
 				continue
 			}
-			base, _ := spriteForTile(tile, world, worldX, worldY)
-			drawSprite(base, (float64(col)-fracX)*scaledTile, (float64(row)-fracY)*scaledTile)
+			sx := (float64(col) - fracX) * scaledTile
+			sy := (float64(row) - fracY) * scaledTile
+			base, overlays := spriteForTile(tile, world, worldX, worldY)
+			drawSprite(base, sx, sy)
+			if game.RoadLevelFor(tile) > 0 {
+				for _, da := range overlays {
+					drawSprite(da, sx, sy)
+				}
+			}
 		}
 	}
 
@@ -286,7 +305,12 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 	// the loop, look up the NW origin and draw the full sprite from there. The
 	// origin may be outside the tile loop range for large buildings, but the
 	// screen position is computed from world coords so the GPU clips correctly.
+	// Player is drawn after all columns in its depth row (floor(player.PosY)) so
+	// that depth-sorting relative to trees and building roofs is preserved.
 	drawnStructureOrigins := make(map[geom.Point]struct{})
+	playerDepthRow := int(math.Floor(player.PosY))
+	playerScreenX := (player.PosX - float64(vpX) - fracX) * scaledTile
+	playerScreenY := (player.PosY - float64(vpY) - fracY) * scaledTile
 	for row := 0; row < viewH; row++ {
 		for col := 0; col < viewW; col++ {
 			worldX := vpX + col
@@ -314,7 +338,7 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 						}
 					}
 				}
-			} else {
+			} else if game.RoadLevelFor(tile) == 0 {
 				_, overlays := spriteForTile(tile, world, worldX, worldY)
 				for _, da := range overlays {
 					drawSprite(da, screenX, screenY)
@@ -324,9 +348,10 @@ func (e *EbitenGame) Draw(screen *ebiten.Image) {
 			if _, ok := villagerPos[geom.Point{X: worldX, Y: worldY}]; ok {
 				drawSprite(spriteForVillager(), screenX, screenY)
 			}
-			if worldX == player.X && worldY == player.Y {
-				drawSprite(spriteForPlayer(playerBaseRow, playerDir, playerFrame, playerSlash128), screenX, screenY)
-			}
+		}
+		// Draw player after all columns in its depth row to preserve z-order.
+		if vpY+row == playerDepthRow {
+			drawSprite(spriteForPlayer(playerBaseRow, playerDir, playerFrame, playerSlash128), playerScreenX, playerScreenY)
 		}
 	}
 

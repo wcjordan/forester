@@ -86,7 +86,7 @@ func drawHUD(screen *ebiten.Image, g *game.Game, face *textv2.GoXFace, screenW, 
 	world := g.State.World
 
 	status := fmt.Sprintf(" Player: (%d, %d)  Wood: %d/%d",
-		player.X, player.Y, player.Inventory[game.Wood], player.MaxCarry)
+		player.TileX(), player.TileY(), player.Inventory[game.Wood], player.MaxCarry)
 
 	logStored := g.Stores.Total(game.Wood)
 	logCap := g.Stores.TotalCapacity(game.Wood)

@@ -53,6 +53,19 @@ func doTick() tea.Cmd {
 	})
 }
 
+// movTickMsg is sent each movement tick interval (~30 fps) to drive smooth movement.
+type movTickMsg time.Time
+
+// movTickInterval is the movement tick duration (~30 fps). Used as the dt cap
+// for key-event-driven movement and as the render refresh heartbeat.
+const movTickInterval = 33 * time.Millisecond
+
+func doMovTick() tea.Cmd {
+	return tea.Tick(movTickInterval, func(t time.Time) tea.Msg {
+		return movTickMsg(t)
+	})
+}
+
 var (
 	playerStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))            // blue
 	forestStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))             // green
@@ -72,8 +85,9 @@ type Model struct {
 	termWidth        int
 	termHeight       int
 	clock            game.Clock
-	debugVillager    bool // whether the debug bar is visible
-	debugVillagerIdx int  // currently selected villager index
+	lastKeyAt        time.Time // time of last direction key event (for dt cap)
+	debugVillager    bool      // whether the debug bar is visible
+	debugVillagerIdx int       // currently selected villager index
 }
 
 // NewModel creates a Model wrapping the given game using the system clock.
@@ -87,9 +101,9 @@ func NewModelWithClock(g *game.Game, clock game.Clock) Model {
 	return Model{game: g, clock: clock}
 }
 
-// Init satisfies tea.Model. Starts the harvest tick loop.
+// Init satisfies tea.Model. Starts the game tick and movement tick loops.
 func (m Model) Init() tea.Cmd {
-	return doTick()
+	return tea.Batch(doTick(), doMovTick())
 }
 
 // Update handles messages and returns the updated model.
@@ -102,6 +116,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case TickMsg:
 		m.game.Tick()
 		return m, doTick()
+
+	case movTickMsg:
+		return m, doMovTick()
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -130,15 +147,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		var dx, dy float64
 		switch msg.String() {
 		case "up", "w":
-			m.game.State.Player.Move(0, -1, m.game.State.World, m.clock.Now())
+			dy = -1
 		case "down", "s":
-			m.game.State.Player.Move(0, 1, m.game.State.World, m.clock.Now())
+			dy = 1
 		case "left", "a":
-			m.game.State.Player.Move(-1, 0, m.game.State.World, m.clock.Now())
+			dx = -1
 		case "right", "d":
-			m.game.State.Player.Move(1, 0, m.game.State.World, m.clock.Now())
+			dx = 1
 		case "\\":
 			m.debugVillager = !m.debugVillager
 		case "[":
@@ -149,6 +167,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if n := m.game.Villagers.Count(); n > 0 {
 				m.debugVillagerIdx = (m.debugVillagerIdx + 1) % n
 			}
+		}
+		if dx != 0 || dy != 0 {
+			now := m.clock.Now()
+			// Compute dt from elapsed time since last key event, capped at one
+			// movement tick to prevent large jumps after pauses. On first press
+			// (lastKeyAt is zero) use movTickInterval directly.
+			dt := movTickInterval
+			if !m.lastKeyAt.IsZero() {
+				if elapsed := now.Sub(m.lastKeyAt); elapsed < movTickInterval {
+					dt = elapsed
+				}
+			}
+			m.lastKeyAt = now
+			player := m.game.State.Player
+			world := m.game.State.World
+			player.MoveSmooth(dx, dy, world, dt)
 		}
 	}
 
@@ -184,8 +218,8 @@ func (m Model) View() string {
 
 	// Top-left corner of the viewport in world coordinates.
 	// Center the viewport on the player, clamped to world bounds.
-	vpX := Clamp(player.X-mapWidth/2, 0, max(0, world.Width-mapWidth))
-	vpY := Clamp(player.Y-mapHeight/2, 0, max(0, world.Height-mapHeight))
+	vpX := Clamp(player.TileX()-mapWidth/2, 0, max(0, world.Width-mapWidth))
+	vpY := Clamp(player.TileY()-mapHeight/2, 0, max(0, world.Height-mapHeight))
 
 	// Build a position set for O(1) villager lookup during rendering.
 	villagerPos := make(map[geom.Point]struct{}, m.game.Villagers.Count())
@@ -199,7 +233,7 @@ func (m Model) View() string {
 			worldX := vpX + col
 			worldY := vpY + row
 
-			if worldX == player.X && worldY == player.Y {
+			if worldX == player.TileX() && worldY == player.TileY() {
 				sb.WriteString(playerStyle.Render("@"))
 				continue
 			}
@@ -262,7 +296,7 @@ func (m Model) View() string {
 
 	// Status bar.
 	status := fmt.Sprintf(" Player: (%d, %d)  Wood: %d/%d",
-		player.X, player.Y, player.Inventory[game.Wood], player.MaxCarry)
+		player.TileX(), player.TileY(), player.Inventory[game.Wood], player.MaxCarry)
 
 	logStored := m.game.Stores.Total(game.Wood)
 	logCap := m.game.Stores.TotalCapacity(game.Wood)

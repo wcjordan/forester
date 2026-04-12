@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-
-	tea "github.com/charmbracelet/bubbletea"
+	"time"
 
 	"forester/game"
 	"forester/render"
@@ -37,13 +36,6 @@ func charAtScreen(m render.Model, col, row int) string {
 	return string(lines[row][col])
 }
 
-// sendKey fires a direction key ('w','a','s','d') through model.Update.
-func sendKey(m *render.Model, key string) {
-	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(key)}
-	updated, _ := m.Update(msg)
-	*m = updated.(render.Model)
-}
-
 // tick advances the clock by GameTickInterval and fires one TickMsg.
 func tick(m *render.Model, clock *game.FakeClock) {
 	clock.Advance(game.GameTickInterval)
@@ -67,32 +59,36 @@ func tickDraining(m *render.Model, clock *game.FakeClock, g *game.Game) {
 	drainOffers(g)
 }
 
-// moveDir advances the clock by the current tile's move cooldown, then sends the key.
-// It reads the player's current tile cooldown from the game state directly.
+// moveDir moves the player one tile in the given direction by calling MoveSmooth
+// in small steps until the tile position changes. This avoids float64 precision
+// issues when computing an exact one-tile traversal duration.
 func moveDir(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) {
 	p := g.State.Player
-	tile := g.State.World.TileAt(p.X, p.Y)
-	cooldown := game.MoveCooldownFor(tile)
-	clock.Advance(cooldown)
-	sendKey(m, dir)
-	renderFrame(*m, fmt.Sprintf("move %s → (%d, %d)", dir, g.State.Player.X, g.State.Player.Y))
+	startX, startY := p.TileX(), p.TileY()
+	var dx, dy float64
+	switch dir {
+	case "w":
+		dy = -1
+	case "s":
+		dy = 1
+	case "a":
+		dx = -1
+	case "d":
+		dx = 1
+	}
+	const (
+		step     = 5 * time.Millisecond
+		maxSteps = 200 // 1 second total; exit early if movement is blocked
+	)
+	for i := 0; i < maxSteps && p.TileX() == startX && p.TileY() == startY; i++ {
+		clock.Advance(step)
+		p.MoveSmooth(dx, dy, g.State.World, step)
+	}
+	renderFrame(*m, fmt.Sprintf("move %s → (%d, %d)", dir, p.TileX(), p.TileY()))
 }
 
-// moveSafe advances the clock by the greater of the current tile's move cooldown
-// or the remaining move cooldown, then sends the directional key. This correctly
-// handles Forest→Grassland transitions: after moving off a Forest tile (300ms
-// cooldown set), the subsequent Grassland move (only 150ms) would fail with
-// moveDir because the previous 300ms cooldown hasn't expired.
+// moveSafe is an alias for moveDir. Previously it handled Forest→Grassland cooldown
+// transitions, but MoveSmooth has no per-player move cooldown so the two are equivalent.
 func moveSafe(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) {
-	p := g.State.Player
-	tile := g.State.World.TileAt(p.X, p.Y)
-	needed := game.MoveCooldownFor(tile)
-	remaining := p.Cooldowns[game.Move].Sub(clock.Now())
-	if remaining > needed {
-		clock.Advance(remaining)
-	} else {
-		clock.Advance(needed)
-	}
-	sendKey(m, dir)
-	renderFrame(*m, fmt.Sprintf("moveSafe %s → (%d,%d)", dir, g.State.Player.X, g.State.Player.Y))
+	moveDir(m, clock, g, dir)
 }

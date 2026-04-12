@@ -29,8 +29,7 @@ func makeHouseGame() *game.Game {
 // buildHouseAt builds a house foundation at (ox, oy) with the player at (playerX, playerY).
 func buildHouseAt(g *game.Game, ox, oy, playerX, playerY int) {
 	g.State.World.PlaceFoundation(ox, oy, houseDef{})
-	g.State.Player.X = playerX
-	g.State.Player.Y = playerY
+	g.State.Player.SetTilePos(playerX, playerY)
 	g.State.Player.Inventory[game.Wood] = houseBuildCost
 	g.State.Player.SetCooldown(game.Build, time.Time{})
 	t0 := time.Now()
@@ -45,8 +44,7 @@ func TestBuildSetsLastThrustAt(t *testing.T) {
 	g := makeHouseGame()
 	origin := geom.Point{X: 10, Y: 10}
 	g.State.World.PlaceFoundation(origin.X, origin.Y, houseDef{})
-	g.State.Player.X = 9
-	g.State.Player.Y = 10
+	g.State.Player.SetTilePos(9, 10)
 	g.State.Player.Inventory[game.Wood] = 5
 	g.State.Player.SetCooldown(game.Build, time.Time{})
 
@@ -67,8 +65,7 @@ func TestLastThrustAtNotSetWhenNoWood(t *testing.T) {
 	g := makeHouseGame()
 	origin := geom.Point{X: 10, Y: 10}
 	g.State.World.PlaceFoundation(origin.X, origin.Y, houseDef{})
-	g.State.Player.X = 9
-	g.State.Player.Y = 10
+	g.State.Player.SetTilePos(9, 10)
 	g.State.Player.Inventory[game.Wood] = 0
 	g.State.Player.SetCooldown(game.Build, time.Time{})
 

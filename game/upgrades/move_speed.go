@@ -4,7 +4,7 @@ import "forester/game"
 
 func init() { game.RegisterUpgrade(moveSpeedUpgrade{}) }
 
-// moveSpeedUpgrade reduces all player movement cooldowns by 10%.
+// moveSpeedUpgrade increases player movement speed by 10%.
 type moveSpeedUpgrade struct{}
 
 // ID returns the unique identifier for this upgrade.
@@ -18,7 +18,7 @@ func (moveSpeedUpgrade) Description() string {
 	return "Your legs carry you further.\nMovement speed +10%."
 }
 
-// Apply reduces the player's move speed multiplier by 10%, increasing movement speed.
+// Apply increases the player's move speed by 10%.
 func (moveSpeedUpgrade) Apply(env *game.Env) {
-	env.State.Player.MoveSpeedMultiplier *= 0.9
+	env.State.Player.MoveSpeedMultiplier *= 1.1
 }

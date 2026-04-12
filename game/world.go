@@ -92,15 +92,15 @@ func (w *World) IsBlocked(x, y int) bool {
 }
 
 // MoveCost returns the movement cost to enter the tile at (x, y).
-// Derived from MoveCooldownFor so pathfinding cost stays in sync with movement speed.
-// Normalized by roadMoveCooldown (the fastest possible cooldown) so all values are
+// Derived from TerrainSpeedFor so pathfinding cost stays in sync with movement speed.
+// Normalized by roadSpeedFactor (the fastest terrain) so all values are
 // >= 1.0, keeping the A* Manhattan heuristic in geom.FindPath admissible.
 func (w *World) MoveCost(x, y int) float64 {
 	t := w.TileAt(x, y)
 	if t == nil {
-		return 1
+		return 1.0
 	}
-	return float64(MoveCooldownFor(t)) / float64(roadMoveCooldown)
+	return roadSpeedFactor / TerrainSpeedFor(t)
 }
 
 // noGrowRadius is the Euclidean radius around the spawn point and any structure

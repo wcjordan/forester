@@ -56,8 +56,7 @@ func TestResourceDepotWorkflow(t *testing.T) {
 	// Move player off world-center first: findValidLocationNearPlayer walks from
 	// the player toward the center, so the player must not be sitting on the center.
 	announcePhase(m, "Phase 1: Trigger log storage beat")
-	g.State.Player.X = 45
-	g.State.Player.Y = 50
+	g.State.Player.SetTilePos(45, 50)
 	g.State.Player.Inventory[game.Wood] = g.State.Player.MaxCarry
 	tick(&m, clock) // Harvest (no-op) → beat 100 → foundation spawns
 
@@ -68,8 +67,7 @@ func TestResourceDepotWorkflow(t *testing.T) {
 	// ── Phase 2: Build log storage ───────────────────────────────────────────
 	announcePhase(m, "Phase 2: Build log storage")
 	lsOrigin := firstOriginOf(g, structures.FoundationLogStorage)
-	g.State.Player.X = lsOrigin.X - 1
-	g.State.Player.Y = lsOrigin.Y
+	g.State.Player.SetTilePos(lsOrigin.X-1, lsOrigin.Y)
 	g.State.Player.Inventory[game.Wood] = e2eLogStorageBuildCost
 	g.State.Player.SetCooldown(game.Build, time.Time{})
 
@@ -96,8 +94,7 @@ func TestResourceDepotWorkflow(t *testing.T) {
 	// ── Phase 3: Deposit 50 wood to trigger initial_house beat ───────────────
 	// Beat 300 condition: stores.Total(Wood) >= 50.
 	announcePhase(m, "Phase 3: Deposit 50 wood to trigger house beat")
-	g.State.Player.X = lsOrigin.X - 1
-	g.State.Player.Y = lsOrigin.Y
+	g.State.Player.SetTilePos(lsOrigin.X-1, lsOrigin.Y)
 	g.State.Player.Inventory[game.Wood] = e2eHouseSpawnThreshold
 	g.State.Player.SetCooldown(game.Deposit, time.Time{})
 
@@ -140,8 +137,7 @@ func TestResourceDepotWorkflow(t *testing.T) {
 		}
 
 		hOrigin := firstOriginOf(g, structures.FoundationHouse)
-		g.State.Player.X = hOrigin.X - 1
-		g.State.Player.Y = hOrigin.Y
+		g.State.Player.SetTilePos(hOrigin.X-1, hOrigin.Y)
 		g.State.Player.Inventory[game.Wood] = e2eHouseBuildCost
 		g.State.Player.SetCooldown(game.Build, time.Time{})
 		// Lock deposit cooldown so adjacent log storage doesn't consume build wood.
@@ -189,8 +185,7 @@ func TestResourceDepotWorkflow(t *testing.T) {
 	// the build completes even if some ticks don't deposit due to transitions).
 	g.State.Player.MaxCarry = e2eDepotBuildCost + 100
 	g.State.Player.Inventory[game.Wood] = e2eDepotBuildCost + 100
-	g.State.Player.X = depotOrigin.X - 1
-	g.State.Player.Y = depotOrigin.Y
+	g.State.Player.SetTilePos(depotOrigin.X-1, depotOrigin.Y)
 	g.State.Player.SetCooldown(game.Build, time.Time{})
 
 	const maxDepotBuildTicks = 1200

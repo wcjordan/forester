@@ -39,7 +39,7 @@ func SpawnFoundationByType(env *Env, ft StructureType) bool {
 // valid location was found (caller may retry on the next tick).
 func spawnFoundationAt(env *Env, def StructureDef) bool {
 	world := env.State.World
-	playerX, playerY := env.State.Player.X, env.State.Player.Y
+	playerX, playerY := env.State.Player.TileX(), env.State.Player.TileY()
 	fw, fh := def.Footprint()
 	var cx, cy int
 	if sa, ok := def.(spawnAnchoredPlacer); ok && sa.UseSpawnAnchoredPlacement() {
