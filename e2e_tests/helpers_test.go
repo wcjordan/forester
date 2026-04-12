@@ -1,10 +1,17 @@
 package e2e_tests
 
 import (
+	"encoding/json"
 	"fmt"
+	"math/rand"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
+	"testing"
 	"time"
+
+	tea "github.com/charmbracelet/bubbletea"
 
 	"forester/game"
 	"forester/render"
@@ -91,4 +98,52 @@ func moveDir(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) {
 // transitions, but MoveSmooth has no per-player move cooldown so the two are equivalent.
 func moveSafe(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) {
 	moveDir(m, clock, g, dir)
+}
+
+// newTestGame creates a standard test game with seed-42 RNG and an 80×24 terminal.
+// All e2e tests use this as their base setup.
+func newTestGame() (*game.Game, *game.FakeClock, render.Model) {
+	clock := game.NewFakeClock()
+	g := game.NewWithClockAndRNG(clock, rand.New(rand.NewSource(42)))
+	m := render.NewModelWithClock(g, clock)
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	return g, clock, updated.(render.Model)
+}
+
+// loadFixture restores a game from a pre-built JSON fixture in e2e_tests/testdata/.
+// The returned game uses a fresh FakeClock at time 0 and a seed-42 RNG.
+// Regenerate fixtures with: go test -run TestGenerateFixtures -update-fixtures ./e2e_tests/
+func loadFixture(t *testing.T, name string) (*game.Game, *game.FakeClock, render.Model) {
+	t.Helper()
+	raw, err := os.ReadFile(filepath.Join("testdata", name+".json"))
+	if err != nil {
+		t.Fatalf("loadFixture %q: %v", name, err)
+	}
+	var saveData game.SaveGameData
+	if err := json.Unmarshal(raw, &saveData); err != nil {
+		t.Fatalf("loadFixture %q: unmarshal: %v", name, err)
+	}
+	g, clock, m := newTestGame()
+	if err := g.LoadFrom(saveData); err != nil {
+		t.Fatalf("loadFixture %q: LoadFrom: %v", name, err)
+	}
+	return g, clock, m
+}
+
+// writeFixture serialises the current game state to e2e_tests/testdata/<name>.json.
+// Used only by the fixture generator (TestGenerateFixtures).
+func writeFixture(t *testing.T, name string, g *game.Game) {
+	t.Helper()
+	if err := os.MkdirAll("testdata", 0o755); err != nil {
+		t.Fatalf("writeFixture %q: mkdir: %v", name, err)
+	}
+	data, err := json.MarshalIndent(g.SaveData(), "", "  ")
+	if err != nil {
+		t.Fatalf("writeFixture %q: marshal: %v", name, err)
+	}
+	path := filepath.Join("testdata", name+".json")
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatalf("writeFixture %q: write: %v", name, err)
+	}
+	t.Logf("wrote %s (%d bytes)", path, len(data))
 }

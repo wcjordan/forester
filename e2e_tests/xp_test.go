@@ -1,17 +1,13 @@
 package e2e_tests
 
 import (
-	"math/rand"
 	"strings"
 	"testing"
-
-	tea "github.com/charmbracelet/bubbletea"
 
 	"forester/game"
 	_ "forester/game/resources"
 	_ "forester/game/structures"
 	_ "forester/game/upgrades"
-	"forester/render"
 )
 
 // TestXPMilestoneOffer verifies that the XP system produces 3-card milestone offers
@@ -25,17 +21,10 @@ import (
 //  4. Accept the offer; verify XP is shown in the status bar.
 //  5. Verify the offer contains 3 distinct upgrade IDs from the expected pool.
 func TestXPMilestoneOffer(t *testing.T) {
-	// ── Setup ────────────────────────────────────────────────────────────────
-	clock := game.NewFakeClock()
-	g := game.NewWithClockAndRNG(clock, rand.New(rand.NewSource(42)))
-	m := render.NewModelWithClock(g, clock)
-	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
-	m = updated.(render.Model)
-
-	// ── Phase 1: Navigate to harvest position (48,45) ────────────────────────
-	for _, dir := range []string{"a", "a", "w", "w", "w", "w", "w"} {
-		moveSafe(&m, clock, g, dir)
-	}
+	// ── Setup: load from post-log-storage checkpoint ──────────────────────────
+	// Player starts at (48,45), log storage built, MaxCarry=100, story beats for
+	// log storage already completed (won't interrupt the harvest loop below).
+	g, clock, m := loadFixture(t, "checkpoint_log_storage")
 
 	// ── Phase 2: Harvest until a 3-card XP milestone offer appears ────────────
 	// Story beat 1-card offers (carry_capacity etc.) are auto-accepted.
