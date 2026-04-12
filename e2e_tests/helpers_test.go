@@ -1,8 +1,10 @@
 package e2e_tests
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -110,14 +112,23 @@ func newTestGame() (*game.Game, *game.FakeClock, render.Model) {
 	return g, clock, updated.(render.Model)
 }
 
-// loadFixture restores a game from a pre-built JSON fixture in e2e_tests/testdata/.
+// loadFixture restores a game from a pre-built gzipped JSON fixture in e2e_tests/testdata/.
 // The returned game uses a fresh FakeClock at time 0 and a seed-42 RNG.
-// Regenerate fixtures with: go test -run TestGenerateFixtures -update-fixtures ./e2e_tests/
+// Regenerate fixtures with: go test -run TestGenerateFixtures -args -update-fixtures ./e2e_tests/
 func loadFixture(t *testing.T, name string) (*game.Game, *game.FakeClock, render.Model) {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join("testdata", name+".json"))
+	f, err := os.Open(filepath.Join("testdata", name+".json.gz"))
 	if err != nil {
 		t.Fatalf("loadFixture %q: %v", name, err)
+	}
+	defer func() { _ = f.Close() }()
+	r, err := gzip.NewReader(f)
+	if err != nil {
+		t.Fatalf("loadFixture %q: gzip: %v", name, err)
+	}
+	raw, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("loadFixture %q: read: %v", name, err)
 	}
 	var saveData game.SaveGameData
 	if err := json.Unmarshal(raw, &saveData); err != nil {
@@ -130,20 +141,29 @@ func loadFixture(t *testing.T, name string) (*game.Game, *game.FakeClock, render
 	return g, clock, m
 }
 
-// writeFixture serialises the current game state to e2e_tests/testdata/<name>.json.
+// writeFixture serialises the current game state to e2e_tests/testdata/<name>.json.gz.
 // Used only by the fixture generator (TestGenerateFixtures).
 func writeFixture(t *testing.T, name string, g *game.Game) {
 	t.Helper()
 	if err := os.MkdirAll("testdata", 0o755); err != nil {
 		t.Fatalf("writeFixture %q: mkdir: %v", name, err)
 	}
-	data, err := json.MarshalIndent(g.SaveData(), "", "  ")
+	data, err := json.Marshal(g.SaveData())
 	if err != nil {
 		t.Fatalf("writeFixture %q: marshal: %v", name, err)
 	}
-	path := filepath.Join("testdata", name+".json")
-	if err := os.WriteFile(path, data, 0o644); err != nil {
-		t.Fatalf("writeFixture %q: write: %v", name, err)
+	path := filepath.Join("testdata", name+".json.gz")
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("writeFixture %q: create: %v", name, err)
 	}
-	t.Logf("wrote %s (%d bytes)", path, len(data))
+	defer func() { _ = f.Close() }()
+	w := gzip.NewWriter(f)
+	if _, err := w.Write(data); err != nil {
+		t.Fatalf("writeFixture %q: gzip write: %v", name, err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf("writeFixture %q: gzip close: %v", name, err)
+	}
+	t.Logf("wrote %s (%d bytes compressed)", path, len(data))
 }
