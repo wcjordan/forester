@@ -59,17 +59,12 @@ func tickDraining(m *render.Model, clock *game.FakeClock, g *game.Game) {
 	drainOffers(g)
 }
 
-// moveDir advances the clock by one tile-traversal duration and moves the player
-// directly via MoveSmooth. Bypasses the TUI key handler to avoid lastMoveAt
-// staleness from intervening ticks.
+// moveDir moves the player one tile in the given direction by calling MoveSmooth
+// in small steps until the tile position changes. This avoids float64 precision
+// issues when computing an exact one-tile traversal duration.
 func moveDir(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) {
 	p := g.State.Player
-	tile := g.State.World.TileAt(p.TileX(), p.TileY())
-	// Use the base 150ms cooldown divided by terrain/speed factors to get an exact
-	// integer nanosecond duration. This avoids the 1ns truncation that occurs when
-	// dividing time.Second by DefaultMoveSpeed first, which can leave distance < 1 tile.
-	dt := time.Duration(float64(150*time.Millisecond) / (p.MoveSpeedMultiplier * game.TerrainSpeedFor(tile)))
-	clock.Advance(dt)
+	startX, startY := p.TileX(), p.TileY()
 	var dx, dy float64
 	switch dir {
 	case "w":
@@ -81,8 +76,15 @@ func moveDir(m *render.Model, clock *game.FakeClock, g *game.Game, dir string) {
 	case "d":
 		dx = 1
 	}
-	p.MoveSmooth(dx, dy, g.State.World, dt)
-	renderFrame(*m, fmt.Sprintf("move %s → (%d, %d)", dir, g.State.Player.TileX(), g.State.Player.TileY()))
+	const (
+		step     = 5 * time.Millisecond
+		maxSteps = 200 // 1 second total; exit early if movement is blocked
+	)
+	for i := 0; i < maxSteps && p.TileX() == startX && p.TileY() == startY; i++ {
+		clock.Advance(step)
+		p.MoveSmooth(dx, dy, g.State.World, step)
+	}
+	renderFrame(*m, fmt.Sprintf("move %s → (%d, %d)", dir, p.TileX(), p.TileY()))
 }
 
 // moveSafe is an alias for moveDir. Previously it handled Forest→Grassland cooldown

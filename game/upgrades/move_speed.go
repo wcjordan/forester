@@ -20,5 +20,5 @@ func (moveSpeedUpgrade) Description() string {
 
 // Apply increases the player's move speed by 10%.
 func (moveSpeedUpgrade) Apply(env *game.Env) {
-	env.State.Player.MoveSpeedMultiplier *= 1.0 / 0.9
+	env.State.Player.MoveSpeedMultiplier *= 1.1
 }

@@ -237,26 +237,28 @@ const harvestTickInterval = 100 * time.Millisecond
 // PlayerSaveData holds the persistent fields of Player.
 // Runtime-only fields (Cooldowns, pendingCooldowns, LastHarvestAt, LastThrustAt) are excluded.
 type PlayerSaveData struct {
+	// Version identifies the save format. Zero (absent) means pre-versioning.
+	// 0.1: MoveSpeedMultiplier uses direct semantics (higher=faster).
+	Version float64
+
 	// X, Y are kept for backward-compat reading of saves written before PosX/PosY
 	// were introduced. New saves do not write these fields; LoadFrom falls back to
 	// them only when PosX and PosY are both zero.
-	X, Y               int
-	PosX, PosY         float64
-	FacingDX, FacingDY int
-	Inventory          map[ResourceType]int
-	MaxCarry           int
-	BuildInterval      time.Duration
-	DepositInterval    time.Duration
-	HarvestInterval    time.Duration
-	// MoveSpeedMultiplier is the canonical speed field (direct: 1.0=default, >1.0=faster).
-	// Saves from origin/main wrote inverted values (lower=faster); LoadFrom converts
-	// values < 1.0 to the direct semantics.
+	X, Y                int
+	PosX, PosY          float64
+	FacingDX, FacingDY  int
+	Inventory           map[ResourceType]int
+	MaxCarry            int
+	BuildInterval       time.Duration
+	DepositInterval     time.Duration
+	HarvestInterval     time.Duration
 	MoveSpeedMultiplier float64
 }
 
 // SaveData returns a snapshot of the player's persistent state.
 func (p *Player) SaveData() PlayerSaveData {
 	return PlayerSaveData{
+		Version: 0.1,
 		// X/Y intentionally omitted — PosX/PosY are the canonical saved position.
 		PosX:                p.PosX,
 		PosY:                p.PosY,
@@ -294,9 +296,9 @@ func (p *Player) LoadFrom(data PlayerSaveData) {
 	if mult == 0 {
 		mult = 1.0
 	}
-	// Values < 1.0 are from origin/main saves where MoveSpeedMultiplier was inverted
-	// (lower = faster; e.g. 0.9 = 10% faster). Convert to direct semantics.
-	if mult < 1.0 {
+	// Pre-0.1 saves used inverted semantics (lower=faster; e.g. 0.9 = 10% faster).
+	// Version >= 0.1 writes direct semantics (higher=faster) so no conversion needed.
+	if data.Version < 0.1 && mult < 1.0 {
 		p.MoveSpeedMultiplier = 1.0 / mult
 	} else {
 		p.MoveSpeedMultiplier = mult
