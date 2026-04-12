@@ -172,8 +172,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			now := m.clock.Now()
 			// Compute dt from elapsed time since last key event, capped at one
 			// movement tick to prevent large jumps after pauses. On first press
-			// (lastKeyAt is zero) use movTickInterval directly.
-			dt := movTickInterval
+			// (lastKeyAt is zero) use 4 * movTickInterval directly.
+			dt := 4 * movTickInterval
 			if !m.lastKeyAt.IsZero() {
 				if elapsed := now.Sub(m.lastKeyAt); elapsed < movTickInterval {
 					dt = elapsed
