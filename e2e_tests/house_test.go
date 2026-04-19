@@ -4,17 +4,13 @@ package e2e_tests
 
 import (
 	"fmt"
-	"math/rand"
 	"testing"
-
-	tea "github.com/charmbracelet/bubbletea"
 
 	"forester/game"
 	"forester/game/geom"
 	_ "forester/game/resources"
 	"forester/game/structures"
 	_ "forester/game/upgrades"
-	"forester/render"
 )
 
 // TestHouseWorkflow is a full end-to-end scenario for the house building path:
@@ -49,49 +45,16 @@ const (
 )
 
 func TestHouseWorkflow(t *testing.T) {
-	// ── Setup ────────────────────────────────────────────────────────────────
-	clock := game.NewFakeClock()
-	g := game.NewWithClockAndRNG(clock, rand.New(rand.NewSource(42)))
-	m := render.NewModelWithClock(g, clock)
-	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
-	m = updated.(render.Model)
-
-	// ── Phase 1: Navigate to harvest position (48,45) ────────────────────────
-	// west×2 from (50,50) → (48,50), north×5 → (48,45).
-	// All tiles are Grassland or Forest; moveSafe handles any terrain transition.
-	announcePhase(m, "Phase 1: Navigate to harvest position (48,45)")
-	for _, dir := range []string{"a", "a", "w", "w", "w", "w", "w"} {
-		moveSafe(&m, clock, g, dir)
-	}
+	// ── Setup: load from post-log-storage checkpoint ──────────────────────────
+	// Starts with: LogStorage built, MaxCarry=100 (carry upgrade accepted),
+	// player at (48,45). Skips navigating + building the log storage (~200 ticks).
+	g, clock, m := loadFixture(t, "checkpoint_log_storage")
 	if g.State.Player.TileX() != 48 || g.State.Player.TileY() != 45 {
-		t.Fatalf("phase 1: expected player at (48,45), got (%d,%d)",
+		t.Fatalf("fixture: expected player at (48,45), got (%d,%d)",
 			g.State.Player.TileX(), g.State.Player.TileY())
 	}
-
-	// ── Phase 2: Build log storage + accept MaxCarry upgrade ─────────────────
-	// Player harvests from the 4-tile arc facing north and auto-deposits into
-	// the foundation. Log storage completes after 20 deposits. One extra tick is
-	// then needed for the first_log_storage_built story beat to queue the offer.
-	announcePhase(m, "Phase 2: Build log storage")
-	const maxLogStorageTicks = 200
-	for i := range maxLogStorageTicks {
-		tick(&m, clock)
-		if g.State.World.HasStructureOfType(structures.LogStorage) {
-			break
-		}
-		if i == maxLogStorageTicks-1 {
-			t.Fatal("phase 2: log storage not built within expected ticks")
-		}
-	}
-	// Extra tick: first_log_storage_built story beat fires → carry upgrade offer queued.
-	tick(&m, clock)
-	if !g.HasPendingOffer() {
-		t.Fatal("phase 2: expected carry upgrade offer after log storage built")
-	}
-	g.SelectCard(0) // carry_capacity: MaxCarry 20 → 100
 	if g.State.Player.MaxCarry != 100 {
-		t.Errorf("phase 2: MaxCarry = %d, want 100 after accepting carry upgrade",
-			g.State.Player.MaxCarry)
+		t.Fatalf("fixture: expected MaxCarry=100, got %d", g.State.Player.MaxCarry)
 	}
 
 	// ── Phase 3: Harvest wood going north to fill MaxCarry ───────────────────

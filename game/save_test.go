@@ -149,7 +149,7 @@ func TestSaveDataZoomLevel(t *testing.T) {
 		t.Errorf("ZoomLevel = %v, want 2.5", d.ZoomLevel)
 	}
 	g2 := testGame(t)
-	if err := g2.loadSaveData(d); err != nil {
+	if err := g2.LoadSaveData(d); err != nil {
 		t.Fatalf("loadSaveData error: %v", err)
 	}
 	if g2.ZoomLevel != 2.5 {
@@ -191,7 +191,7 @@ func TestLoadSaveDataRoundTrip(t *testing.T) {
 	// Save then load into a fresh game.
 	saved := g.SaveData()
 	g2 := testGame(t)
-	if err := g2.loadSaveData(saved); err != nil {
+	if err := g2.LoadSaveData(saved); err != nil {
 		t.Fatalf("loadSaveData error: %v", err)
 	}
 

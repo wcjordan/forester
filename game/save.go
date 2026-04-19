@@ -35,8 +35,10 @@ func (g *Game) SaveData() SaveGameData {
 	}
 }
 
-// loadSaveData restores the game from a SaveGameData snapshot.
-func (g *Game) loadSaveData(data SaveGameData) error {
+// LoadSaveData restores the game from a SaveGameData snapshot without disk I/O.
+// Useful for testing: load a pre-built fixture into a game that was created
+// with a known clock and RNG.
+func (g *Game) LoadSaveData(data SaveGameData) error {
 	player := &Player{}
 	player.LoadFrom(data.Player)
 

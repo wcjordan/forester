@@ -2,23 +2,18 @@ package e2e_tests
 
 import (
 	"fmt"
-	"math/rand"
 	"testing"
 	"time"
-
-	tea "github.com/charmbracelet/bubbletea"
 
 	"forester/game"
 	"forester/game/geom"
 	_ "forester/game/resources"
 	"forester/game/structures"
 	_ "forester/game/upgrades"
-	"forester/render"
 )
 
 // E2E build-cost constants mirrored from game/structures (package-private there).
 const (
-	e2eLogStorageBuildCost = 20
 	e2eHouseBuildCost      = 50
 	e2eDepotBuildCost      = 800
 	e2eHouseSpawnThreshold = 50 // wood stored to trigger initial_house beat
@@ -45,51 +40,13 @@ func firstOriginOf(g *game.Game, stype game.StructureType) geom.Point {
 //  6. Build depot (800 wood) → beat 600 fires → large_carry_capacity offer queued.
 //  7. Accept card → verify MaxCarry increased by 100.
 func TestResourceDepotWorkflow(t *testing.T) {
-	clock := game.NewFakeClock()
-	g := game.NewWithClockAndRNG(clock, rand.New(rand.NewSource(42)))
-	m := render.NewModelWithClock(g, clock)
-	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
-	m = updated.(render.Model)
+	// ── Setup: load from post-log-storage checkpoint ──────────────────────────
+	// Starts with: LogStorage built, MaxCarry=100 (carry upgrade accepted),
+	// player at (48,45). Skips phases 1+2 (trigger beat + build log storage).
+	g, clock, m := loadFixture(t, "checkpoint_log_storage")
 
-	// ── Phase 1: Trigger initial_log_storage beat ────────────────────────────
-	// Beat 100 condition: player.Inventory[Wood] >= MaxCarry.
-	// Move player off world-center first: findValidLocationNearPlayer walks from
-	// the player toward the center, so the player must not be sitting on the center.
-	announcePhase(m, "Phase 1: Trigger log storage beat")
-	g.State.Player.SetTilePos(45, 50)
-	g.State.Player.Inventory[game.Wood] = g.State.Player.MaxCarry
-	tick(&m, clock) // Harvest (no-op) → beat 100 → foundation spawns
-
-	if !g.State.World.HasStructureOfType(structures.FoundationLogStorage) {
-		t.Fatal("phase 1: FoundationLogStorage not spawned after filling inventory")
-	}
-
-	// ── Phase 2: Build log storage ───────────────────────────────────────────
-	announcePhase(m, "Phase 2: Build log storage")
-	lsOrigin := firstOriginOf(g, structures.FoundationLogStorage)
-	g.State.Player.SetTilePos(lsOrigin.X-1, lsOrigin.Y)
-	g.State.Player.Inventory[game.Wood] = e2eLogStorageBuildCost
-	g.State.Player.SetCooldown(game.Build, time.Time{})
-
-	const maxLogStorageTicks = 60
-	for i := range maxLogStorageTicks {
-		tickDraining(&m, clock, g)
-		if g.State.World.HasStructureOfType(structures.LogStorage) {
-			break
-		}
-		if i == maxLogStorageTicks-1 {
-			t.Fatalf("phase 2: log storage not built after %d ticks", maxLogStorageTicks)
-		}
-	}
-	// Beat 200 fires on next tick → carry_capacity offer queued.
-	tick(&m, clock)
-	if !g.HasPendingOffer() {
-		t.Fatal("phase 2: carry_capacity offer not queued after log storage built")
-	}
-	g.SelectCard(0) // carry_capacity: MaxCarry 20 → 100
-	if g.State.Player.MaxCarry != 100 {
-		t.Errorf("phase 2: MaxCarry = %d, want 100", g.State.Player.MaxCarry)
-	}
+	// Find the log storage origin for positioning in later phases.
+	lsOrigin := firstOriginOf(g, structures.LogStorage)
 
 	// ── Phase 3: Deposit 50 wood to trigger initial_house beat ───────────────
 	// Beat 300 condition: stores.Total(Wood) >= 50.
