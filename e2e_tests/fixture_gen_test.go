@@ -17,7 +17,7 @@ var updateFixtures = flag.Bool("update-fixtures", false, "regenerate testdata fi
 // TestGenerateFixtures builds game state to well-known checkpoints and writes
 // them as JSON to e2e_tests/testdata/. Skipped by default; run with:
 //
-//	go test -run TestGenerateFixtures -update-fixtures ./e2e_tests/
+//	go test ./e2e_tests/ -run TestGenerateFixtures -update-fixtures
 //
 // Fixtures capture the complete serialisable game state (world, player, story
 // beats, XP, etc.) so individual tests can skip setup ticks they don't care about.

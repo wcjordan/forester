@@ -1,4 +1,4 @@
-.PHONY: build test lint run dev clean check format e2e_viz wasm road_preview sprite_preview
+.PHONY: build test lint run dev clean check format e2e_viz wasm road_preview sprite_preview generate_test_save_fixtures
 
 BINARY := forester
 
@@ -40,3 +40,6 @@ road_preview:
 
 sprite_preview:
 	go run ./tools/sprite-preview
+
+generate_test_save_fixtures:
+	go test ./e2e_tests/ -run TestGenerateFixtures -update-fixtures
